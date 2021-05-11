@@ -243,8 +243,8 @@ async def tag(ctx, moderator):
     await ctx.send(embed=embed)
 
 @slash.slash(name="tag", description="A command used to leave a note to a channel")
-async def tag(ctx, note, user, channel, role):
-    await ctx.defer(hidden=True)
+async def tag(ctx, note, user = None, channel = None, rolei = None):
+    await ctx.defer(hidden=False)
     db = sqlite3.connect('main.sqlite')
     cursor = db.cursor()
     cursor.execute(f"SELECT moderator FROM main WHERE guild_id = {ctx.guild.id}")
@@ -252,27 +252,26 @@ async def tag(ctx, note, user, channel, role):
     if result[0] is None:
         embed = discord.Embed(description=f"You don't have a moderator role set.", color=ctx.author.color)
         embed.set_footer(text="Ham5teak Bot 3.0 | play.ham5teak.xyz | Made by Beastman#1937 and Jaymz#7815")
-        await ctx.send(embed=embed)
+        await ctx.send(embed=embed, hidden=True)
         return
     elif result is not None:
         role = result[0]
         role1 = discord.utils.get(ctx.guild.roles, id=role)
         if role1 in ctx.author.roles:
-            print(f"{note} {user} {channel} {role}")
-            mentions = [user, channel, role]
-            for mention in mentions:
-                if mention is not None:
-                    print("message doesn't have mentions")
-                    embed = discord.Embed(description=f"{ctx.author.mention} has tagged the channel as `{note.upper()}` {mention}", color=ctx.author.color)
-                    embed.set_footer(text="Ham5teak Bot 3.0 | play.ham5teak.xyz | Made by Beastman#1937 and Jaymz#7815")
-                    await ctx.send(embed=embed)
-                else:
-                    pass
-                    print("message doesn't have mentions")
-                    embed = discord.Embed(description=f"{ctx.author.mention} has tagged the channel as `{note.upper()}` {member}", color=ctx.author.color)
-                    embed.set_footer(text="Ham5teak Bot 3.0 | play.ham5teak.xyz | Made by Beastman#1937 and Jaymz#7815")
-                    await ctx.send(embed=embed)
-
+            if user is not None:
+                embed = discord.Embed(description=f"{ctx.author.mention} has tagged the channel as `{note.upper()}` {user.mention}", color=ctx.author.color)
+                embed.set_footer(text="Ham5teak Bot 3.0 | play.ham5teak.xyz | Made by Beastman#1937 and Jaymz#7815")
+            elif channel is not None:
+                embed = discord.Embed(description=f"{ctx.author.mention} has tagged the channel as `{note.upper()}` {channel.mention}", color=ctx.author.color)
+                embed.set_footer(text="Ham5teak Bot 3.0 | play.ham5teak.xyz | Made by Beastman#1937 and Jaymz#7815")
+            elif rolei is not None:
+                embed = discord.Embed(description=f"{ctx.author.mention} has tagged the channel as `{note.upper()}` {rolei.mention}", color=ctx.author.color)
+                embed.set_footer(text="Ham5teak Bot 3.0 | play.ham5teak.xyz | Made by Beastman#1937 and Jaymz#7815")
+            else:
+                embed = discord.Embed(description=f"{ctx.author.mention} has tagged the channel as `{note.upper()}`", color=ctx.author.color)
+                embed.set_footer(text="Ham5teak Bot 3.0 | play.ham5teak.xyz | Made by Beastman#1937 and Jaymz#7815")
+            await ctx.send(embed=embed)
+                    
 @slash.slash(name="edit", description="Edit an embed sent by the bot")
 async def tag(ctx: SlashContext, messageid, new):
     await ctx.defer(hidden=True)
