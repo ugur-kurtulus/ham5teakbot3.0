@@ -1,13 +1,13 @@
 import os
 from dotenv import load_dotenv
-from discord.utils import get  # New import
+from discord.utils import get  
 import discord
-from discord.ext import commands  # New import
+from discord.ext import commands  
 from discord_slash import SlashCommand, SlashContext
 from mcstatus import MinecraftServer
 import asyncio
 import sys
-import sqlite3
+import sqlite3  
 
 client = commands.Bot(command_prefix='-')  # Defines prefix and bot
 slash = SlashCommand(client, sync_commands=False)  # Defines slash commands
@@ -24,9 +24,9 @@ async def my_background_task():
         if statuschannel[0] is not None:
             channel = client.get_channel(statuschannel[0])
             await channel.purge(limit=10)
-            server = MinecraftServer.lookup("play.ham5teak.xyz:25565")
+            server = MinecraftServer.lookup("play.ham5teak.xyz:25565")  #server ip
             status = server.status()
-            if status.latency >= 1:
+            if status.latency >= 1:  #checks if connection to server is possible
                 ham5teak = "Online ✅"
             else:
                 ham5teak = "Offline ❌"
@@ -67,13 +67,13 @@ async def on_ready():
         )
     ''')
     print('Logged on as {0}!'.format(client.user.name))
-    activity = discord.Game(name="play.ham5teak.xyz")
+    activity = discord.Game(name="play.ham5teak.xyz")  # sets presence
     await client.change_presence(status=discord.Status.online, activity=activity)
     print("Presence has been set!")
     message = ""
     for guild in client.guilds:
         message += f"{guild.name}\n"
-    channel = client.get_channel(841245744421273620)
+    channel = client.get_channel(841245744421273620)  # finds the bot startup log channel
     embed = discord.Embed(description=f"**__Guilds:__ **\n{message}", color=discord.Color.teal())
     embed.set_footer(text="Ham5teak Bot 3.0 | play.ham5teak.xyz | Made by Beastman#1937 and Jaymz#7815")
     await channel.send(embed=embed)
@@ -96,15 +96,15 @@ async def setchannel(ctx, arg1, arg):
     commandsloop = ["statuschannel", "alertschannel", "lpalertschannel", "crashalertschannel"]
     for command in commandsloop:
         if arg1 == command:
-            db = sqlite3.connect('main.sqlite')
+            db = sqlite3.connect('main.sqlite')  # connects to sqlite file
         cursor = db.cursor()
-        cursor.execute(f"SELECT statuschannel_id FROM main WHERE guild_id = {ctx.guild.id}")
-        result =  cursor.fetchone()
+        cursor.execute(f"SELECT statuschannel_id FROM main WHERE guild_id = {ctx.guild.id}")  # selects value from file
+        result =  cursor.fetchone()  # fetches the value
         if result is None:
-            sql = ("INSERT INTO main(guild_id, statuschannel_id) VALUES(?,?)")
+            sql = ("INSERT INTO main(guild_id, statuschannel_id) VALUES(?,?)")  # inserts a value
             val = (ctx.guild.id, arg)
         elif result is not None:
-            sql = ("UPDATE main SET statuschannel_id = ? WHERE guild_id = ?")
+            sql = ("UPDATE main SET statuschannel_id = ? WHERE guild_id = ?")  # updates a value
             val = (arg, ctx.guild.id)
         cursor.execute(sql, val)
         db.commit()
@@ -113,7 +113,7 @@ async def setchannel(ctx, arg1, arg):
         
 
 @edit.error
-async def clear_error(ctx, error):
+async def clear_error(ctx, error):  # error handler for regular command, edit
     if isinstance(error, commands.MissingRequiredArgument):
         await ctx.message.delete()
         error = await ctx.send('Please specify the amount of message you would like to edit. `-edit <messageid> <newmessage>`')
@@ -125,7 +125,7 @@ async def clear_error(ctx, error):
         await error.delete()
 
 @setchannel.error
-async def clear_error(ctx, error):
+async def clear_error(ctx, error):  # error handler for regular command setchannel
     if isinstance(error, commands.MissingRequiredArgument):
         await ctx.message.delete()
         error = await ctx.send('Please specify the channel you would like to set. `-setchannel <channel> <id>`')
@@ -140,22 +140,22 @@ async def on_slash_command_error(ctx, error):
         embed.set_footer(text="Ham5teak Bot 3.0 | play.ham5teak.xyz | Made by Beastman#1937 and Jaymz#7815")
         await ctx.send(embed=embed, hidden=True)
 
-@slash.slash(name="setchannel", description="Set channels for your server")
-@commands.has_permissions(manage_guild=True)
+@slash.slash(name="setchannel", description="Set channels for your server")  # gets the slash command
+@commands.has_permissions(manage_guild=True)  # checks if user has enough permission
 async def tag(ctx, channel, value):
-    if ctx.channel.type is discord.ChannelType.private:
+    if ctx.channel.type is discord.ChannelType.private:  # checks if it's a dm
         return
-    await ctx.defer(hidden=True)
+    await ctx.defer(hidden=True)  # toggles hidden response
     commandsloop = ["statuschannel_id", "alertschannel_id", "lpalertschannel_id", "crashalertschannel_id", "tc", "svc",
     "sbc", "svsvc", "facc", "prc", "crc", "cbc", "dcc", "cc", "bugc", "imptc", "hsc", "eventc"]
     for command in commandsloop:
         if channel == command:
-            if value == "Null" or value == "null":
+            if value == "Null" or value == "null":  # checks if value is null
                 db = sqlite3.connect('main.sqlite')
                 cursor = db.cursor()
                 cursor.execute(f"SELECT {channel} FROM main WHERE guild_id = {ctx.guild.id}")
                 result =  cursor.fetchone()
-                if result is None:
+                if result is None:  
                     return
                 elif result is not None:
                     cursor.execute(f"SELECT {channel} FROM main WHERE guild_id = {ctx.guild.id}")
