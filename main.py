@@ -18,31 +18,6 @@ TOKEN = os.getenv("DISCORD_TOKEN")
 async def my_background_task():
     db = sqlite3.connect('main.sqlite')
     cursor = db.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS main(
-            guild_id INTEGER,
-            statuschannel_id INTEGER,
-            alertschannel_id INTEGER,
-            lpalertschannel_id INTEGER,
-            crashalertschannel_id INTEGER,
-            tc INTEGER,
-            svc INTEGER,
-            sbc INTEGER,
-            facc INTEGER,
-            svsvc INTEGER,
-            crc INTEGER,
-            prc INTEGER,
-            cbc INTEGER,
-            dcc INTEGER,
-            cc INTEGER,
-            hsc INTEGER,
-            bugc INTEGER,
-            imptc INTEGER,
-            eventc INTEGER, 
-            mgc INTEGER,
-            moderator INTEGER
-        )
-    ''')
     for guild in client.guilds:
         cursor.execute(f"SELECT statuschannel_id FROM main WHERE guild_id = {guild.id}")
         statuschannel = cursor.fetchone()
