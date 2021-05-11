@@ -194,23 +194,30 @@ async def tag(ctx, channel, value):
                     await ctx.send(embed=embed)
                     return
             else:
-                db = sqlite3.connect('main.sqlite')
-                cursor = db.cursor()
-                cursor.execute(f"SELECT {channel} FROM main WHERE guild_id = {ctx.guild.id}")
-                result =  cursor.fetchone()
-                if result is None:
-                    sql = (f"INSERT INTO main(guild_id, {channel}) VALUES(?,?)")
-                    val = (ctx.guild.id, value)
-                elif result is not None:
-                    sql = (f"UPDATE main SET {channel} = ? WHERE guild_id = ?")
-                    val = (value, ctx.guild.id)
-                cursor.execute(sql, val)
-                db.commit()
-                cursor.close()
-                db.close()
-                embed = discord.Embed(description=f"{value} has been set as {channel}", color=ctx.author.color)
-                embed.set_footer(text="Ham5teak Bot 3.0 | play.ham5teak.xyz | Made by Beastman#1937 and Jaymz#7815")
-                await ctx.send(embed=embed)
+                a = int(value)
+                if client.get_channel(a) is not None:
+                    db = sqlite3.connect('main.sqlite')
+                    cursor = db.cursor()
+                    cursor.execute(f"SELECT {channel} FROM main WHERE guild_id = {ctx.guild.id}")
+                    result =  cursor.fetchone()
+                    if result is None:
+                        sql = (f"INSERT INTO main(guild_id, {channel}) VALUES(?,?)")
+                        val = (ctx.guild.id, value)
+                    elif result is not None:
+                        sql = (f"UPDATE main SET {channel} = ? WHERE guild_id = ?")
+                        val = (value, ctx.guild.id)
+                    cursor.execute(sql, val)
+                    db.commit()
+                    cursor.close()
+                    db.close()
+                    embed = discord.Embed(description=f"{value} has been set as {channel}", color=ctx.author.color)
+                    embed.set_footer(text="Ham5teak Bot 3.0 | play.ham5teak.xyz | Made by Beastman#1937 and Jaymz#7815")
+                    await ctx.send(embed=embed)
+                    return
+                else:
+                    embed = discord.Embed(description=f"Channel ID {value} is not valid.", color=ctx.author.color)
+                    embed.set_footer(text="Ham5teak Bot 3.0 | play.ham5teak.xyz | Made by Beastman#1937 and Jaymz#7815")
+                    await ctx.send(embed=embed)
 
 @slash.slash(name="setrole", description="Set roles for your server")
 @commands.has_permissions(manage_guild=True)
