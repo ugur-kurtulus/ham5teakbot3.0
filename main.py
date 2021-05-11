@@ -351,60 +351,64 @@ async def tag(ctx: SlashContext, category):
 
 @client.event
 async def on_message(message):
-    if "announcements" in message.channel.name:
-        if message.author.id != client.user.id:
-            if message.content.startswith('-edit'):
-                return
-            else:
-                if message.attachments:
-                    await message.attachments[0].save(f"./{message.attachments[0].filename}")
-                    file = discord.File(message.attachments[0].filename)
-                    embed = discord.Embed(description=f"{message.content}", color=message.author.color)
-                    embed.set_author(name=message.author.name, icon_url=message.author.avatar_url)
-                    embed.set_image(url=f"attachment://{message.attachments[0].filename}")
-                    embed.set_footer(text="Ham5teak Bot 3.0 | play.ham5teak.xyz | Made by Beastman#1937 and Jaymz#7815")
-                    msg = await message.channel.send(embed=embed, file=file)
-                    await msg.add_reaction("👍")
-                    await msg.add_reaction("❤️")
-                    print(f"An image inclusive announcement was made in #{message.channel.name} by {message.author}.")
-                    await message.delete()
-                    os.remove(f"./{message.attachments[0].filename}")
-                if not message.attachments:
-                    await message.delete()
-                    embed = discord.Embed(description=f"{message.content}", color=message.author.color)
-                    embed.set_author(name=message.author.name, icon_url=message.author.avatar_url)
-                    embed.set_footer(text="Ham5teak Bot 3.0 | play.ham5teak.xyz | Made by Beastman#1937 and Jaymz#7815")
-                    msg = await message.channel.send(embed=embed)
-                    await msg.add_reaction("👍")
-                    await msg.add_reaction("❤️")
-                    print(f"An announcement was made in #{message.channel.name} by {message.author}.")
-    if "suggestions" in message.channel.name:
-        if message.author.id != client.user.id:
-            if message.content.startswith('-edit'):
-                return
-            else:
-                if message.attachments:
-                    await message.attachments[0].save(f"./{message.attachments[0].filename}")
-                    file = discord.File(message.attachments[0].filename)
-                    embed = discord.Embed(description=f"{message.content}", color=message.author.color)
-                    embed.set_author(name=message.author.name, icon_url=message.author.avatar_url)
-                    embed.set_image(url=f"attachment://{message.attachments[0].filename}")
-                    embed.set_footer(text="Ham5teak Bot 3.0 | play.ham5teak.xyz | Made by Beastman#1937 and Jaymz#7815")
-                    msg = await message.channel.send(embed=embed, file = file)
-                    await msg.add_reaction("✅")
-                    await msg.add_reaction("❌")
-                    print(f"An image inclusive suggestion was made in #{message.channel.name} by {message.author}.")
-                    await message.delete()
-                    os.remove(f"./{message.attachments[0].filename}")
-                if not message.attachments:
-                    await message.delete()
-                    embed = discord.Embed(description=f"{message.content}", color=message.author.color)
-                    embed.set_author(name=message.author.name, icon_url=message.author.avatar_url)
-                    embed.set_footer(text="Ham5teak Bot 3.0 | play.ham5teak.xyz | Made by Beastman#1937 and Jaymz#7815")
-                    msg = await message.channel.send(embed=embed)
-                    await msg.add_reaction("✅")
-                    await msg.add_reaction("❌")
-                    print(f"An suggestion was made in #{message.channel.name} by {message.author}.")
+    channelnames = ["announcements", "updates", "competitions", "events"]
+    for channel in channelnames:
+        if channel in message.channel.name:
+            if not message.author.bot:
+                if message.content.startswith('-edit'):
+                    return
+                else:
+                    if message.attachments:
+                        await message.attachments[0].save(f"./{message.attachments[0].filename}")
+                        file = discord.File(message.attachments[0].filename)
+                        embed = discord.Embed(description=f"{message.content}", color=message.author.color)
+                        embed.set_author(name=message.author.name, icon_url=message.author.avatar_url)
+                        embed.set_image(url=f"attachment://{message.attachments[0].filename}")
+                        embed.set_footer(text="Ham5teak Bot 3.0 | play.ham5teak.xyz | Made by Beastman#1937 and Jaymz#7815")
+                        msg = await message.channel.send(embed=embed, file=file)
+                        await msg.add_reaction("👍")
+                        await msg.add_reaction("❤️")
+                        print(f"An image inclusive announcement was made in #{message.channel.name} by {message.author}.")
+                        await message.delete()
+                        os.remove(f"./{message.attachments[0].filename}")
+                    if not message.attachments:
+                        await message.delete()
+                        embed = discord.Embed(description=f"{message.content}", color=message.author.color)
+                        embed.set_author(name=message.author.name, icon_url=message.author.avatar_url)
+                        embed.set_footer(text="Ham5teak Bot 3.0 | play.ham5teak.xyz | Made by Beastman#1937 and Jaymz#7815")
+                        msg = await message.channel.send(embed=embed)
+                        await msg.add_reaction("👍")
+                        await msg.add_reaction("❤️")
+                        print(f"An announcement was made in #{message.channel.name} by {message.author}.")
+    channelnames = ["suggestions", "polls"]
+    for channel in channelnames:
+        if channel in message.channel.name:
+            if not message.author.bot:
+                if message.content.startswith('-edit'):
+                    return
+                else:
+                    if message.attachments:
+                        await message.attachments[0].save(f"./{message.attachments[0].filename}")
+                        file = discord.File(message.attachments[0].filename)
+                        embed = discord.Embed(description=f"{message.content}", color=message.author.color)
+                        embed.set_author(name=message.author.name, icon_url=message.author.avatar_url)
+                        embed.set_image(url=f"attachment://{message.attachments[0].filename}")
+                        embed.set_footer(text="Ham5teak Bot 3.0 | play.ham5teak.xyz | Made by Beastman#1937 and Jaymz#7815")
+                        msg = await message.channel.send(embed=embed, file = file)
+                        await msg.add_reaction("✅")
+                        await msg.add_reaction("❌")
+                        print(f"An image inclusive suggestion was made in #{message.channel.name} by {message.author}.")
+                        await message.delete()
+                        os.remove(f"./{message.attachments[0].filename}")
+                    if not message.attachments:
+                        await message.delete()
+                        embed = discord.Embed(description=f"{message.content}", color=message.author.color)
+                        embed.set_author(name=message.author.name, icon_url=message.author.avatar_url)
+                        embed.set_footer(text="Ham5teak Bot 3.0 | play.ham5teak.xyz | Made by Beastman#1937 and Jaymz#7815")
+                        msg = await message.channel.send(embed=embed)
+                        await msg.add_reaction("✅")
+                        await msg.add_reaction("❌")
+                        print(f"An suggestion was made in #{message.channel.name} by {message.author}.")
     await client.process_commands(message)
 
 client.run(TOKEN)  # Changes
