@@ -170,6 +170,8 @@ async def on_slash_command_error(ctx, error):
 @slash.slash(name="setchannel", description="Set channels for your server")
 @commands.has_permissions(manage_guild=True)
 async def tag(ctx, channel, value):
+    if ctx.channel.type is discord.ChannelType.private:
+        return
     await ctx.defer(hidden=True)
     commandsloop = ["statuschannel_id", "alertschannel_id", "lpalertschannel_id", "crashalertschannel_id", "tc", "svc",
     "sbc", "svsvc", "facc", "prc", "crc", "cbc", "dcc", "cc", "bugc", "imptc", "hsc", "eventc"]
@@ -222,6 +224,8 @@ async def tag(ctx, channel, value):
 @slash.slash(name="setrole", description="Set roles for your server")
 @commands.has_permissions(manage_guild=True)
 async def tag(ctx, moderator):
+    if ctx.channel.type is discord.ChannelType.private:
+        return
     await ctx.defer(hidden=True)
     moderator1 = moderator.id
     db = sqlite3.connect('main.sqlite')
@@ -244,6 +248,8 @@ async def tag(ctx, moderator):
 
 @slash.slash(name="tag", description="A command used to leave a note to a channel")
 async def tag(ctx, note, user = None, channel = None, rolei = None):
+    if ctx.channel.type is discord.ChannelType.private:
+        return
     await ctx.defer(hidden=False)
     db = sqlite3.connect('main.sqlite')
     cursor = db.cursor()
@@ -274,6 +280,8 @@ async def tag(ctx, note, user = None, channel = None, rolei = None):
                     
 @slash.slash(name="edit", description="Edit an embed sent by the bot")
 async def tag(ctx: SlashContext, messageid, new):
+    if ctx.channel.type is discord.ChannelType.private:
+        return
     await ctx.defer(hidden=True)
     db = sqlite3.connect('main.sqlite')
     cursor = db.cursor()
@@ -317,6 +325,8 @@ async def tag(ctx):
 
 @slash.slash(name="move", description="Move a channel to speciified")
 async def tag(ctx: SlashContext, category):
+    if ctx.channel.type is discord.ChannelType.private:
+        return
     await ctx.defer(hidden=True)
     db = sqlite3.connect('main.sqlite')
     cursor = db.cursor()
@@ -357,6 +367,8 @@ async def tag(ctx: SlashContext, category):
 
 @client.event
 async def on_message(message):
+    if message.channel.type is discord.ChannelType.private:
+        return
     channelnames = ["announcements", "updates", "competitions", "events"]
     for channel in channelnames:
         if channel in message.channel.name:
