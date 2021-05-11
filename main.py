@@ -62,7 +62,8 @@ async def on_ready():
             imptc INTEGER,
             eventc INTEGER,
             mgc INTEGER,
-            moderator INTEGER
+            moderator INTEGER,
+            administrator INTEGER
         )
     ''')
     print('Logged on as {0}!'.format(client.user.name))
@@ -193,30 +194,56 @@ async def tag(ctx, channel, value):
                     embed.set_footer(text="Ham5teak Bot 3.0 | play.ham5teak.xyz | Made by Beastman#1937 and Jaymz#7815")
                     await ctx.send(embed=embed)
 
+@slash.slash(name="help")
+async def tag(ctx):
+    await ctx.defer(hidden=True)
+    embed = discord.Embed(description=f"This feature is currently being worked and is not released.", color=ctx.author.color)
+    embed.set_footer(text="Ham5teak Bot 3.0 | play.ham5teak.xyz | Made by Beastman#1937 and Jaymz#7815")
+    await ctx.send(embed=embed)
+
 @slash.slash(name="setrole", description="Set roles for your server")
 @commands.has_permissions(manage_guild=True)
-async def tag(ctx, moderator):
+async def tag(ctx, administrator, moderator = None):
     if ctx.channel.type is discord.ChannelType.private:
         return
     await ctx.defer(hidden=True)
-    moderator1 = moderator.id
+    administrator = administrator.id
     db = sqlite3.connect('main.sqlite')
     cursor = db.cursor()
-    cursor.execute(f"SELECT moderator FROM main WHERE guild_id = {ctx.guild.id}")
+    cursor.execute(f"SELECT administrator FROM main WHERE guild_id = {ctx.guild.id}")
     result =  cursor.fetchone()
     if result is None:
-        sql = (f"INSERT INTO main(guild_id, moderator) VALUES(?,?)")
-        val = (ctx.guild.id, moderator1)
+        sql = (f"INSERT INTO main(guild_id, administrator) VALUES(?,?)")
+        val = (ctx.guild.id, administrator1)
     elif result is not None:
-        sql = (f"UPDATE main SET moderator = ? WHERE guild_id = ?")
-        val = (moderator1, ctx.guild.id)
+        sql = (f"UPDATE main SET administrator = ? WHERE guild_id = ?")
+        val = (administrator1, ctx.guild.id)
     cursor.execute(sql, val)
     db.commit()
     cursor.close()
     db.close()
-    embed = discord.Embed(description=f"{moderator} has been set as moderator role.", color=ctx.author.color)
+    embed = discord.Embed(description=f"{administrator} has been set as administrator role.", color=ctx.author.color)
     embed.set_footer(text="Ham5teak Bot 3.0 | play.ham5teak.xyz | Made by Beastman#1937 and Jaymz#7815")
     await ctx.send(embed=embed)
+    if moderator is not None:
+        moderator1 = moderator.id
+        db = sqlite3.connect('main.sqlite')
+        cursor = db.cursor()
+        cursor.execute(f"SELECT moderator FROM main WHERE guild_id = {ctx.guild.id}")
+        result =  cursor.fetchone()
+        if result is None:
+            sql = (f"INSERT INTO main(guild_id, moderator) VALUES(?,?)")
+            val = (ctx.guild.id, moderator1)
+        elif result is not None:
+            sql = (f"UPDATE main SET moderator = ? WHERE guild_id = ?")
+            val = (moderator1, ctx.guild.id)
+        cursor.execute(sql, val)
+        db.commit()
+        cursor.close()
+        db.close()
+        embed = discord.Embed(description=f"{moderator} has been set as moderator role.", color=ctx.author.color)
+        embed.set_footer(text="Ham5teak Bot 3.0 | play.ham5teak.xyz | Made by Beastman#1937 and Jaymz#7815")
+        await ctx.send(embed=embed)
 
 @slash.slash(name="tag", description="A command used to leave a note to a channel")
 async def tag(ctx, note, user = None, channel = None, rolei = None):
