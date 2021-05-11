@@ -428,5 +428,5 @@ async def on_message(message):
                         await msg.add_reaction("❌")
                         print(f"An suggestion was made in #{message.channel.name} by {message.author}.")
     await client.process_commands(message)
-
+    
 client.run(TOKEN)  # Changes
