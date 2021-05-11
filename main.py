@@ -355,11 +355,27 @@ async def tag(ctx: SlashContext, category):
                         await ctx.send(embed=embed)
                     elif result is not None:
                         ctxchannel = ctx.channel
-                        cat = client.get_channel(result[0])
+                        categorya = int(result[0])
+                        cat = client.get_channel(categorya)
                         await ctxchannel.edit(category=cat)
+                        discordstaff = discord.utils.get(ctx.guild.roles, name="Discord Staff")
                         embed = discord.Embed(description=f"#{ctxchannel} has been moved to category {cat}", color=ctx.author.color)
                         embed.set_footer(text="Ham5teak Bot 3.0 | play.ham5teak.xyz | Made by Beastman#1937 and Jaymz#7815")
                         await ctx.send(embed=embed)
+                        if category == "hsc":
+                            if get(ctx.guild.roles, name="Staff"):
+                                staff = discord.utils.get(ctx.guild.roles, name="Staff")
+                                await ctxchannel.set_permissions(staff, view_channel=False)
+                            if get(ctx.guild.roles, name="Discord Staff"):
+                                staff = discord.utils.get(ctx.guild.roles, name="Discord Staff")
+                                await ctxchannel.set_permissions(staff, view_channel=False)
+                        else:
+                            if get(ctx.guild.roles, name="Staff"):
+                                staff = discord.utils.get(ctx.guild.roles, name="Staff")
+                                await ctxchannel.set_permissions(staff, view_channel=True)
+                            if get(ctx.guild.roles, name="Discord Staff"):
+                                staff = discord.utils.get(ctx.guild.roles, name="Discord Staff")
+                                await ctxchannel.set_permissions(staff, view_channel=True)
         else:
             embed = discord.Embed(description=f"Only <@&{role1.id}> has permission to use this command.", color=ctx.author.color)
             embed.set_footer(text="Ham5teak Bot 3.0 | play.ham5teak.xyz | Made by Beastman#1937 and Jaymz#7815")
@@ -428,5 +444,5 @@ async def on_message(message):
                         await msg.add_reaction("❌")
                         print(f"An suggestion was made in #{message.channel.name} by {message.author}.")
     await client.process_commands(message)
-    
+
 client.run(TOKEN)  # Changes
