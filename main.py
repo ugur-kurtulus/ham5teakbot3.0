@@ -8,7 +8,6 @@ from mcstatus import MinecraftServer
 import asyncio
 import sys
 import sqlite3
-# test
 
 client = commands.Bot(command_prefix='-')  # Defines prefix and bot
 slash = SlashCommand(client, sync_commands=False)  # Defines slash commands
