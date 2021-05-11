@@ -10,7 +10,7 @@ This bot was designed to be used on multiple servers giving a full core bot expe
 
 
 **Detailed Information:**
-> Check TO BE ADDED to get more information on the topic.
+> Check __TO BE ADDED__ to get more information on the topic.
 
 
 # Project Information
