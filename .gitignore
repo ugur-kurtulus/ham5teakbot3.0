@@ -133,4 +133,4 @@ dmypy.json
 
 # custom
 /.vscode
-/.main.py.old
+/main.py.old
