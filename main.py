@@ -10,6 +10,8 @@ from discord_slash import SlashCommand, SlashContext
 from mcstatus import MinecraftServer
 import asyncio
 import mysql.connector
+import sys
+import re
 
 client = commands.Bot(command_prefix='-')  # Defines prefix and bot
 slash = SlashCommand(client, sync_commands=False)  # Defines slash commands
@@ -277,6 +279,7 @@ async def on_ready():
     embedDiscription  = (f"**__Guilds:__ **\n{message}")
     channel = client.get_channel(841245744421273620)
     await channel.send(embed=addEmbed(None,discord.Color.teal(), embedDiscription ))
+    # client.load_extension('music')
     await statuscheck()
 
 # ------- CLIENT COMMANDS -------
@@ -739,25 +742,27 @@ async def setup(ctx, password, administrator:discord.Role, moderator:discord.Rol
             await ctx.send(embed=addEmbed(ctx,discord.Color.red,embedDiscription ))
 
 # ------- SLASH COMMAND ERROR HANDLERS -------
-
 @client.event
 async def on_slash_command_error(ctx, error):
     print(error)
+    if isinstance(error, discord.errors.NotFound):
+        embedDiscription  = (f"Please enter a valid ID. \n{error}")
+        await ctx.send(embed=addEmbed(ctx,discord.Color.teal,embedDiscription ), hidden=True)
     if isinstance(error, commands.MissingPermissions):
         await ctx.defer(hidden=True)
-        embedDiscription  = (f"Please make sure you have entered all values correctly.\n {error}")
+        embedDiscription  = (f"Please make sure you have entered all values correctly.\n{error}")
         await ctx.send(embed=addEmbed(ctx,None,embedDiscription ), hidden=True)
     if isinstance(error, commands.ChannelNotFound):
         await ctx.defer(hidden=True)
-        embedDiscription  = (f"Please make sure you have entered all values correctly.\n {error}")
+        embedDiscription  = (f"Please make sure you have entered all values correctly.\n{error}")
         await ctx.send(embed=addEmbed(ctx,None,embedDiscription ), hidden=True)
     if isinstance(error, commands.RoleNotFound):
         await ctx.defer(hidden=True)
-        embedDiscription  = (f"Please make sure you have entered all values correctly.\n {error}")
+        embedDiscription  = (f"Please make sure you have entered all values correctly.\n{error}")
         await ctx.send(embed=addEmbed(ctx,None,embedDiscription ), hidden=True)
     if isinstance(error, commands.MemberNotFound):
         await ctx.defer(hidden=True)
-        embedDiscription  = (f"Please make sure you have entered all values correctly.\n {error}")
+        embedDiscription  = (f"Please make sure you have entered all values correctly.\n{error}")
         await ctx.send(embed=addEmbed(ctx,None,embedDiscription ), hidden=True)
 
 # ------- EVENT HANDLERS -------
@@ -824,45 +829,66 @@ the following choices by replying with the respective options
 async def on_reaction_add(reaction, user):
     messageid = reaction.message.id
     rcount = 2
-    if "suggestions" not in reaction.message.channel.name:
-        return
-    if reaction.emoji == "✅":
-        if reaction.count == rcount:
-            dsuggestions = selectquery(sql, 'guilds', 'demandedsuggestions', f'guild_id = {reaction.message.guild.id}')
-            channel = reaction.message.channel
-            if dsuggestions is None:
+    if "polls" in reaction.message.channel.name:
+        messageobj = await reaction.message.channel.fetch_message(messageid)
+        messagereactions = messageobj.reactions
+        reactioncounts = []
+        await asyncio.sleep(10)
+        for reaction in messagereactions:
+            reactioncounts.append(int(reaction.count))
+        await asyncio.sleep(5)
+        for reaction in messagereactions:
+            if reaction.count == int(max(reactioncounts)):
+                channel = reaction.message.channel
+                dsuggestionschannel = client.get_channel(channel.id)
+                msg = await channel.fetch_message(messageid)
+                channelcheck = await client.get_channel(channel.id).history(limit=20).flatten()
+                for sc in channelcheck:
+                    if f'https://discordapp.com/channels/{reaction.message.guild.id}/{reaction.message.channel.id}/{messageid}' in sc.content:
+                        return
+                try:
+                    await messageobj.edit(content=f'**{reaction.emoji} won with {reaction.count} votes:**\n https://discordapp.com/channels/{reaction.message.guild.id}/{reaction.message.channel.id}/{messageid}',embed=msg.embeds[0])
+                except AttributeError as e:
+                    print(f"{reaction.message.guild.name} doesn't have a demanded suggestions channel set.")
                 return
-            dsuggestionschannel = client.get_channel(dsuggestions)
-            msg = await channel.fetch_message(messageid)
-            suggestioncheck = await client.get_channel(dsuggestions).history(limit=20).flatten()
-            for sc in suggestioncheck:
-                if f'https://discordapp.com/channels/{reaction.message.guild.id}/{reaction.message.channel.id}/{messageid}' in sc.content:
+    if "suggestions" in reaction.message.channel.name:
+        if reaction.emoji == "✅":
+            if reaction.count == rcount:
+                dsuggestions = selectquery(sql, 'guilds', 'demandedsuggestions', f'guild_id = {reaction.message.guild.id}')
+                channel = reaction.message.channel
+                if dsuggestions is None:
                     return
-            try:
-                await dsuggestionschannel.send(f'**{reaction.count} upvotes:** https://discordapp.com/channels/{reaction.message.guild.id}/{reaction.message.channel.id}/{messageid}',embed=msg.embeds[0])
-            except AttributeError as e:
-                print(f"{reaction.message.guild.name} doesn't have a demanded suggestions channel set.")
-            return
-    elif reaction.emoji == "❌":
-         if reaction.count == rcount:
-            rsuggestions = selectquery(sql, 'guilds', 'rejectedsuggestions', f'guild_id = {reaction.message.guild.id}')
-            channel = reaction.message.channel
-            if rsuggestions is None:
-                return
-            rsuggestionschannel = client.get_channel(rsuggestions)
-            msg = await channel.fetch_message(messageid)
-            try:
-                suggestioncheck = await client.get_channel(rsuggestions).history(limit=20).flatten()
+                dsuggestionschannel = client.get_channel(dsuggestions)
+                msg = await channel.fetch_message(messageid)
+                suggestioncheck = await client.get_channel(dsuggestions).history(limit=20).flatten()
                 for sc in suggestioncheck:
                     if f'https://discordapp.com/channels/{reaction.message.guild.id}/{reaction.message.channel.id}/{messageid}' in sc.content:
                         return
-            except AttributeError as e:
-                print(f"{rsuggestions} channel has no suggestion history.")
-            try:
-                await rsuggestionschannel.send(f'**{reaction.count} downvotes:** https://discordapp.com/channels/{reaction.message.guild.id}/{reaction.message.channel.id}/{messageid}',embed=msg.embeds[0])
-            except AttributeError as e:
-                print(f"{reaction.message.guild.name} doesn't have a rejected suggestions channel set.")
-            return
+                try:
+                    await dsuggestionschannel.send(f'**{reaction.count} upvotes:** https://discordapp.com/channels/{reaction.message.guild.id}/{reaction.message.channel.id}/{messageid}',embed=msg.embeds[0])
+                except AttributeError as e:
+                    print(f"{reaction.message.guild.name} doesn't have a demanded suggestions channel set.")
+                return
+        elif reaction.emoji == "❌":
+            if reaction.count == rcount:
+                rsuggestions = selectquery(sql, 'guilds', 'rejectedsuggestions', f'guild_id = {reaction.message.guild.id}')
+                channel = reaction.message.channel
+                if rsuggestions is None:
+                    return
+                rsuggestionschannel = client.get_channel(rsuggestions)
+                msg = await channel.fetch_message(messageid)
+                try:
+                    suggestioncheck = await client.get_channel(rsuggestions).history(limit=20).flatten()
+                    for sc in suggestioncheck:
+                        if f'https://discordapp.com/channels/{reaction.message.guild.id}/{reaction.message.channel.id}/{messageid}' in sc.content:
+                            return
+                except AttributeError as e:
+                    print(f"{rsuggestions} channel has no suggestion history.")
+                try:
+                    await rsuggestionschannel.send(f'**{reaction.count} downvotes:** https://discordapp.com/channels/{reaction.message.guild.id}/{reaction.message.channel.id}/{messageid}',embed=msg.embeds[0])
+                except AttributeError as e:
+                    print(f"{reaction.message.guild.name} doesn't have a rejected suggestions channel set.")
+                return
 
 @client.event
 async def on_message(ctx):
@@ -876,6 +902,20 @@ async def on_message(ctx):
                     await client.process_commands(ctx)
                 else:
                     if ctx.attachments:
+                        for nonimageextension in [".pdf", ".txt", ".yml", "doc", "docx", "pptx", "ppt"
+                        , ".db", ".log", ".jar", ".py", ".js", ".env"]:
+                            if nonimageextension in ctx.attachments[0].filename:
+                                await ctx.attachments[0].save(f"./{ctx.attachments[0].filename}")
+                                file = discord.File(ctx.attachments[0].filename)
+                                embedDiscription  = (f"{ctx.content}")
+                                embed = addEmbed(ctx,None,embedDiscription )
+                                msg = await ctx.channel.send(embed=embed, file=file)
+                                await msg.add_reaction("👍")
+                                await msg.add_reaction("❤️")
+                                print(f"An attachment inclusive announcement was made in #{ctx.channel.name} by {ctx.author}.")
+                                await ctx.delete()
+                                os.remove(f"./{ctx.attachments[0].filename}")
+                                return
                         await ctx.attachments[0].save(f"./{ctx.attachments[0].filename}")
                         file = discord.File(ctx.attachments[0].filename)
                         embedDiscription  = (f"{ctx.content}")
@@ -894,32 +934,72 @@ async def on_message(ctx):
                         await msg.add_reaction("👍")
                         await msg.add_reaction("❤️")
                         print(f"An announcement was made in #{ctx.channel.name} by {ctx.author}.")
-    channelnames = ["suggestions", "polls"]
-    for channel in channelnames:
-        if channel in ctx.channel.name:
-            if not ctx.author.bot:
-                if ctx.content.startswith(client.command_prefix):
-                    await client.process_commands(ctx)
-                else:
-                    if ctx.attachments:
-                        await ctx.attachments[0].save(f"./{ctx.attachments[0].filename}")
-                        file = discord.File(ctx.attachments[0].filename)
-                        embedDiscription  = (f"{ctx.content}")
-                        embed = addEmbed(ctx,None,embedDiscription )
-                        embed.set_image(url=f"attachment://{ctx.attachments[0].filename}")
-                        msg = await ctx.channel.send(embed=embed, file = file)
-                        await msg.add_reaction("✅")
-                        await msg.add_reaction("❌")
-                        print(f"An image inclusive suggestion was made in #{ctx.channel.name} by {ctx.author}.")
-                        await ctx.delete()
-                        os.remove(f"./{ctx.attachments[0].filename}")
-                    if not ctx.attachments:
-                        await ctx.delete()
-                        embedDiscription  = (f"{ctx.content}")
-                        msg = await ctx.channel.send(embed=addEmbed(ctx,None,embedDiscription ))
-                        await msg.add_reaction("✅")
-                        await msg.add_reaction("❌")
-                        print(f"A suggestion was made in #{ctx.channel.name} by {ctx.author}.")
+    if "suggestions" in ctx.channel.name:
+        if not ctx.author.bot:
+            if ctx.content.startswith(client.command_prefix):
+                await client.process_commands(ctx)
+            else:
+                if ctx.attachments:
+                    await ctx.attachments[0].save(f"./{ctx.attachments[0].filename}")
+                    file = discord.File(ctx.attachments[0].filename)
+                    embedDiscription  = (f"{ctx.content}")
+                    embed = addEmbed(ctx,None,embedDiscription )
+                    embed.set_image(url=f"attachment://{ctx.attachments[0].filename}")
+                    msg = await ctx.channel.send(embed=embed, file = file)
+                    await msg.add_reaction("✅")
+                    await msg.add_reaction("❌")
+                    print(f"An image inclusive suggestion was made in #{ctx.channel.name} by {ctx.author}.")
+                    await ctx.delete()
+                    os.remove(f"./{ctx.attachments[0].filename}")
+                if not ctx.attachments:
+                    await ctx.delete()
+                    embedDiscription  = (f"{ctx.content}")
+                    msg = await ctx.channel.send(embed=addEmbed(ctx,None,embedDiscription ))
+                    await msg.add_reaction("✅")
+                    await msg.add_reaction("❌")
+                    print(f"A suggestion was made in #{ctx.channel.name} by {ctx.author}.")
+    if "polls" in ctx.channel.name or "poll" in ctx.channel.name:
+        if not ctx.author.bot:
+            if ctx.content.startswith(client.command_prefix):
+                await client.process_commands(ctx)
+            else:
+                if ctx.attachments:
+                    await ctx.attachments[0].save(f"./{ctx.attachments[0].filename}")
+                    file = discord.File(ctx.attachments[0].filename)
+                    embedDiscription  = (f"{ctx.content}")
+                    embed = addEmbed(ctx,None,embedDiscription )
+                    embed.set_image(url=f"attachment://{ctx.attachments[0].filename}")
+                    msg = await ctx.channel.send(embed=addEmbed(ctx,None,embedDiscription ))
+                    numberemojis = ["1️⃣","2️⃣","3️⃣","4️⃣","5️⃣","6️⃣","7️⃣","8️⃣","9️⃣","🔟","0️⃣"]
+                    for emoji1 in numberemojis:
+                        if emoji1 in ctx.content:
+                            await msg.add_reaction(emoji1)
+                    messageemojis = re.findall(r'[^\w\s,]', ctx.content)
+                    for emoji in messageemojis:
+                        if emoji not in numberemojis:
+                            try:
+                                await msg.add_reaction(emoji)
+                            except: 
+                                pass
+                    print(f"An image inclusive poll was made in #{ctx.channel.name} by {ctx.author}.")
+                    await ctx.delete()
+                    os.remove(f"./{ctx.attachments[0].filename}")
+                if not ctx.attachments:
+                    await ctx.delete()
+                    embedDiscription  = (f"{ctx.content}")
+                    msg = await ctx.channel.send(embed=addEmbed(ctx,None,embedDiscription ))
+                    numberemojis = ["1️⃣","2️⃣","3️⃣","4️⃣","5️⃣","6️⃣","7️⃣","8️⃣","9️⃣","🔟","0️⃣"]
+                    for emoji1 in numberemojis:
+                        if emoji1 in ctx.content:
+                            await msg.add_reaction(emoji1)
+                    messageemojis = re.findall(r'[^\w\s,]', ctx.content)
+                    for emoji in messageemojis:
+                        if emoji not in numberemojis:
+                            try:
+                                await msg.add_reaction(emoji)
+                            except: 
+                                pass
+                    print(f"A poll was made in #{ctx.channel.name} by {ctx.author}.")
 
     await client.process_commands(ctx)
 
