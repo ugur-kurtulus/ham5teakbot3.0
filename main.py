@@ -179,7 +179,8 @@ sql = sqlconnect()
 createtable(sql,'guilds', quilds_query)
 createtable(sql,'categories', categories_query)
 premium_guilds = [selectqueryall(sql, 'guilds', 'guild_id', None)]
-ham_guilds = [380308776114454528, 841225582967783445, 82038346120232967, 650658756803428381, 571626209868382236, 631067371661950977]
+ham_guilds = [380308776114454528, 841225582967783445, 
+82038346120232967, 650658756803428381, 571626209868382236, 631067371661950977]
 
 # ------- FUNCTIONS -------
 
