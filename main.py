@@ -3,10 +3,11 @@ from discord import channel, voice_client
 from discord.ext.commands.errors import UserNotFound
 from dns.resolver import query
 from dotenv import load_dotenv
-from discord.utils import get  # New import
+from discord.utils import get  
 import discord
-from discord.ext import commands  # New import
+from discord.ext import commands 
 from discord_slash import SlashCommand, SlashContext
+from discord_components import DiscordComponents, Button, ButtonStyle, InteractionType
 from mcstatus import MinecraftServer
 import asyncio
 import mysql.connector
@@ -14,6 +15,7 @@ import sys
 import re
 
 client = commands.Bot(command_prefix='-')  # Defines prefix and bot
+ddb = DiscordComponents(client)
 slash = SlashCommand(client, sync_commands=False)  # Defines slash commands
 
 load_dotenv()
@@ -769,61 +771,61 @@ async def on_slash_command_error(ctx, error):
 
 @client.event
 async def on_guild_channel_create(channel):
+    async def embed1(embedDescription):
+        embed1 = discord.Embed(description=f"{embedDescription}", color=discord.Color.dark_teal())
+        embed1.set_author(name="Ham5teak Bot Ticket Assistant", icon_url="https://cdn.discordapp.com/icons/380308776114454528/a_be4514bb0a52a206d1bddbd5fbd2250f.png?size=4096")
+        embed1.set_footer(text="Ham5teak Bot 3.0 | play.ham5teak.xyz | Made by Beastman#1937 and Jaymz#7815")
+        return embed1
+    if channel.guild.id not in ham_guilds:
+        return
     if "ticket-" in channel.name:
-        if channel.guild.id not in ham_guilds:
-            return
-        async def embed1(embedDescription1):
-            embed1 = discord.Embed(description=embedDescription1, color=discord.Color.dark_teal())
-            embed1.set_footer(text="Ham5teak Bot 3.0 | play.ham5teak.xyz | Made by Beastman#1937 and Jaymz#7815")
-            embed1.set_author(name="Ham5teak Bot Ticket Assistant", icon_url="https://cdn.discordapp.com/icons/380308776114454528/a_be4514bb0a52a206d1bddbd5fbd2250f.png?size=4096")
-            return embed1
+        sent = True
         embedDescription = f"""Hello! The staff team will be assisting you shortly.
-In order to make this process easier for us staff, please choose from
-the following choices by replying with the respective options
-(E.g : send a single number as a message) : 
+    In order to make this process easier for us staff, please choose from
+    the following choices by clicking the button describing your issue.
 
-**1**. **Item Lost** 
-**2**. **Reporting an Issue/Bug** 
-**3**. **Same IP Connection** 
-**4**. **Connection Problems**
-**5**. **Forgot Password**
-**6**. **Ban/Mute Appeal**
-**7**. **Queries**"""
-        await channel.send(embed=await embed1(embedDescription))
-        response = []
-        def check1(m):
-            options = ["1", "2", "3", "4", "5", "6", "7"]
-            for option in options:
-                if m.content == option:
-                    response.append(int(option))
-                    return m.content == option
-        await client.wait_for("message", check=check1)
-        await channel.purge(limit=1)
-        if 1 in response:
-            embedDescription1 = f"1. **Item Lost Due To Server Lag/Crash** \nIn-game Name:\nServer:\nItems you lost:  \n\nIf they are enchanted tools, please mention the enchantments if possible."
-            await channel.send(embed=await embed1(embedDescription1))
-        elif 2 in response:
-            embedDescription1 = f"2. **Issue/Bug Report** \nIn-Game Name : \nServer: \nIssue/Bug :"
-            await channel.send(embed=await embed1(embedDescription1))
-        elif 3 in response:
-            embedDescription1 = f"3. **Same IP Connection** \nIn-Game Name of Same IP Connection : \n- \n- \n\nIP Address : (Format should be xxx.xxx.xxx.xxx)"
-            await channel.send(embed=await embed1(embedDescription1))
-        elif 4 in response:
-            embedDescription1 = f"4. **Connection Problems** \nIn-game Name:\n\nWhat connection problem are you facing? Please explain briefly."
-            await channel.send(embed=await embed1(embedDescription1))
-        elif 5 in response:
-            embedDescription1 = f"5. **Forgot Password** \nIn-game Name:\nIP Address : (Format should be xxx.xxx.xxx.xxx)"
-            await channel.send(embed=await embed1(embedDescription1))
-        elif 6 in response:
-            embedDescription1 = f"""6. **Ban/Mute Appeal** \nWhy did you get banned/muted? \nWas it on discord or in-game? 
-            \n\nIf it was in-game, what is your in-game name and who banned/muted you? 
-            \nAlso - please do a ban appeal/mute appeal next time using https://ham5teak.xyz/forums/ban-appeal.21/"""
-            await channel.send(embed=await embed1(embedDescription1))
-        elif 7 in response:
-            embedDescription1 = f"""7. **Queries** \nPlease state your questions here and wait patiently for a staff to reply.
-             If you have to do something at the moment, please leave a note for Staff."""
-            await channel.send(embed=await embed1(embedDescription1))
-        response.clear()
+    **Item Lost** 
+    **Reporting an Issue/Bug**
+    **Same IP Connection** 
+    **Connection Problems**
+    **Forgot Password**"""
+        poll = await channel.send(
+            embed=await embed1(embedDescription),
+                components=[
+                    Button(style=ButtonStyle.green, label="​​​​​​                      Item Lost                         ", id=1),
+                    Button(style=ButtonStyle.green, label=" Reporting an Issue/Bug ", id=2), 
+                    Button(style=ButtonStyle.green, label="     ​​​​​​ ​​​​​​ ​​​​​​ Same IP Connection​​​​​​   ​​​​​​  ", id=3),
+                    Button(style=ButtonStyle.green, label="     ​​​​​​ Connection Problems   ", id=4),
+                    Button(style=ButtonStyle.green, label="        ​​​​​    Forgot Password    ​​​​​        ", id=5),
+
+                ],
+            )
+        while sent == True:
+            res = await ddb.wait_for_interact("button_click")
+            if res.channel == channel:
+                if res.component.id == "1":
+                    embedDescription1 = f"1. **Item Lost Due To Server Lag/Crash** \nIn-game Name:\nServer:\nItems you lost:  \n\nIf they are enchanted tools, please mention the enchantments if possible."
+                    await channel.send(context=" ", embed=await embed1(embedDescription1))
+                elif res.component.id == "2":
+                    embedDescription1 = f"2. **Issue/Bug Report** \nIn-Game Name : \nServer: \nIssue/Bug :"
+                    await channel.send(context=" ", embed=await embed1(embedDescription1))
+                elif res.component.id == "3":
+                    embedDescription1 = f"3. **Same IP Connection** \nIn-Game Name of Same IP Connection : \n- \n- \n\nIP Address : (Format should be xxx.xxx.xxx.xxx)"
+                    await channel.send(context=" ", embed=await embed1(embedDescription1))
+                elif res.component.id == "4":
+                    embedDescription1 = f"4. **Connection Problems** \nIn-game Name:\n\nWhat connection problem are you facing? Please explain briefly."
+                    await channel.send(context=" ", embed=await embed1(embedDescription1))
+                elif res.component.id == "5":
+                    embedDescription1 = f"5. **Forgot Password** \nIn-game Name:\nIP Address : (Format should be xxx.xxx.xxx.xxx)"
+                    await channel.send(context=" ", embed=await embed1(embedDescription1))
+                await poll.edit(components=[
+                    Button(style=ButtonStyle.green, label=f"{res.user} chose {res.component.label.replace(' ', '')}", disabled=True)
+                    ])
+                await res.respond(
+                    type=InteractionType.ChannelMessageWithSource,
+                    content=f'{res.component.label.replace(" ", "")} chosen.'
+                )
+                sent = False
 
 @client.event
 async def on_reaction_add(reaction, user):
@@ -902,17 +904,17 @@ async def on_message(ctx):
                     await client.process_commands(ctx)
                 else:
                     if ctx.attachments:
-                        for nonimageextension in [".pdf", ".txt", ".yml", "doc", "docx", "pptx", "ppt"
-                        , ".db", ".log", ".jar", ".py", ".js", ".env"]:
-                            if nonimageextension in ctx.attachments[0].filename:
+                        for imageextensions in [".jpg", ".jpeg", ".png"]:
+                            if imageextensions in ctx.attachments[0].filename:
                                 await ctx.attachments[0].save(f"./{ctx.attachments[0].filename}")
                                 file = discord.File(ctx.attachments[0].filename)
                                 embedDiscription  = (f"{ctx.content}")
                                 embed = addEmbed(ctx,None,embedDiscription )
+                                embed.set_image(url=f"attachment://{ctx.attachments[0].filename}")
                                 msg = await ctx.channel.send(embed=embed, file=file)
                                 await msg.add_reaction("👍")
                                 await msg.add_reaction("❤️")
-                                print(f"An attachment inclusive announcement was made in #{ctx.channel.name} by {ctx.author}.")
+                                print(f"An image inclusive announcement was made in #{ctx.channel.name} by {ctx.author}.")
                                 await ctx.delete()
                                 os.remove(f"./{ctx.attachments[0].filename}")
                                 return
@@ -920,11 +922,10 @@ async def on_message(ctx):
                         file = discord.File(ctx.attachments[0].filename)
                         embedDiscription  = (f"{ctx.content}")
                         embed = addEmbed(ctx,None,embedDiscription )
-                        embed.set_image(url=f"attachment://{ctx.attachments[0].filename}")
                         msg = await ctx.channel.send(embed=embed, file=file)
                         await msg.add_reaction("👍")
                         await msg.add_reaction("❤️")
-                        print(f"An image inclusive announcement was made in #{ctx.channel.name} by {ctx.author}.")
+                        print(f"An attachment inclusive announcement was made in #{ctx.channel.name} by {ctx.author}.")
                         await ctx.delete()
                         os.remove(f"./{ctx.attachments[0].filename}")
                     if not ctx.attachments:
