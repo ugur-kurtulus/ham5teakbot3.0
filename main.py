@@ -11,11 +11,12 @@ from discord_components import DiscordComponents, Button, ButtonStyle, Interacti
 from mcstatus import MinecraftServer
 import asyncio
 import mysql.connector
-import sys
+import aiohttp
+import json
 import re
 
 client = commands.Bot(command_prefix='-')  # Defines prefix and bot
-ddb = DiscordComponents(client)
+DiscordComponents(client)
 slash = SlashCommand(client, sync_commands=False)  # Defines slash commands
 
 load_dotenv()
@@ -179,7 +180,7 @@ sql = sqlconnect()
 createtable(sql,'guilds', quilds_query)
 createtable(sql,'categories', categories_query)
 premium_guilds = [selectqueryall(sql, 'guilds', 'guild_id', None)]
-ham_guilds = [380308776114454528, 841225582967783445, 
+ham_guilds = [380308776114454528, 841225582967783445, 820383461202329671,
 82038346120232967, 650658756803428381, 571626209868382236, 631067371661950977]
 
 # ------- FUNCTIONS -------
@@ -571,8 +572,7 @@ async def ham5teak(ctx):
 @slash.slash(name="help")
 async def help(ctx):
     await ctx.defer(hidden=True)
-    embedDiscription  = (f"Feature coming soon!")
-    await ctx.send(embed=addEmbed(ctx,None,embedDiscription ))
+    await ctx.send("boo")
 
 @slash.slash(name="move", description="Move a channel to specified category.", )
 async def move(ctx, category):
@@ -772,59 +772,84 @@ async def on_slash_command_error(ctx, error):
 
 @client.event
 async def on_guild_channel_create(channel):
+    sent = True
+    embedDiscription  = f"""Hello! The staff team will be assisting you shortly.
+In order to make this process easier for us staff, please choose from
+the following choices by clicking the button describing your issue.
+
+**1. Item Lost** 
+**2. Reporting an Issue/Bug**
+**3. Same IP Connection** 
+**4. Connection Problems**
+**5. Forgot Password**
+**6. Ban/Mute Appeal**
+**7. Queries**
+**8. In-Game Rank Parity**"""
+    headers= {
+        "Authorization": f"Bot {TOKEN}",
+        "Content-Type": "application/json"
+    }
+
     async def embed1(embedDescription):
         embed1 = discord.Embed(description=f"{embedDescription}", color=discord.Color.dark_teal())
         embed1.set_author(name="Ham5teak Bot Ticket Assistant", icon_url="https://cdn.discordapp.com/icons/380308776114454528/a_be4514bb0a52a206d1bddbd5fbd2250f.png?size=4096")
         embed1.set_footer(text="Ham5teak Bot 3.0 | play.ham5teak.xyz | Made by Beastman#1937 and Jaymz#7815")
         return embed1
-    if channel.guild.id not in ham_guilds:
-        return
-    if "ticket-" in channel.name:
-        sent = True
-        embedDescription = f"""Hello! The staff team will be assisting you shortly.
-    In order to make this process easier for us staff, please choose from
-    the following choices by clicking the button describing your issue.
+    
+    async with aiohttp.request("POST", f"https://discord.com/api/v9/channels/{channel.id}/messages", headers=headers, data=json.dumps(
+            {"embed":{"description": embedDiscription,"color": 1146986,"author": {"name": "Ham5teak Bot Ticket Assistance",
+          "icon_url": "https://cdn.discordapp.com/icons/380308776114454528/a_be4514bb0a52a206d1bddbd5fbd2250f.webp?size=128"
+        }},"components": [{"type": 1,"components": [{"type": 2,"label": "1","style": 3,"custom_id": "Item Lost"},
+                   {"type": 2,"label": "2","style": 3,"custom_id": "Issue/Bug Report"},{"type": 2,"label": "3","style": 3,"custom_id": "Same IP Connection"},
+                   {"type": 2,"label": "4","style": 3,"custom_id": "Connection Problems"},]},{"type": 1,"components": [{"type": 2,"label": "5",
+                         "style": 3,"custom_id": "Forgot Password"},{"type": 2,"label": "6","style": 3,"custom_id": "Ban/Mute Appeal"},{"type": 2,"label": "7",
+                         "style": 3,"custom_id": "Queries"},{"type": 2,"label": "8","style": 3,"custom_id": "In-Game Rank Parity"},]},{"type": 1,
+                 "components": [{"type": 2,"label": "Store","style": 5,"url":"https://shop.ham5teak.xyz"
+                   },{"type": 2,"label": "Forums","style": 5,"url":"https://ham5teak.xyz"}]
+            }
+            ]})) as response:
+                    response.raise_for_status()
 
-    **Item Lost** 
-    **Reporting an Issue/Bug**
-    **Same IP Connection** 
-    **Connection Problems**
-    **Forgot Password**"""
-        poll = await channel.send(
-            embed=await embed1(embedDescription),
-                components=[
-                    Button(style=ButtonStyle.green, label="​​​​​​                      Item Lost                         ", id=1),
-                    Button(style=ButtonStyle.green, label=" Reporting an Issue/Bug ", id=2), 
-                    Button(style=ButtonStyle.green, label="     ​​​​​​ ​​​​​​ ​​​​​​ Same IP Connection​​​​​​   ​​​​​​  ", id=3),
-                    Button(style=ButtonStyle.green, label="     ​​​​​​ Connection Problems   ", id=4),
-                    Button(style=ButtonStyle.green, label="        ​​​​​    Forgot Password    ​​​​​        ", id=5),
-
-                ],
-            )
-        while sent == True:
-            res = await ddb.wait_for_interact("button_click")
+    msg = await channel.fetch_message(channel.last_message_id)
+    while sent == True:
+            res = await client.wait_for("button_click")
+            print(res.component.id)
             if res.channel == channel:
-                if res.component.id == "1":
-                    embedDescription1 = f"1. **Item Lost Due To Server Lag/Crash** \nIn-game Name:\nServer:\nItems you lost:  \n\nIf they are enchanted tools, please mention the enchantments if possible."
+                if res.component.id == "Item Lost":
+                    embedDescription1 = f"1. **Item Lost Due To Server Lag/Crash** \n\n\`\`\`\nIn-game Name:\nServer:\nItems you lost:  \n\`\`\`\n\nIf they are enchanted tools, please mention the enchantments if possible."
                     await channel.send(context=" ", embed=await embed1(embedDescription1))
-                elif res.component.id == "2":
-                    embedDescription1 = f"2. **Issue/Bug Report** \nIn-Game Name : \nServer: \nIssue/Bug :"
+                elif res.component.id == "Issue/Bug Report":
+                    embedDescription1 = f"2. **Issue/Bug Report** \n\n\`\`\`\nIn-Game Name : \nServer: \nIssue/Bug :\n\`\`\`"
                     await channel.send(context=" ", embed=await embed1(embedDescription1))
-                elif res.component.id == "3":
-                    embedDescription1 = f"3. **Same IP Connection** \nIn-Game Name of Same IP Connection : \n- \n- \n\nIP Address : (Format should be xxx.xxx.xxx.xxx)"
+                elif res.component.id == "Same IP Connection":
+                    embedDescription1 = f"3. **Same IP Connection** \n\n\`\`\`\nIn-Game Name of Same IP Connection : \n- \n- \n\nIP Address : (Format should be xxx.xxx.xxx.xxx)\n\`\`\`"
                     await channel.send(context=" ", embed=await embed1(embedDescription1))
-                elif res.component.id == "4":
-                    embedDescription1 = f"4. **Connection Problems** \nIn-game Name:\n\nWhat connection problem are you facing? Please explain briefly."
+                elif res.component.id == "Connection Problems":
+                    embedDescription1 = f"4. **Connection Problems** \n\n\`\`\`\nIn-game Name:\nWhat connection problem are you facing? Please explain briefly:\n\`\`\`\n\n"
                     await channel.send(context=" ", embed=await embed1(embedDescription1))
-                elif res.component.id == "5":
-                    embedDescription1 = f"5. **Forgot Password** \nIn-game Name:\nIP Address : (Format should be xxx.xxx.xxx.xxx)"
+                elif res.component.id == "Forgot Password":
+                    embedDescription1 = f"5. **Forgot Password** \n\n\`\`\`\nIn-game Name:\nIP Address : (Format should be xxx.xxx.xxx.xxx)\n\`\`\`"
                     await channel.send(context=" ", embed=await embed1(embedDescription1))
-                await poll.edit(components=[
-                    Button(style=ButtonStyle.green, label=f"{res.user} chose {res.component.label.replace(' ', '')}", disabled=True)
+                elif res.component.id == "Ban/Mute Appeal":
+                    embedDescription1 = f"""6. **Ban/Mute Appeal** \n\n\`\`\`\nWhy did you get banned/muted? \nWas it on discord or in-game?\n\`\`\` \nIf it was in-game, what is your in-game name and who banned/muted you? 
+            \nAlso - please do a ban appeal/mute appeal next time using https://ham5teak.xyz/forums/ban-appeal.21/"""
+                    await channel.send(context=" ", embed=await embed1(embedDescription1))
+                elif res.component.id == "Forgot Password":
+                    embedDescription1 = f"5. **Forgot Password** \n\n\`\`\`\nIn-game Name:\nIP Address : (Format should be xxx.xxx.xxx.xxx)\n\`\`\`"
+                    await channel.send(context=" ", embed=await embed1(embedDescription1))
+                elif res.component.id == "Queries":
+                    embedDescription1 = f"""7. **Queries** \nPlease state your questions here and wait patiently for a staff to reply.\nIf you have to do something at the moment, please leave a note for Staff."""
+                    await channel.send(context=" ", embed=await embed1(embedDescription1))
+                elif res.component.id == "In-Game Rank Parity":
+                    embedDescription1 = f"""8. **In-Game Rank Parity** \nPlease state your In-Game Name and rank you would like to be paired.\nIf you have to do something at the moment, please leave a note for Staff.
+             \n\`\`\`\nIn-Game Name: \nRank: \n\`\`\`\n"""
+                    await channel.send(context=" ", embed=await embed1(embedDescription1))
+                await msg.edit(components=[
+                    Button(style=ButtonStyle.green, label=f"{res.user} chose {res.component.id}", disabled=True)
                     ])
                 await res.respond(
                     type=InteractionType.ChannelMessageWithSource,
-                    content=f'{res.component.label.replace(" ", "")} chosen.'
+                    content=f'{res.component.id} chosen.'
                 )
                 sent = False
 
@@ -905,30 +930,47 @@ async def on_message(ctx):
                     await client.process_commands(ctx)
                 else:
                     if ctx.attachments:
-                        for imageextensions in [".jpg", ".jpeg", ".png"]:
+                        for imageextensions in [".jpg", ".jpeg", ".png", ".gif"]:
                             if imageextensions in ctx.attachments[0].filename:
-                                await ctx.attachments[0].save(f"./{ctx.attachments[0].filename}")
-                                file = discord.File(ctx.attachments[0].filename)
-                                embedDiscription  = (f"{ctx.content}")
-                                embed = addEmbed(ctx,None,embedDiscription )
-                                embed.set_image(url=f"attachment://{ctx.attachments[0].filename}")
-                                msg = await ctx.channel.send(embed=embed, file=file)
-                                await msg.add_reaction("👍")
-                                await msg.add_reaction("❤️")
-                                print(f"An image inclusive announcement was made in #{ctx.channel.name} by {ctx.author}.")
-                                await ctx.delete()
-                                os.remove(f"./{ctx.attachments[0].filename}")
-                                return
-                        await ctx.attachments[0].save(f"./{ctx.attachments[0].filename}")
-                        file = discord.File(ctx.attachments[0].filename)
-                        embedDiscription  = (f"{ctx.content}")
-                        embed = addEmbed(ctx,None,embedDiscription )
-                        msg = await ctx.channel.send(embed=embed, file=file)
-                        await msg.add_reaction("👍")
-                        await msg.add_reaction("❤️")
-                        print(f"An attachment inclusive announcement was made in #{ctx.channel.name} by {ctx.author}.")
-                        await ctx.delete()
-                        os.remove(f"./{ctx.attachments[0].filename}")
+                                try:
+                                    await ctx.attachments[0].save(f"./{ctx.attachments[0].filename}")
+                                    file = discord.File(ctx.attachments[0].filename)
+                                    embedDiscription  = (f"{ctx.content}")
+                                    embed = addEmbed(ctx,None,embedDiscription )
+                                    embed.set_image(url=f"attachment://{ctx.attachments[0].filename}")
+                                    msg = await ctx.channel.send(embed=embed, file=file)
+                                    await msg.add_reaction("👍")
+                                    await msg.add_reaction("❤️")  
+                                    print(f"An image inclusive announcement was made in #{ctx.channel.name} by {ctx.author}.")
+                                    await ctx.delete()
+                                    os.remove(f"./{ctx.attachments[0].filename}")
+                                    return
+                                except KeyError as e:
+                                    msg = await ctx.channel.fetch_message(ctx.channel.last_message_id)
+                                    await msg.add_reaction("👍")
+                                    await msg.add_reaction("❤️")  
+                                    print(f"An image inclusive announcement was made in #{ctx.channel.name} by {ctx.author}.")
+                                    await ctx.delete()
+                                    os.remove(f"./{ctx.attachments[0].filename}")
+                                    return
+                        try:
+                            await ctx.attachments[0].save(f"./{ctx.attachments[0].filename}")
+                            file = discord.File(ctx.attachments[0].filename)
+                            embedDiscription  = (f"{ctx.content}")
+                            embed = addEmbed(ctx,None,embedDiscription )
+                            msg = await ctx.channel.send(embed=embed, file=file)
+                            await msg.add_reaction("👍")
+                            await msg.add_reaction("❤️")
+                            print(f"An attachment inclusive announcement was made in #{ctx.channel.name} by {ctx.author}.")
+                            await ctx.delete()
+                            os.remove(f"./{ctx.attachments[0].filename}")
+                        except KeyError as e:
+                            msg = await ctx.channel.fetch_message(ctx.channel.last_message_id)
+                            await msg.add_reaction("👍")
+                            await msg.add_reaction("❤️")
+                            print(f"An attachment inclusive announcement was made in #{ctx.channel.name} by {ctx.author}.")
+                            await ctx.delete()
+                            os.remove(f"./{ctx.attachments[0].filename}")
                     if not ctx.attachments:
                         await ctx.delete()
                         embedDiscription  = (f"{ctx.content}")
@@ -942,17 +984,25 @@ async def on_message(ctx):
                 await client.process_commands(ctx)
             else:
                 if ctx.attachments:
-                    await ctx.attachments[0].save(f"./{ctx.attachments[0].filename}")
-                    file = discord.File(ctx.attachments[0].filename)
-                    embedDiscription  = (f"{ctx.content}")
-                    embed = addEmbed(ctx,None,embedDiscription )
-                    embed.set_image(url=f"attachment://{ctx.attachments[0].filename}")
-                    msg = await ctx.channel.send(embed=embed, file = file)
-                    await msg.add_reaction("✅")
-                    await msg.add_reaction("❌")
-                    print(f"An image inclusive suggestion was made in #{ctx.channel.name} by {ctx.author}.")
-                    await ctx.delete()
-                    os.remove(f"./{ctx.attachments[0].filename}")
+                    try:
+                        await ctx.attachments[0].save(f"./{ctx.attachments[0].filename}")
+                        file = discord.File(ctx.attachments[0].filename)
+                        embedDiscription  = (f"{ctx.content}")
+                        embed = addEmbed(ctx,None,embedDiscription )
+                        embed.set_image(url=f"attachment://{ctx.attachments[0].filename}")
+                        msg = await ctx.channel.send(embed=embed, file = file)
+                        await msg.add_reaction("✅")
+                        await msg.add_reaction("❌")
+                        print(f"An image inclusive suggestion was made in #{ctx.channel.name} by {ctx.author}.")
+                        await ctx.delete()
+                        os.remove(f"./{ctx.attachments[0].filename}")
+                    except:
+                        msg = await ctx.channel.fetch_message(ctx.channel.last_message_id)
+                        await msg.add_reaction("✅")
+                        await msg.add_reaction("❌")
+                        print(f"An image inclusive suggestion was made in #{ctx.channel.name} by {ctx.author}.")
+                        await ctx.delete()
+                        os.remove(f"./{ctx.attachments[0].filename}")
                 if not ctx.attachments:
                     await ctx.delete()
                     embedDiscription  = (f"{ctx.content}")
