@@ -138,3 +138,4 @@ dmypy.json
 /application.yml
 /lavalink.jar
 logs/
+discord.py

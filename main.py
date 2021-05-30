@@ -1,23 +1,18 @@
 import os
 from discord import channel, voice_client
 from discord.ext.commands.errors import UserNotFound
+from discord_components.select import Option
 from dns.resolver import query
 from dotenv import load_dotenv
 from discord.utils import get  
 import discord
 from discord.ext import commands 
 from discord_slash import SlashCommand, SlashContext
-from discord_components import DiscordComponents, Button, ButtonStyle, InteractionType
+from discord_components import DiscordComponents, Button, ButtonStyle, InteractionType, Select, button, component
 from mcstatus import MinecraftServer
 import asyncio
 import mysql.connector
-import aiohttp
-import json
 import re
-
-client = commands.Bot(command_prefix='-')  # Defines prefix and bot
-DiscordComponents(client)
-slash = SlashCommand(client, sync_commands=False)  # Defines slash commands
 
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
@@ -95,7 +90,6 @@ def selectquery(sql, table , column , where):
             result = querycursor.fetchone()[0]
             sql.commit()
             querycursor.close()
-            print(f'Select query executed successfully {result}!')
             return result
     except mysql.connector.Error as e:
         print(e)
@@ -155,6 +149,7 @@ quilds_query = ('''
             (guild_id BIGINT NOT NULL PRIMARY KEY,
             guild_name VARCHAR(255) NOT NULL,
             premium BOOLEAN,
+            prefix varchar(5) DEFAULT "-",
             administrator_id BIGINT,
             moderator_id BIGINT,
             generalchannel BIGINT,
@@ -174,14 +169,36 @@ categories_query = ('''
             category_name VARCHAR(255),
             category_less VARCHAR(255)
             )''') 
+restrict_query = ('''
+        CREATE TABLE hambot3_.restrict (
+            id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            guild_id BIGINT DEFAULT NULL,
+            restrictrole_name VARCHAR(255),
+            restrictrole_id BIGINT,
+            restrictrole2_id BIGINT,
+            restrictrole3_id BIGINT
+            )''')
 
 
 sql = sqlconnect()      
 createtable(sql,'guilds', quilds_query)
 createtable(sql,'categories', categories_query)
+createtable(sql,'restrict', restrict_query)
+
 premium_guilds = [selectqueryall(sql, 'guilds', 'guild_id', None)]
 ham_guilds = [380308776114454528, 841225582967783445, 820383461202329671,
 82038346120232967, 650658756803428381, 571626209868382236, 631067371661950977]
+prefixes = {}
+def getprefix(client, message):
+    if message.guild.id in premium_guilds and message.guild.id not in prefixes:
+        pref = selectquery(sql, "guilds", "prefix", f"guild_id={message.guild.id}")
+        prefixes.update({f"{message.guild.id}": f"{pref}"})
+    elif message.guild.id not in premium_guilds and message.guild.id not in prefixes:
+        prefixes.update({f"{message.guild.id}": f"-"})
+    return prefixes[f"{message.guild.id}"]
+client = commands.Bot(command_prefix= (getprefix))  # Defines prefix and bot
+DiscordComponents(client)
+slash = SlashCommand(client, sync_commands=False)  # Defines slash commands
 
 # ------- FUNCTIONS -------
 
@@ -284,9 +301,37 @@ async def on_ready():
     channel = client.get_channel(841245744421273620)
     await channel.send(embed=addEmbed(None,discord.Color.teal(), embedDiscription ))
     # client.load_extension('music')
-    await statuscheck()
+    client.remove_command('help')
+    while True:
+        await statuscheck()
 
 # ------- CLIENT COMMANDS -------
+@client.command()
+@commands.has_permissions(manage_guild=True)
+async def setprefix(ctx, prefix = None):
+    administratorcheck1 = await administratorcheck(ctx.guild, ctx.author)
+    if administratorcheck1 == 0:
+        embedDiscription  = (f"You don't have permission to do this.")
+        await ctx.send(embed=addEmbed(ctx,None,embedDiscription ), delete_after=5)
+        return
+    await ctx.message.delete()
+    if prefix is None:
+        embedDiscription  = (f"Please provide all required arguments. `-setprefix <prefix>`.")
+        await ctx.send(embed=addEmbed(ctx,discord.Color.red,embedDiscription ), delete_after=5)
+        return
+    if len(prefix) >= 6:
+        embedDiscription  = (f"{prefix} has too many characters for a prefix.")
+        await ctx.send(embed=addEmbed(ctx,discord.Color.red,embedDiscription ), delete_after=5)
+        return
+    if ctx.guild.id in premium_guilds:
+        insertquery(sql, "guilds", "prefix", f"'{prefix}'", f"guild_id={ctx.guild.id}")
+        prefixes[f"{ctx.guild.id}"] = prefix
+    elif ctx.guild.id not in premium_guilds:
+        prefixes[f"{ctx.guild.id}"] = prefix
+    else: 
+        return
+    embedDiscription  = (f"Prefix succesfully set to {prefix}")
+    await ctx.send(embed=addEmbed(ctx,discord.Color.red,embedDiscription ), delete_after=5)
 
 @client.command()
 @commands.has_permissions(manage_messages=True)
@@ -295,11 +340,12 @@ async def purge(ctx, amount:int):
     if moderatorcheck1 == 0:
         embedDiscription  = (f"You don't have permission to do this.")
         await ctx.send(embed=addEmbed(ctx,None,embedDiscription ), delete_after=5)
+          
         return
     await ctx.message.delete()
     await ctx.channel.purge(limit=amount)
     embedDiscription  = (f"{amount} messages were successfully deleted.")
-    await ctx.send(embed=addEmbed(ctx,discord.Color.red,embedDiscription ), delete_after=5)
+    await ctx.send(embed=addEmbed(ctx,discord.Color.red,embedDiscription ), delete_after=1)
 
 @client.command()
 @discord.ext.commands.has_guild_permissions(manage_guild=True)
@@ -329,6 +375,88 @@ async def setup(ctx, password, admin_role_id:discord.Role,mod_role_id:discord.Ro
         else:
             embedDiscription  = (f"Register Failed")
             await ctx.send(embed=addEmbed(ctx,discord.Color.red,embedDiscription ), delete_after=5)
+        query = 'SELECT guild_id FROM guilds NATURAL JOIN restrict'
+        sql.connect()
+        querycursor = sql.cursor()
+        querycursor.execute(query)  
+        result = querycursor.fetchall()
+        sql.commit()
+        querycursor.close()        
+        if (result == 0):
+            embedDiscription  = (f"Registered successfully")
+            await ctx.send(embed=addEmbed(ctx,discord.Color.green,embedDiscription ), delete_after=5)
+        else:
+            embedDiscription  = (f"Register Failed")
+            await ctx.send(embed=addEmbed(ctx,discord.Color.red,embedDiscription ), delete_after=5)
+
+@client.command()
+@discord.ext.commands.has_guild_permissions(manage_guild=True)
+async def setrestrict(ctx, alias ,role1:discord.Role, role2:discord.Role = None, role3:discord.Role = None):
+    await ctx.message.delete()
+    guild_id = ctx.guild.id
+    administratorcheck1 = await administratorcheck(ctx.guild, ctx.author)
+    if administratorcheck1 == 0:
+        embedDiscription  = (f"You don't have permission to do this.")
+        await ctx.send(embed=addEmbed(ctx,None,embedDiscription ), delete_after=5)
+        return
+    if guild_id not in premium_guilds:
+        embedDiscription  = (f"You premium to use this command.")
+        await ctx.send(embed=addEmbed(ctx,discord.Color.blue,embedDiscription ), delete_after=5)
+        return
+    restricttypes = selectqueryall(sql, 'hambot3_.restrict', 'restrictrole_name', f'guild_id = {ctx.guild.id}')
+    for stralias in restricttypes:
+        if alias == stralias[0]:
+            embedDiscription  =(f"Restrict type `{alias}` already exists.")
+            await ctx.send(embed=addEmbed(ctx,discord.Color.red,embedDiscription ), delete_after=5)
+            return 1
+    else:
+        if role3 is None:
+            if role2 is None:
+                column = '(guild_id  , restrictrole_name , restrictrole_id)'
+                values = (guild_id , alias , role1.id)
+                where = None
+                result = (insertquery(sql, 'hambot3_.restrict' , column , values, where))
+                sql.connect()
+                querycursor = sql.cursor()
+                sql.commit()
+                querycursor.close()        
+                if (result == 0):
+                    embedDiscription  = (f"Restrict `{alias}` successfully set as {role1.mention}")
+                    await ctx.send(embed=addEmbed(ctx,discord.Color.green,embedDiscription ), delete_after=5)
+                else:
+                    embedDiscription  = (f"Restrict `{alias}` failed to set as {role1.mention}")
+                    await ctx.send(embed=addEmbed(ctx,discord.Color.red,embedDiscription ), delete_after=5)
+                return
+            column = '(guild_id  , restrictrole_name , restrictrole_id , restrictrole2_id)'
+            values = (guild_id , alias , role1.id , role2.id)
+            where = None
+            result = (insertquery(sql, 'hambot3_.restrict' , column , values, where))
+            sql.connect()
+            querycursor = sql.cursor()
+            sql.commit()
+            querycursor.close()        
+            if (result == 0):
+                embedDiscription  = (f"Restrict `{alias}` successfully set as {role1.mention} and {role2.mention}")
+                await ctx.send(embed=addEmbed(ctx,discord.Color.green,embedDiscription ), delete_after=5)
+            else:
+                embedDiscription  = (f"Restrict `{alias}` failed to set as {role1.mention} and {role2.mention}")
+                await ctx.send(embed=addEmbed(ctx,discord.Color.red,embedDiscription ), delete_after=5)
+            return
+        column = '(guild_id  , restrictrole_name , restrictrole_id , restrictrole2_id, restrictrole3_id)'
+        values = (guild_id , alias , role1.id , role2.id, role3.id)
+        where = None
+        result = (insertquery(sql, 'hambot3_.restrict' , column , values, where))
+        sql.connect()
+        querycursor = sql.cursor()
+        sql.commit()
+        querycursor.close()        
+        if (result == 0):
+            embedDiscription  = (f"Restrict `{alias}` successfully set as {role1.mention}, {role2.mention} and {role3.mention}")
+            await ctx.send(embed=addEmbed(ctx,discord.Color.green,embedDiscription ), delete_after=5)
+        else:
+            embedDiscription  = (f"Restrict `{alias}` failed to set as {role1.mention}, {role2.mention} and {role3.mention}")
+            await ctx.send(embed=addEmbed(ctx,discord.Color.red,embedDiscription ), delete_after=5)
+        return
 
 @client.command()
 async def edit(ctx, id, *, embedDiscription):
@@ -394,6 +522,83 @@ async def move(ctx, alias):
             await ctx.send(embed=addEmbed(ctx,None,embedDiscription ), delete_after=5)
 
 @client.command()
+@commands.has_permissions(manage_messages=True)
+async def restrict(ctx, alias):
+    moderatorcheck1 = await moderatorcheck(ctx.guild, ctx.author)
+    if moderatorcheck1 == 0:
+        embedDiscription  = (f"You don't have permission to do this.")
+        await ctx.send(embed=addEmbed(ctx,None,embedDiscription ), delete_after=5)
+        return
+    await ctx.message.delete()
+    if alias.lower() == "none":
+        await ctx.channel.set_permissions(ctx.guild.default_role, view_channel=True)
+        embedDiscription  = (f"{ctx.channel.mention} has been opened to public.")
+        await ctx.send(embed=addEmbed(ctx,None,embedDiscription ), delete_after=5)
+    sql.connect()
+    mycursor = sql.cursor()
+    mycursor.execute(f"SELECT restrictrole_name FROM hambot3_.restrict WHERE guild_id = {ctx.guild.id}")
+    aliaslist = mycursor.fetchall()
+    mycursor.close()
+    for stralias in aliaslist:
+        if alias == stralias[0]:
+            ctxchannel = ctx.channel
+            sql.connect()
+            mycursor = sql.cursor()
+            mycursor.execute(f"SELECT restrictrole3_id FROM hambot3_.restrict WHERE restrictrole_name = '{alias}' AND guild_id = {ctx.guild.id}")
+            result = mycursor.fetchone()
+            mycursor.close()
+            if result is None:
+                sql.connect()
+                mycursor = sql.cursor()
+                mycursor.execute(f"SELECT restrictrole2_id FROM hambot3_.restrict WHERE restrictrole_name = '{alias}' AND guild_id = {ctx.guild.id}")
+                result1 = mycursor.fetchone()
+                mycursor.close()
+                if result1 is None:
+                    sql.connect()
+                    mycursor = sql.cursor()
+                    mycursor.execute(f"SELECT restrictrole_id FROM hambot3_.restrict WHERE restrictrole_name = '{alias}' AND guild_id = {ctx.guild.id}")
+                    result1 = mycursor.fetchone()
+                    mycursor.close()
+                    cat = ctx.guild.get_role(result1[0])
+                    await ctx.channel.set_permissions(ctx.guild.default_role, view_channel=False)
+                    await ctx.channel.set_permissions(cat, view_channel=True)
+                    embedDiscription  = (f"{ctxchannel.mention} has been restricted to {cat.mention}")
+                    await ctx.send(embed=addEmbed(ctx,None,embedDiscription ), delete_after=5)
+                    return
+                sql.connect()
+                mycursor = sql.cursor()
+                mycursor.execute(f"SELECT restrictrole_id FROM hambot3_.restrict WHERE restrictrole_name = '{alias}' AND guild_id = {ctx.guild.id}")
+                result2 = mycursor.fetchone()
+                mycursor.close()
+                cat = ctx.guild.get_role(result1[0])
+                cat2 = ctx.guild.get_role(result2[0])
+                await ctx.channel.set_permissions(ctx.guild.default_role, view_channel=False)
+                await ctx.channel.set_permissions(cat, view_channel=True)
+                await ctx.channel.set_permissions(cat2, view_channel=True)
+                embedDiscription  = (f"{ctxchannel.mention} has been restricted to {cat.mention} and {cat2.mention}")
+                await ctx.send(embed=addEmbed(ctx,None,embedDiscription ), delete_after=5)
+                return
+            sql.connect()
+            mycursor = sql.cursor()
+            mycursor.execute(f"SELECT restrictrole_id FROM hambot3_.restrict WHERE restrictrole_name = '{alias}' AND guild_id = {ctx.guild.id}")
+            result2 = mycursor.fetchone()
+            mycursor.close()
+            sql.connect()
+            mycursor = sql.cursor()
+            mycursor.execute(f"SELECT restrictrole2_id FROM hambot3_.restrict WHERE restrictrole_name = '{alias}' AND guild_id = {ctx.guild.id}")
+            result3 = mycursor.fetchone()
+            mycursor.close()
+            cat = ctx.guild.get_role(result[0])
+            cat2 = ctx.guild.get_role(result2[0])
+            cat3 = ctx.guild.get_role(result3[0])
+            await ctx.channel.set_permissions(ctx.guild.default_role, view_channel=False)
+            await ctx.channel.set_permissions(cat, view_channel=True)
+            await ctx.channel.set_permissions(cat2, view_channel=True)
+            await ctx.channel.set_permissions(cat3, view_channel=True)
+            embedDiscription  = (f"{ctxchannel.mention} has been restricted to {cat.mention}, {cat2.mention} and {cat3.mention}")
+            await ctx.send(embed=addEmbed(ctx,None,embedDiscription ), delete_after=5)
+
+@client.command()
 @commands.has_permissions(manage_guild=True)
 async def setmove(ctx, categoryi: discord.CategoryChannel, alias):
     administratorcheck1 = await administratorcheck(ctx.guild, ctx.author)
@@ -452,13 +657,18 @@ async def removemove(ctx, alias):
     await ctx.send(embed=addEmbed(ctx,discord.Color.green,embedDiscription ), delete_after=5)
     return 1
     
+@client.command()
+async def simchannelcreate(ctx):
+    await ctx.message.delete()
+    await on_guild_channel_create(ctx.channel)
+
 @client.command(aliases=['ml'])
 @commands.has_permissions(manage_guild=True)
 async def movelist(ctx):
     moderatorcheck1 = await moderatorcheck(ctx.guild, ctx.author)
     if moderatorcheck1 == 0:
         embedDiscription  = (f"You don't have permission to do this.")
-        await ctx.send(embed=addEmbed(ctx,None,embedDiscription ), delete_after=5)
+        await ctx.send(embed=addEmbed(ctx,None,embedDiscription ), delete_after=5) 
         return
     await ctx.message.delete()
     categories = [selectqueryall(sql, 'categories', 'category_name', f'guild_id = {ctx.guild.id}')]
@@ -469,7 +679,7 @@ async def movelist(ctx):
             return
         newcat = str(category).replace('(', '').replace(')', '').replace('(', '').replace("'", '').replace("[", '').replace("]", '').replace(',', '').replace(' ', f'\n')
         embedDiscription  = (f"__**Categories you can move channels to:**__\n{newcat}")
-        await ctx.send(embed=addEmbed(ctx,discord.Color.red,embedDiscription ), delete_after=10)        
+        await ctx.send(embed=addEmbed(ctx,discord.Color.red,embedDiscription ), delete_after=10)    
 
 # ------- ERROR HANDLERS -------
 
@@ -496,7 +706,6 @@ async def clear_error(ctx, error):
         error = await ctx.send('Please enter a valid category name. `-removemove <categoryname>`')
         await asyncio.sleep(5)
         await error.delete()
-
 
 @edit.error
 async def clear_error(ctx, error):
@@ -772,23 +981,25 @@ async def on_slash_command_error(ctx, error):
 
 @client.event
 async def on_guild_channel_create(channel):
-    sent = True
-    embedDiscription  = f"""Hello! The staff team will be assisting you shortly.
+    if "ticket-" not in channel.name:
+        return
+    if channel.guild.id not in ham_guilds:
+        return
+
+    embedDescription  = f"""Hello! The staff team will be assisting you shortly.
 In order to make this process easier for us staff, please choose from
 the following choices by clicking the button describing your issue.
 
-**1. Item Lost** 
-**2. Reporting an Issue/Bug**
-**3. Same IP Connection** 
-**4. Connection Problems**
-**5. Forgot Password**
-**6. Ban/Mute Appeal**
-**7. Queries**
-**8. In-Game Rank Parity**"""
-    headers= {
-        "Authorization": f"Bot {TOKEN}",
-        "Content-Type": "application/json"
-    }
+1. **Item Lost** 
+2. **Reporting an Issue/Bug**
+3. **Same IP Connection** 
+4. **Connection Problems**
+5. **Discord Issue**
+6. **Forgot Password**
+7. **Ban/Mute Appeal**
+8. **Queries**
+9. **In-Game Rank Parity**
+10. **Role Application**"""
 
     async def embed1(embedDescription):
         embed1 = discord.Embed(description=f"{embedDescription}", color=discord.Color.dark_teal())
@@ -796,89 +1007,133 @@ the following choices by clicking the button describing your issue.
         embed1.set_footer(text="Ham5teak Bot 3.0 | play.ham5teak.xyz | Made by Beastman#1937 and Jaymz#7815")
         return embed1
     
-    async with aiohttp.request("POST", f"https://discord.com/api/v9/channels/{channel.id}/messages", headers=headers, data=json.dumps(
-            {"embed":{"description": embedDiscription,"color": 1146986,"author": {"name": "Ham5teak Bot Ticket Assistance",
-          "icon_url": "https://cdn.discordapp.com/icons/380308776114454528/a_be4514bb0a52a206d1bddbd5fbd2250f.webp?size=128"
-        }},"components": [{"type": 1,"components": [{"type": 2,"label": "1","style": 3,"custom_id": "Item Lost"},
-                   {"type": 2,"label": "2","style": 3,"custom_id": "Issue/Bug Report"},{"type": 2,"label": "3","style": 3,"custom_id": "Same IP Connection"},
-                   {"type": 2,"label": "4","style": 3,"custom_id": "Connection Problems"},]},{"type": 1,"components": [{"type": 2,"label": "5",
-                         "style": 3,"custom_id": "Forgot Password"},{"type": 2,"label": "6","style": 3,"custom_id": "Ban/Mute Appeal"},{"type": 2,"label": "7",
-                         "style": 3,"custom_id": "Queries"},{"type": 2,"label": "8","style": 3,"custom_id": "In-Game Rank Parity"},]},{"type": 1,
-                 "components": [{"type": 2,"label": "Store","style": 5,"url":"https://shop.ham5teak.xyz"
-                   },{"type": 2,"label": "Forums","style": 5,"url":"https://ham5teak.xyz"}]
-            }
-            ]})) as response:
-                    response.raise_for_status()
 
-    msg = await channel.fetch_message(channel.last_message_id)
-    while sent == True:
-            res = await client.wait_for("button_click")
-            print(res.component.id)
-            if res.channel == channel:
-                if res.component.id == "Item Lost":
-                    embedDescription1 = f"1. **Item Lost Due To Server Lag/Crash** \n\n\`\`\`\nIn-game Name:\nServer:\nItems you lost:  \n\`\`\`\n\nIf they are enchanted tools, please mention the enchantments if possible."
-                    await channel.send(context=" ", embed=await embed1(embedDescription1))
-                elif res.component.id == "Issue/Bug Report":
-                    embedDescription1 = f"2. **Issue/Bug Report** \n\n\`\`\`\nIn-Game Name : \nServer: \nIssue/Bug :\n\`\`\`"
-                    await channel.send(context=" ", embed=await embed1(embedDescription1))
-                elif res.component.id == "Same IP Connection":
-                    embedDescription1 = f"3. **Same IP Connection** \n\n\`\`\`\nIn-Game Name of Same IP Connection : \n- \n- \n\nIP Address : (Format should be xxx.xxx.xxx.xxx)\n\`\`\`"
-                    await channel.send(context=" ", embed=await embed1(embedDescription1))
-                elif res.component.id == "Connection Problems":
-                    embedDescription1 = f"4. **Connection Problems** \n\n\`\`\`\nIn-game Name:\nWhat connection problem are you facing? Please explain briefly:\n\`\`\`\n\n"
-                    await channel.send(context=" ", embed=await embed1(embedDescription1))
-                elif res.component.id == "Forgot Password":
-                    embedDescription1 = f"5. **Forgot Password** \n\n\`\`\`\nIn-game Name:\nIP Address : (Format should be xxx.xxx.xxx.xxx)\n\`\`\`"
-                    await channel.send(context=" ", embed=await embed1(embedDescription1))
-                elif res.component.id == "Ban/Mute Appeal":
-                    embedDescription1 = f"""6. **Ban/Mute Appeal** \n\n\`\`\`\nWhy did you get banned/muted? \nWas it on discord or in-game?\n\`\`\` \nIf it was in-game, what is your in-game name and who banned/muted you? 
-            \nAlso - please do a ban appeal/mute appeal next time using https://ham5teak.xyz/forums/ban-appeal.21/"""
-                    await channel.send(context=" ", embed=await embed1(embedDescription1))
-                elif res.component.id == "Forgot Password":
-                    embedDescription1 = f"5. **Forgot Password** \n\n\`\`\`\nIn-game Name:\nIP Address : (Format should be xxx.xxx.xxx.xxx)\n\`\`\`"
-                    await channel.send(context=" ", embed=await embed1(embedDescription1))
-                elif res.component.id == "Queries":
-                    embedDescription1 = f"""7. **Queries** \nPlease state your questions here and wait patiently for a staff to reply.\nIf you have to do something at the moment, please leave a note for Staff."""
-                    await channel.send(context=" ", embed=await embed1(embedDescription1))
-                elif res.component.id == "In-Game Rank Parity":
-                    embedDescription1 = f"""8. **In-Game Rank Parity** \nPlease state your In-Game Name and rank you would like to be paired.\nIf you have to do something at the moment, please leave a note for Staff.
-             \n\`\`\`\nIn-Game Name: \nRank: \n\`\`\`\n"""
-                    await channel.send(context=" ", embed=await embed1(embedDescription1))
-                await msg.edit(components=[
-                    Button(style=ButtonStyle.green, label=f"{res.user} chose {res.component.id}", disabled=True)
-                    ])
-                await res.respond(
-                    type=InteractionType.ChannelMessageWithSource,
-                    content=f'{res.component.id} chosen.'
-                )
-                sent = False
+    msg = await channel.send(embed=await embed1(embedDescription),components=[
+                # Row 1
+                [Button(style=ButtonStyle.green, label=f"1", id="Item Lost"),
+                Button(style=ButtonStyle.green, label=f"2", id="Issue or Bug Report"),
+                Button(style=ButtonStyle.green, label=f"3", id="Same IP Connection"),
+                Button(style=ButtonStyle.green, label=f"4", id="Connection Problems"),
+                Button(style=ButtonStyle.green, label=f"5", id="Discord Issue")],
+                # Row 2
+                [Button(style=ButtonStyle.green, label=f"6", id="Forgot Password"),
+                Button(style=ButtonStyle.green, label=f"7", id="Ban or Mute Appeal"),
+                Button(style=ButtonStyle.green, label=f"8", id="Queries"),
+                Button(style=ButtonStyle.green, label=f"9", id="In-Game Rank Parity"),
+                Button(style=ButtonStyle.green, label=f"10", id="Role Application"),],
+                # Row 3
+                [Button(style=ButtonStyle.URL, label=f"Visit Store", url="http://shop.ham5teak.xyz/"),
+                Button(style=ButtonStyle.URL, label=f"Visit Forums", url="https://ham5teak.xyz/")],
+                ])
+    while True:
+        res = await client.wait_for(event="button_click",check=lambda res: res.channel == channel)
+        if res.component.id == "Item Lost":
+            embedDescription1 = f"1. **Item Lost Due To Server Lag/Crash** \n\n\`\`\`\nIn-game Name:\nServer:\nItems you lost:  \n\`\`\`\n\nIf they are enchanted tools, please mention the enchantments if possible."
+        elif res.component.id == "Issue or Bug Report":
+            embedDescription1 = f"2. **Issue/Bug Report** \n\n\`\`\`\nIn-Game Name : \nServer: \nIssue/Bug :\n\`\`\`"
+        elif res.component.id == "Same IP Connection":
+            embedDescription1 = f"3. **Same IP Connection** \n\n\`\`\`\nIn-Game Name of Same IP Connection : \n- \n- \n\nIP Address : (Format should be xxx.xxx.xxx.xxx)\n\`\`\`"
+        elif res.component.id == "Connection Problems":
+            embedDescription1 = f"4. **Connection Problems** \n\n\`\`\`\nIn-game Name:\nWhat connection problem are you facing? Please explain briefly:\n\`\`\`\n\n"
+        elif res.component.id == "Discord Issue":
+            embedDescription1 = f"5. **Discord Issue** \nPlease state your issue and wait patiently until our support team arrives."
+        elif res.component.id == "Forgot Password":
+            embedDescription1 = f"6. **Forgot Password** \n\n\`\`\`\nIn-game Name:\nIP Address : (Format should be xxx.xxx.xxx.xxx)\n\`\`\`"
+        elif res.component.id == "Ban or Mute Appeal":
+            embedDescription1 = f"""7. **Ban/Mute Appeal** \n\n\`\`\`\nWhy did you get banned/muted? \nWas it on discord or in-game?\n\`\`\` \nIf it was in-game, what is your in-game name and who banned/muted you? 
+        \nAlso - please do a ban appeal/mute appeal next time using https://ham5teak.xyz/forums/ban-appeal.21/"""
+        elif res.component.id == "Queries":
+            embedDescription1 = f"""8. **Queries** \nPlease state your questions here and wait patiently for a staff to reply.\nIf you have to do something at the moment, please leave a note for Staff."""
+        elif res.component.id == "In-Game Rank Parity":
+            embedDescription1 = f"""9. **In-Game Rank Parity** \nPlease state your In-Game Name and rank you would like to be paired.\nIf you have to do something at the moment, please leave a note for Staff.
+            \n\`\`\`\nIn-Game Name: \nRank: \n\`\`\`\n"""
+        elif res.component.id == "Role Application":
+            embedDescription1 = f"""10. **Role Application** \nPlease state the role you want to apply for `Youtuber/DJ/Dev-Chat`.
+            \nIf you're applying for youtuber please send a video you've recorded in Ham5teak if not please wait until our support team arrives."""
+        if embedDescription1 is not None:
+            await msg.edit(embed=await embed1(embedDescription1),components=[
+            Button(style=ButtonStyle.green, label=f"{res.user} chose {res.component.id}", disabled=True)
+            ]) 
+        await res.respond(
+            type=InteractionType.ChannelMessageWithSource,
+            embed= await embed1(f"""{res.component.id} chosen.
+        \nIf your issue is occurring in a specific server you can optionally select it."""),
+            components=[Select(id=f"{res.component.id}-{res.user.name}",options=[Option(label="Survival", value="Survival"),
+            Option(label="Skyblocks", value="Skyblocks"),Option(label="Semi-Vanilla", value="Semi-Vanilla"),
+            Option(label="Factions", value="Factions"), Option(label="Creative", value="Creative"),
+            Option(label="Prison", value="Prison"), Option(label="Caveblocks", value="Caveblocks"),
+            Option(label="Minigames", value="Minigames")],placeholder="Choose A Server", min_values=1, max_values=1)]
+        )
+        if "ticket-" in channel.name:
+            await channel.edit(name=f"{res.component.id}-{res.user.name}")
+        if channel.guild.id not in ham_guilds:
+            return
+        serversent = True
+        while serversent == True:
+            res1 = await client.wait_for("select_option", check=lambda res1: res1.component["custom_id"].replace(" ", "-").lower() == channel.name)
+            if res1.component["values"][0] == "Survival":
+                cat = client.get_channel(848284762514391061)
+                await channel.edit(category=cat)
+            elif res1.component["values"][0] == "Skyblocks":
+                cat = client.get_channel(841403196693413888)
+                await channel.edit(category=cat)
+            elif res1.component["values"][0] == "Semi-Vanilla":
+                cat = client.get_channel(841403196693413888)
+                await channel.edit(category=cat)
+            elif res1.component["values"][0] == "Factions":
+                cat = client.get_channel(841403196693413888)
+                await channel.edit(category=cat)
+            elif res1.component["values"][0] == "Prison":
+                cat = client.get_channel(841403196693413888)
+                await channel.edit(category=cat)
+            elif res1.component["values"][0] == "Creative":
+                cat = client.get_channel(841403196693413888)
+                await channel.edit(category=cat)
+            elif res1.component["values"][0] == "Caveblocks":
+                cat = client.get_channel(841403196693413888)
+                await channel.edit(category=cat)
+            elif res1.component["values"][0] == "Minigames":
+                cat = client.get_channel(841403196693413888)
+                await channel.edit(category=cat)
+            embedDescription2 = f"{res1.component['values'][0]} selected as ticket category."
+            await res1.respond(
+                type=InteractionType.UpdateMessage,
+                embed=await embed1(embedDescription2)
+            )
+            serversent = False
+
 
 @client.event
 async def on_reaction_add(reaction, user):
     messageid = reaction.message.id
     rcount = 2
+    reacted = True
+    reacted = False
     if "polls" in reaction.message.channel.name:
-        messageobj = await reaction.message.channel.fetch_message(messageid)
-        messagereactions = messageobj.reactions
-        reactioncounts = []
-        await asyncio.sleep(10)
-        for reaction in messagereactions:
-            reactioncounts.append(int(reaction.count))
-        await asyncio.sleep(5)
-        for reaction in messagereactions:
-            if reaction.count == int(max(reactioncounts)):
-                channel = reaction.message.channel
-                dsuggestionschannel = client.get_channel(channel.id)
-                msg = await channel.fetch_message(messageid)
-                channelcheck = await client.get_channel(channel.id).history(limit=20).flatten()
-                for sc in channelcheck:
-                    if f'https://discordapp.com/channels/{reaction.message.guild.id}/{reaction.message.channel.id}/{messageid}' in sc.content:
-                        return
-                try:
-                    await messageobj.edit(content=f'**{reaction.emoji} won with {reaction.count} votes:**\n https://discordapp.com/channels/{reaction.message.guild.id}/{reaction.message.channel.id}/{messageid}',embed=msg.embeds[0])
-                except AttributeError as e:
-                    print(f"{reaction.message.guild.name} doesn't have a demanded suggestions channel set.")
-                return
+        if user.bot:
+            return
+        while reacted == False:
+            messageobj = await reaction.message.channel.fetch_message(messageid)
+            messagereactions = messageobj.reactions
+            reactioncounts = []
+            await asyncio.sleep(10)
+            for reaction in messagereactions:
+                reactioncounts.append(int(reaction.count))
+            for reaction in messagereactions:
+                if reaction.count == int(max(reactioncounts)):
+                    finalcount = int(reaction.count - 1)
+                    channel = reaction.message.channel
+                    dsuggestionschannel = client.get_channel(channel.id)
+                    msg = await channel.fetch_message(messageid)
+                    channelcheck = await client.get_channel(channel.id).history(limit=20).flatten()
+                    for sc in channelcheck:
+                        if f'https://discordapp.com/channels/{reaction.message.guild.id}/{reaction.message.channel.id}/{messageid}' in sc.content:
+                            return
+                    try:
+                        await messageobj.edit(content=f'**{reaction.emoji} won with {finalcount} votes:**\n https://discordapp.com/channels/{reaction.message.guild.id}/{reaction.message.channel.id}/{messageid}',embed=msg.embeds[0])
+                    except AttributeError as e:
+                        print(f"{reaction.message.guild.name} doesn't have a demanded suggestions channel set.")
+                    return
     if "suggestions" in reaction.message.channel.name:
         if reaction.emoji == "✅":
             if reaction.count == rcount:
@@ -932,45 +1187,28 @@ async def on_message(ctx):
                     if ctx.attachments:
                         for imageextensions in [".jpg", ".jpeg", ".png", ".gif"]:
                             if imageextensions in ctx.attachments[0].filename:
-                                try:
-                                    await ctx.attachments[0].save(f"./{ctx.attachments[0].filename}")
-                                    file = discord.File(ctx.attachments[0].filename)
-                                    embedDiscription  = (f"{ctx.content}")
-                                    embed = addEmbed(ctx,None,embedDiscription )
-                                    embed.set_image(url=f"attachment://{ctx.attachments[0].filename}")
-                                    msg = await ctx.channel.send(embed=embed, file=file)
-                                    await msg.add_reaction("👍")
-                                    await msg.add_reaction("❤️")  
-                                    print(f"An image inclusive announcement was made in #{ctx.channel.name} by {ctx.author}.")
-                                    await ctx.delete()
-                                    os.remove(f"./{ctx.attachments[0].filename}")
-                                    return
-                                except KeyError as e:
-                                    msg = await ctx.channel.fetch_message(ctx.channel.last_message_id)
-                                    await msg.add_reaction("👍")
-                                    await msg.add_reaction("❤️")  
-                                    print(f"An image inclusive announcement was made in #{ctx.channel.name} by {ctx.author}.")
-                                    await ctx.delete()
-                                    os.remove(f"./{ctx.attachments[0].filename}")
-                                    return
-                        try:
-                            await ctx.attachments[0].save(f"./{ctx.attachments[0].filename}")
-                            file = discord.File(ctx.attachments[0].filename)
-                            embedDiscription  = (f"{ctx.content}")
-                            embed = addEmbed(ctx,None,embedDiscription )
-                            msg = await ctx.channel.send(embed=embed, file=file)
-                            await msg.add_reaction("👍")
-                            await msg.add_reaction("❤️")
-                            print(f"An attachment inclusive announcement was made in #{ctx.channel.name} by {ctx.author}.")
-                            await ctx.delete()
-                            os.remove(f"./{ctx.attachments[0].filename}")
-                        except KeyError as e:
-                            msg = await ctx.channel.fetch_message(ctx.channel.last_message_id)
-                            await msg.add_reaction("👍")
-                            await msg.add_reaction("❤️")
-                            print(f"An attachment inclusive announcement was made in #{ctx.channel.name} by {ctx.author}.")
-                            await ctx.delete()
-                            os.remove(f"./{ctx.attachments[0].filename}")
+                                await ctx.attachments[0].save(f"./{ctx.attachments[0].filename}")
+                                file = discord.File(ctx.attachments[0].filename)
+                                embedDiscription  = (f"{ctx.content}")
+                                embed = addEmbed(ctx,None,embedDiscription )
+                                embed.set_image(url=f"attachment://{ctx.attachments[0].filename}")
+                                msg = await ctx.channel.send(embed=embed, file=file)
+                                await msg.add_reaction("👍")
+                                await msg.add_reaction("❤️")  
+                                print(f"An image inclusive announcement was made in #{ctx.channel.name} by {ctx.author}.")
+                                await ctx.delete()
+                                os.remove(f"./{ctx.attachments[0].filename}")
+                                return
+                        await ctx.attachments[0].save(f"./{ctx.attachments[0].filename}")
+                        file = discord.File(ctx.attachments[0].filename)
+                        embedDiscription  = (f"{ctx.content}")
+                        embed = addEmbed(ctx,None,embedDiscription )
+                        msg = await ctx.channel.send(embed=embed, file=file)
+                        await msg.add_reaction("👍")
+                        await msg.add_reaction("❤️")
+                        print(f"An attachment inclusive announcement was made in #{ctx.channel.name} by {ctx.author}.")
+                        await ctx.delete()
+                        os.remove(f"./{ctx.attachments[0].filename}")
                     if not ctx.attachments:
                         await ctx.delete()
                         embedDiscription  = (f"{ctx.content}")
@@ -984,25 +1222,17 @@ async def on_message(ctx):
                 await client.process_commands(ctx)
             else:
                 if ctx.attachments:
-                    try:
-                        await ctx.attachments[0].save(f"./{ctx.attachments[0].filename}")
-                        file = discord.File(ctx.attachments[0].filename)
-                        embedDiscription  = (f"{ctx.content}")
-                        embed = addEmbed(ctx,None,embedDiscription )
-                        embed.set_image(url=f"attachment://{ctx.attachments[0].filename}")
-                        msg = await ctx.channel.send(embed=embed, file = file)
-                        await msg.add_reaction("✅")
-                        await msg.add_reaction("❌")
-                        print(f"An image inclusive suggestion was made in #{ctx.channel.name} by {ctx.author}.")
-                        await ctx.delete()
-                        os.remove(f"./{ctx.attachments[0].filename}")
-                    except:
-                        msg = await ctx.channel.fetch_message(ctx.channel.last_message_id)
-                        await msg.add_reaction("✅")
-                        await msg.add_reaction("❌")
-                        print(f"An image inclusive suggestion was made in #{ctx.channel.name} by {ctx.author}.")
-                        await ctx.delete()
-                        os.remove(f"./{ctx.attachments[0].filename}")
+                    await ctx.attachments[0].save(f"./{ctx.attachments[0].filename}")
+                    file = discord.File(ctx.attachments[0].filename)
+                    embedDiscription  = (f"{ctx.content}")
+                    embed = addEmbed(ctx,None,embedDiscription )
+                    embed.set_image(url=f"attachment://{ctx.attachments[0].filename}")
+                    msg = await ctx.channel.send(embed=embed, file = file)
+                    await msg.add_reaction("✅")
+                    await msg.add_reaction("❌")
+                    print(f"An image inclusive suggestion was made in #{ctx.channel.name} by {ctx.author}.")
+                    await ctx.delete()
+                    os.remove(f"./{ctx.attachments[0].filename}")
                 if not ctx.attachments:
                     await ctx.delete()
                     embedDiscription  = (f"{ctx.content}")
@@ -1063,10 +1293,22 @@ async def on_message(ctx):
             generalchannelcheck = selectquery(sql, 'guilds', 'generalchannel', f'guild_id = {ctx.guild.id}')
             if alertschannelcheck != 0:
                 alertschannel = client.get_channel(alertschannelcheck)
-                await alertschannel.send(f'```{messagestrip}``` It originated from {ctx.channel.mention}!')
+                msg = await alertschannel.send(content=f'```{messagestrip}``` It originated from {ctx.channel.mention}!',
+                components=[Button(style=ButtonStyle.red, label="Verify", id=messagestrip)])
                 if generalchannelcheck != 0:
                     generalchannel = client.get_channel(generalchannelcheck)
                     await generalchannel.send(f'**WARNING!** `/op` or `/deop` was used. Check {alertschannel.mention} for more info.')
+                verified = False
+                while verified == False:
+                    res = await client.wait_for("button_click")
+                    if res.component.id == messagestrip:
+                        await msg.edit(content=f'```{messagestrip}``` It originated from {ctx.channel.mention}!',
+                        components=[Button(style=ButtonStyle.green, disabled=True ,label=f"OP Verified By {res.user}")])
+                        await res.respond(
+                            type=InteractionType.ChannelMessageWithSource,
+                            content=f'Op successfully verified.'
+                        )
+                        verified = True
         messagestrip = await stripmessage(ctx.content, 'Main thread terminated by WatchDog due to hard crash')
         if messagestrip:
             print(messagestrip)
@@ -1090,6 +1332,15 @@ async def on_message(ctx):
                 if lpalertschannelcheck != 0:
                     lpalertschannel = client.get_channel(lpalertschannelcheck)
                     await lpalertschannel.send(f'```{messagestrip}``` It originated from {ctx.channel.mention}!')
+    if ctx.guild.id in ham_guilds:
+        if "console-survival" in ctx.channel.name:
+            messagestrip = await stripmessage(ctx.content, '[HamAlerts] Thank you')
+            if messagestrip:
+                print(messagestrip)
+                guildchannels = ctx.guild.channels
+                for channel in guildchannels:
+                    if "receipts" in channel.name:
+                        await channel.send(f'```{messagestrip}```')
     return
 
 client.run(TOKEN)  # Changes
