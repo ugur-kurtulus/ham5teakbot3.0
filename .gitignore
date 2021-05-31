@@ -137,3 +137,4 @@ dmypy.json
 /databaseval.json
 /application.yml
 /lavalink.jar
+logs/spring.log.2021-05-16.0.gz
