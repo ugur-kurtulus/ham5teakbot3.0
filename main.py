@@ -207,6 +207,10 @@ DiscordComponents(client)
 slash = SlashCommand(client, sync_commands=False)  # Defines slash commands
 
 # ------- FUNCTIONS -------
+
+def getprefix2(ctx):
+    return prefixes[f"{ctx.guild.id}"]
+
 async def removeperms(ctx):
     for role in ctx.guild.roles:
         await ctx.channel.set_permissions(role, overwrite=None)
@@ -485,7 +489,7 @@ async def edit(ctx, id, *, embedDiscription):
         await ctx.send(embed=await nopermission(ctx), delete_after=5)
         return
     await ctx.message.delete()
-    await ctx.channel.get_partial_message(id).edit(embed = addEmbed(ctx, id, embedDiscription ))
+    await ctx.channel.get_partial_message(id).edit(embed = addEmbed(ctx, None, embedDiscription ))
 
 @client.command()
 @commands.guild_only()
@@ -688,9 +692,6 @@ async def movelist(ctx):
         await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDiscription ), delete_after=10)    
 
 # ------- ERROR HANDLERS -------
-
-def getprefix2(ctx):
-    return prefixes[f"{ctx.guild.id}"]
 
 @client.event
 async def on_command_error(ctx, error):
@@ -1191,8 +1192,9 @@ async def on_message(ctx):
     for channel in channelnames:
         if channel in ctx.channel.name:
             if not ctx.author.bot:
-                if ctx.content.startswith(getprefix(client, ctx)):
+                if ctx.content.startswith("-") or ctx.content.startswith("?") or ctx.content.startswith("!"):
                     await client.process_commands(ctx)
+                    return
                 else:
                     if ctx.attachments:
                         for imageextensions in [".jpg", ".jpeg", ".png", ".gif"]:
@@ -1228,8 +1230,9 @@ async def on_message(ctx):
                         print(f"An announcement was made in #{ctx.channel.name} by {ctx.author}.")
     if "suggestions" in ctx.channel.name:
         if not ctx.author.bot:
-            if ctx.content.startswith(client.command_prefix):
+            if ctx.content.startswith("-") or ctx.content.startswith("?") or ctx.content.startswith("!"):
                 await client.process_commands(ctx)
+                return
             else:
                 if ctx.attachments:
                     await ctx.attachments[0].save(f"./{ctx.attachments[0].filename}")
@@ -1252,8 +1255,9 @@ async def on_message(ctx):
                     print(f"A suggestion was made in #{ctx.channel.name} by {ctx.author}.")
     if "polls" in ctx.channel.name or "poll" in ctx.channel.name:
         if not ctx.author.bot:
-            if ctx.content.startswith("-"):
+            if ctx.content.startswith("-") or ctx.content.startswith("?") or ctx.content.startswith("!"):
                 await client.process_commands(ctx)
+                return
             else:
                 if ctx.attachments:
                     await ctx.attachments[0].save(f"./{ctx.attachments[0].filename}")
@@ -1265,14 +1269,15 @@ async def on_message(ctx):
                     reactedusers = []
                     content = e.demojize(ctx.content)
                     messageemojis = re.findall(r'(:[^:]*:)', content)
-                    for emoji in messageemojis:
-                        try:
-                            emoji1 = e.emojize(emoji)
-                            components1.append(Button(emoji=emoji1, id=emoji1))
-                            reactionstotal.update({emoji1: 0})
-                        except: 
-                            pass
-                    reactionstotal1 = str(reactionstotal).replace("{", " ").replace("}", "").replace(",", f"\n").replace(":", "").replace("'", "")
+                    if messageemojis is not None:
+                        for emoji in messageemojis:
+                            try:
+                                emoji1 = e.emojize(emoji)
+                                components1.append(Button(emoji=emoji1, id=emoji1))
+                                reactionstotal.update({emoji1: 0})
+                            except: 
+                                pass
+                        reactionstotal1 = str(reactionstotal).replace("{", " ").replace("}", "").replace(",", f"\n").replace(":", "").replace("'", "")
                     embedDescription  = (f"{ctx.content}\n\n```{reactionstotal1}\n```")
                     msg = await ctx.channel.send(embed=addEmbed(ctx,None,embedDescription, f"attachment://{ctx.attachments[0].filename}"), components=[components1], file=file)
                     print(f"An image inclusive poll was made in #{ctx.channel.name} by {ctx.author}.")
@@ -1310,16 +1315,20 @@ async def on_message(ctx):
                     reactedusers = []
                     content = e.demojize(ctx.content)
                     messageemojis = re.findall(r'(:[^:]*:)', content)
-                    for emoji in messageemojis:
-                        try:
-                            emoji1 = e.emojize(emoji)
-                            components1.append(Button(emoji=emoji1, id=emoji1))
-                            reactionstotal.update({emoji1: 0})
-                        except: 
-                            pass
-                    reactionstotal1 = str(reactionstotal).replace("{", " ").replace("}", "").replace(",", f"\n").replace(":", "").replace("'", "")
-                    embedDescription  = (f"{ctx.content}\n\n```{reactionstotal1}\n```")
-                    msg = await ctx.channel.send(embed=addEmbed(ctx,None,embedDescription ), components=[components1])
+                    if messageemojis is not None:
+                        for emoji in messageemojis:
+                            try:
+                                emoji1 = e.emojize(emoji)
+                                components1.append(Button(emoji=emoji1, id=emoji1))
+                                reactionstotal.update({emoji1: 0})
+                            except: 
+                                pass
+                        reactionstotal1 = str(reactionstotal).replace("{", " ").replace("}", "").replace(",", f"\n").replace(":", "").replace("'", "")
+                        embedDescription  = (f"{ctx.content}\n\n```{reactionstotal1}\n```")
+                        msg = await ctx.channel.send(embed=addEmbed(ctx,None,embedDescription ), components=[components1])
+                    else:
+                        embedDescription  = (f"{ctx.content}\n\n```{reactionstotal1}\n```")
+                        msg = await ctx.channel.send(embed=addEmbed(ctx,None,embedDescription ), components=[])
                     print(f"A poll was made in #{ctx.channel.name} by {ctx.author}.")
                     while sent == True:
                         try:
