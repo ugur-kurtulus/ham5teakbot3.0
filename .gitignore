@@ -137,3 +137,5 @@ dmypy.json
 /databaseval.json
 /application.yml
 /lavalink.jar
+logs/
+discord.py
