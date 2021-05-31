@@ -137,6 +137,7 @@ dmypy.json
 /databaseval.json
 /application.yml
 /lavalink.jar
+/discord tokens.json
 =======
 logs/
 discord.py
