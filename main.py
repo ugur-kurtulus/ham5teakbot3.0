@@ -1,6 +1,8 @@
 import os
-from discord import channel, voice_client
+from select import select
+from discord import channel, voice_client, Webhook, RequestsWebhookAdapter
 from discord.ext.commands.errors import UserNotFound
+from discord.ext.commands import CommandNotFound
 from discord_components.select import Option
 from dns.resolver import query
 from dotenv import load_dotenv
@@ -12,6 +14,7 @@ from discord_components import DiscordComponents, Button, ButtonStyle, Interacti
 from mcstatus import MinecraftServer
 import asyncio
 import emoji as e
+import requests
 import mysql.connector
 import re
 
@@ -186,7 +189,8 @@ createtable(sql,'guilds', quilds_query)
 createtable(sql,'categories', categories_query)
 createtable(sql,'restrict', restrict_query)
 
-colors = {"green": 0x00ff00, "red": 0xff0000, "blue": 0x0000ff, "teal": 0x00FFFF, "dark_teal": 0x10816a}
+colors = {"green": 0x00ff00, "red": 0xff0000, "blue": 0x0000ff, "aqua": 0x00FFFF,
+ "dark_teal": 0x10816a, "teal": 0x1abc9c}
 premium_guilds = [selectqueryall(sql, 'guilds', 'guild_id', None)]
 ham_guilds = [380308776114454528, 841225582967783445, 820383461202329671,
 82038346120232967, 650658756803428381, 571626209868382236, 631067371661950977]
@@ -203,6 +207,13 @@ DiscordComponents(client)
 slash = SlashCommand(client, sync_commands=False)  # Defines slash commands
 
 # ------- FUNCTIONS -------
+async def removeperms(ctx):
+    for role in ctx.guild.roles:
+        await ctx.channel.set_permissions(role, overwrite=None)
+        
+def nopermission(ctx):
+    embedDiscription  = (f"You don't have permission to do this.")
+    return addEmbed(ctx,None,embedDiscription )
 
 async def stripmessage(string, targetstring):
     if targetstring in string:
@@ -317,14 +328,14 @@ async def on_ready():
         await statuscheck()
 
 # ------- CLIENT COMMANDS -------
+
 @client.command()
 @commands.has_permissions(manage_guild=True)
 @commands.guild_only()
 async def setprefix(ctx, prefix = None):
     administratorcheck1 = await administratorcheck(ctx.guild, ctx.author)
     if administratorcheck1 == 0:
-        embedDiscription  = (f"You don't have permission to do this.")
-        await ctx.send(embed=addEmbed(ctx,None,embedDiscription ), delete_after=5)
+        await ctx.send(embed=await nopermission(ctx), delete_after=5)
         return
     await ctx.message.delete()
     if prefix is None:
@@ -350,9 +361,7 @@ async def setprefix(ctx, prefix = None):
 async def purge(ctx, amount:int):
     moderatorcheck1 = await moderatorcheck(ctx.guild, ctx.author)
     if moderatorcheck1 == 0:
-        embedDiscription  = (f"You don't have permission to do this.")
-        await ctx.send(embed=addEmbed(ctx,None,embedDiscription ), delete_after=5)
-          
+        await ctx.send(embed=await nopermission(ctx), delete_after=5)
         return
     await ctx.message.delete()
     await ctx.channel.purge(limit=amount)
@@ -408,8 +417,7 @@ async def setrestrict(ctx, alias ,role1:discord.Role, role2:discord.Role = None,
     guild_id = ctx.guild.id
     administratorcheck1 = await administratorcheck(ctx.guild, ctx.author)
     if administratorcheck1 == 0:
-        embedDiscription  = (f"You don't have permission to do this.")
-        await ctx.send(embed=addEmbed(ctx,None,embedDiscription ), delete_after=5)
+        await ctx.send(embed=await nopermission(ctx), delete_after=5)
         return
     if guild_id not in premium_guilds:
         embedDiscription  = (f"You premium to use this command.")
@@ -474,8 +482,7 @@ async def setrestrict(ctx, alias ,role1:discord.Role, role2:discord.Role = None,
 async def edit(ctx, id, *, embedDiscription):
     moderatorcheck1 = await moderatorcheck(ctx.guild, ctx.author)
     if moderatorcheck1 == 0:
-        embedDiscription  = (f"You don't have permission to do this.")
-        await ctx.send(embed=addEmbed(ctx,None,embedDiscription ), delete_after=5)
+        await ctx.send(embed=await nopermission(ctx), delete_after=5)
         return
     await ctx.message.delete()
     await ctx.channel.get_partial_message(id).edit(embed = addEmbed(ctx, id, embedDiscription ))
@@ -485,14 +492,13 @@ async def edit(ctx, id, *, embedDiscription):
 async def prefix(ctx):
     await ctx.message.delete()
     prefix = prefixes[f"{ctx.guild.id}"]
-    await ctx.send(embed=addEmbed(ctx, None, f"Prefix: `{prefix}`"), delete_after=5)
+    await ctx.send(embed=addEmbed(ctx, None, f"Bot Prefix: `{prefix}`"), delete_after=5)
 
 @client.command()
 async def setchannel(ctx, command, channel: discord.TextChannel):
     administratorcheck1 = await administratorcheck(ctx.guild, ctx.author)
     if administratorcheck1 == 0:
-        embedDiscription  = (f"You don't have permission to do this.")
-        await ctx.send(embed=addEmbed(ctx,None,embedDiscription ), delete_after=5)
+        await ctx.send(embed=await nopermission(ctx), delete_after=5)
         return
     await ctx.message.delete()
     guild_id = ctx.guild.id
@@ -518,24 +524,15 @@ async def setchannel(ctx, command, channel: discord.TextChannel):
 async def move(ctx, alias):
     moderatorcheck1 = await moderatorcheck(ctx.guild, ctx.author)
     if moderatorcheck1 == 0:
-        embedDiscription  = (f"You don't have permission to do this.")
-        await ctx.send(embed=addEmbed(ctx,None,embedDiscription ), delete_after=5)
+        await ctx.send(embed=await nopermission(ctx), delete_after=5)
         return
     await ctx.message.delete()
-    sql.connect()
-    mycursor = sql.cursor()
-    mycursor.execute(f"SELECT category_name FROM categories WHERE guild_id = {ctx.guild.id}")
-    aliaslist = mycursor.fetchall()
-    mycursor.close()
+    aliaslist = selectqueryall(sql, "categories", "category_name", f"guild_id = {ctx.guild.id}")
     for stralias in aliaslist:
         if alias == stralias[0]:
             ctxchannel = ctx.channel
-            sql.connect()
-            mycursor = sql.cursor()
-            mycursor.execute(f"SELECT category_id FROM categories WHERE category_name = '{alias}' AND guild_id = {ctx.guild.id}")
-            result = mycursor.fetchone()
-            mycursor.close()
-            cat = client.get_channel(result[0])
+            result = selectquery(sql, "categories", "category_id", f"category_name = '{alias}' AND guild_id = {ctx.guild.id}")
+            cat = client.get_channel(result)
             await ctxchannel.edit(category=cat)
             embedDiscription  = (f"{ctxchannel.mention} has been moved to category {alias}")
             await ctx.send(embed=addEmbed(ctx,None,embedDiscription ), delete_after=5)
@@ -545,15 +542,13 @@ async def move(ctx, alias):
 async def restrictlist(ctx):
     moderatorcheck1 = await moderatorcheck(ctx.guild, ctx.author)
     if moderatorcheck1 == 0:
-        embedDiscription  = (f"You don't have permission to do this.")
-        await ctx.send(embed=addEmbed(ctx,None,embedDiscription ), delete_after=5)
+        await ctx.send(embed=await nopermission(ctx), delete_after=5)
         return
     await ctx.message.delete()
     types = [selectqueryall(sql, 'hambot3_.restrict', 'restrictrole_name', f'guild_id = {ctx.guild.id}')]
     for type in types:
         if types == 0:
-            embedDiscription  = ("You don't have any restriction types set")
-            await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDiscription ), delete_after=5)
+            await ctx.send(embed=await nopermission(ctx), delete_after=5)
             return
         type1 = str(type).replace('(', '').replace(')', '').replace('(', '').replace("'", '').replace("[", '').replace("]", '').replace(',', '').replace(' ', f'\n')
         embedDiscription  = (f"__**Restriction types you can use:**__\n{type1}")
@@ -565,76 +560,51 @@ async def restrictlist(ctx):
 async def restrict(ctx, alias):
     moderatorcheck1 = await moderatorcheck(ctx.guild, ctx.author)
     if moderatorcheck1 == 0:
-        embedDiscription  = (f"You don't have permission to do this.")
-        await ctx.send(embed=addEmbed(ctx,None,embedDiscription ), delete_after=5)
+        await ctx.send(embed=await nopermission(ctx), delete_after=5)
         return
     await ctx.message.delete()
     if alias.lower() == "none":
         await ctx.channel.set_permissions(ctx.guild.default_role, view_channel=True)
         embedDiscription  = (f"{ctx.channel.mention} has been opened to public.")
         await ctx.send(embed=addEmbed(ctx,None,embedDiscription ), delete_after=5)
-    sql.connect()
-    mycursor = sql.cursor()
-    mycursor.execute(f"SELECT restrictrole_name FROM hambot3_.restrict WHERE guild_id = {ctx.guild.id}")
-    aliaslist = mycursor.fetchall()
-    mycursor.close()
+    aliaslist = selectqueryall(sql, "hambot3_.restrict", "restrictrole_name", f"guild_id = {ctx.guild.id}")
     for stralias in aliaslist:
         if alias == stralias[0]:
             ctxchannel = ctx.channel
             sql.connect()
-            mycursor = sql.cursor()
-            mycursor.execute(f"SELECT restrictrole3_id FROM hambot3_.restrict WHERE restrictrole_name = '{alias}' AND guild_id = {ctx.guild.id}")
-            result = mycursor.fetchone()
-            mycursor.close()
-            if result[0] is None:
-                sql.connect()
-                mycursor = sql.cursor()
-                mycursor.execute(f"SELECT restrictrole2_id FROM hambot3_.restrict WHERE restrictrole_name = '{alias}' AND guild_id = {ctx.guild.id}")
-                result1 = mycursor.fetchone()
-                mycursor.close()
-                if result1[0] is None:
-                    sql.connect()
-                    mycursor = sql.cursor()
-                    mycursor.execute(f"SELECT restrictrole_id FROM hambot3_.restrict WHERE restrictrole_name = '{alias}' AND guild_id = {ctx.guild.id}")
-                    result1 = mycursor.fetchone()
-                    mycursor.close()
-                    cat = ctx.guild.get_role(result1[0])
-                    await ctx.channel.set_permissions(ctx.guild.default_role, view_channel=False)
-                    await ctx.channel.set_permissions(cat, view_channel=True)
+            result = selectquery(sql, "hambot3_.restrict", "restrictrole3_id", f"restrictrole_name = '{alias}' AND guild_id = {ctx.guild.id}")
+            if result is None:
+                result1 = selectquery(sql, 'hambot3_.restrict', 'restrictrole2_id', f"restrictrole_name = '{alias}' AND guild_id = {ctx.guild.id}")
+                if result1 is None:
+                    result2 = selectquery(sql, 'hambot3_.restrict', 'restrictrole_id', f"restrictrole_name = '{alias}' AND guild_id = {ctx.guild.id}")
+                    role = ctx.guild.get_role(result2)
+                    overwrites1= {}
+                    overwrites1.update({role: discord.PermissionOverwrite(view_channel=True),
+                    ctx.guild.default_role: discord.PermissionOverwrite(view_channel=False)})
+                    await ctx.channel.edit(overwrites=overwrites1)
                     embedDiscription  = (f"{ctxchannel.mention} has been restricted to {cat.mention}")
                     await ctx.send(embed=addEmbed(ctx,None,embedDiscription ), delete_after=5)
                     return
-                sql.connect()
-                mycursor = sql.cursor()
-                mycursor.execute(f"SELECT restrictrole_id FROM hambot3_.restrict WHERE restrictrole_name = '{alias}' AND guild_id = {ctx.guild.id}")
-                result2 = mycursor.fetchone()
-                mycursor.close()
-                cat = ctx.guild.get_role(result1[0])
-                cat2 = ctx.guild.get_role(result2[0])
-                await ctx.channel.set_permissions(ctx.guild.default_role, view_channel=False)
-                await ctx.channel.set_permissions(cat, view_channel=True)
-                await ctx.channel.set_permissions(cat2, view_channel=True)
+                result2 = selectquery(sql, 'hambot3_.restrict', 'restrictrole_id', f"restrictrole_name = '{alias}' AND guild_id = {ctx.guild.id}")
+                cat = ctx.guild.get_role(result1)
+                cat2 = ctx.guild.get_role(result2)
+                print(f"{cat} {cat2}")
+                overwrites2 = {}
+                overwrites2.update({cat: discord.PermissionOverwrite(view_channel=True), cat2: discord.PermissionOverwrite(view_channel=True),
+                ctx.guild.default_role: discord.PermissionOverwrite(view_channel=False)})
+                await ctx.channel.edit(overwrites=overwrites2)
                 embedDiscription  = (f"{ctxchannel.mention} has been restricted to {cat.mention} and {cat2.mention}")
                 await ctx.send(embed=addEmbed(ctx,None,embedDiscription ), delete_after=5)
                 return
-            sql.connect()
-            mycursor = sql.cursor()
-            mycursor.execute(f"SELECT restrictrole_id FROM hambot3_.restrict WHERE restrictrole_name = '{alias}' AND guild_id = {ctx.guild.id}")
-            result2 = mycursor.fetchone()
-            mycursor.close()
-            sql.connect()
-            mycursor = sql.cursor()
-            mycursor.execute(f"SELECT restrictrole2_id FROM hambot3_.restrict WHERE restrictrole_name = '{alias}' AND guild_id = {ctx.guild.id}")
-            result3 = mycursor.fetchone()
-            mycursor.close()
-            print(result[0])
-            cat = ctx.guild.get_role(result[0])
-            cat2 = ctx.guild.get_role(result2[0])
-            cat3 = ctx.guild.get_role(result3[0])
-            await ctx.channel.set_permissions(ctx.guild.default_role, view_channel=False)
-            await ctx.channel.set_permissions(cat, view_channel=True)
-            await ctx.channel.set_permissions(cat2, view_channel=True)
-            await ctx.channel.set_permissions(cat3, view_channel=True)
+            result2 = selectquery(sql, 'hambot3_.restrict', 'restrictrole_id', f"restrictrole_name = '{alias}' AND guild_id = {ctx.guild.id}")
+            result3 = selectquery(sql, 'hambot3_.restrict', 'restrictrole2_id', f"restrictrole_name = '{alias}' AND guild_id = {ctx.guild.id}")
+            cat = ctx.guild.get_role(result)
+            cat2 = ctx.guild.get_role(result2)
+            cat3 = ctx.guild.get_role(result3)
+            overwrites3 = {}
+            overwrites3.update({cat: discord.PermissionOverwrite(view_channel=True), cat2: discord.PermissionOverwrite(view_channel=True),
+            cat3: discord.PermissionOverwrite(view_channel=True), ctx.guild.default_role: discord.PermissionOverwrite(view_channel=False)})
+            await ctx.channel.edit(overwrites=overwrites3)
             embedDiscription  = (f"{ctxchannel.mention} has been restricted to {cat.mention}, {cat2.mention} and {cat3.mention}")
             await ctx.send(embed=addEmbed(ctx,None,embedDiscription ), delete_after=5)
 
@@ -643,8 +613,7 @@ async def restrict(ctx, alias):
 async def setmove(ctx, categoryi: discord.CategoryChannel, alias):
     administratorcheck1 = await administratorcheck(ctx.guild, ctx.author)
     if administratorcheck1 == 0:
-        embedDiscription  = (f"You don't have permission to do this.")
-        await ctx.send(embed=addEmbed(ctx,None,embedDiscription ), delete_after=5)
+        await ctx.send(embed=await nopermission(ctx), delete_after=5)
         return
     await ctx.message.delete()
     guild_id = ctx.guild.id
@@ -681,8 +650,7 @@ async def setmove(ctx, categoryi: discord.CategoryChannel, alias):
 async def removemove(ctx, alias):
     administratorcheck1 = await administratorcheck(ctx.guild, ctx.author)
     if administratorcheck1 == 0:
-        embedDiscription  = (f"You don't have permission to do this.")
-        await ctx.send(embed=addEmbed(ctx,None,embedDiscription ), delete_after=5)
+        await ctx.send(embed=await nopermission(ctx), delete_after=5)
         return
     await ctx.message.delete()
     categoryname = alias
@@ -707,15 +675,13 @@ async def simchannelcreate(ctx):
 async def movelist(ctx):
     moderatorcheck1 = await moderatorcheck(ctx.guild, ctx.author)
     if moderatorcheck1 == 0:
-        embedDiscription  = (f"You don't have permission to do this.")
-        await ctx.send(embed=addEmbed(ctx,None,embedDiscription ), delete_after=5) 
+        await ctx.send(embed=await nopermission(ctx), delete_after=5) 
         return
     await ctx.message.delete()
     categories = [selectqueryall(sql, 'categories', 'category_name', f'guild_id = {ctx.guild.id}')]
     for category in categories:
         if categories == 0:
-            embedDiscription  = ("You don't have any categories set")
-            await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDiscription ), delete_after=5)
+            await ctx.send(embed=await nopermission(ctx), delete_after=5)
             return
         newcat = str(category).replace('(', '').replace(')', '').replace('(', '').replace("'", '').replace("[", '').replace("]", '').replace(',', '').replace(' ', f'\n')
         embedDiscription  = (f"__**Categories you can move channels to:**__\n{newcat}")
@@ -723,57 +689,88 @@ async def movelist(ctx):
 
 # ------- ERROR HANDLERS -------
 
+def getprefix2(ctx):
+    return prefixes[f"{ctx.guild.id}"]
+
+@client.event
+async def on_command_error(ctx, error):
+    print(error)
+    if isinstance(error, CommandNotFound):
+        return
+
 @move.error
 async def clear_error(ctx, error):
     if isinstance(error, discord.ext.commands.errors.MissingRequiredArgument):
         await ctx.message.delete()
-        error = await ctx.send('Please enter the command correctly. `-move <category>`')
-        await asyncio.sleep(5)
-        await error.delete()
+        await ctx.send(f'Please enter the command correctly. `{getprefix2(ctx)}move <category>`', delete_after=5)
+    else:
+        await ctx.send(f"Unknown error:{error}", delete_after=5)
 
 @setmove.error
 async def clear_error(ctx, error):
     if isinstance(error, discord.ext.commands.errors.ChannelNotFound):
         await ctx.message.delete()
-        error = await ctx.send('Please enter a valid category id. `-setmove <categoryid> <alias>`')
-        await asyncio.sleep(5)
-        await error.delete()
+        await ctx.send(f'Please enter a valid category id. `{getprefix2(ctx)}setmove <categoryid> <alias>`', delete_after=5)
+    else:
+        await ctx.send(f"Unknown error:{error}", delete_after=5)
         
 @removemove.error
 async def clear_error(ctx, error):
     if isinstance(error, discord.ext.commands.errors.MissingRequiredArgument):
         await ctx.message.delete()
-        error = await ctx.send('Please enter a valid category name. `-removemove <categoryname>`')
-        await asyncio.sleep(5)
-        await error.delete()
+        await ctx.send(f'Please enter a valid category name. `{getprefix2(ctx)}removemove <categoryname>`', delete_after=5)
+    else:
+        await ctx.send(f"Unknown error:{error}", delete_after=5)
 
 @edit.error
 async def clear_error(ctx, error):
     if isinstance(error, commands.MissingRequiredArgument):
         await ctx.message.delete()
-        error = await ctx.send('Please specify the amount of message you would like to edit. `-edit <messageid> <newmessage>`')
-        await asyncio.sleep(5)
-        await error.delete()
+        await ctx.send(f'Please specify the amount of message you would like to edit. `{getprefix2(ctx)}edit <messageid> <newmessage>`', delete_after=5)
     if isinstance(error, commands.CommandInvokeError):
-        error = await ctx.send('Please enter a valid message ID.')
-        await asyncio.sleep(5)
-        await error.delete()
+        await ctx.send('Please enter a valid message ID.', delete_after=5)
+    else:
+        await ctx.send(f"Unknown error:{error}", delete_after=5)
 
 @setchannel.error
 async def clear_error(ctx, error):
     if isinstance(error, commands.MissingRequiredArgument):
         await ctx.message.delete()
-        error = await ctx.send('Please specify the channel you would like to set. `-setchannel <channel> <id>`')
-        await asyncio.sleep(5)
-        await error.delete()
+        await ctx.send(f'Please specify the channel you would like to set. `{getprefix2(ctx)}setchannel <channel> <id>`', delete_after=5)
+    else:
+        await ctx.send(f"Unknown error:{error}", delete_after=5)
 
 @purge.error
 async def clear_error(ctx, error):
     if isinstance(error, discord.ext.commands.errors.BadArgument):
         await ctx.message.delete()
-        error = await ctx.send('Please make sure to enter a number. `-purge <amount>`')
-        await asyncio.sleep(5)
-        await error.delete()
+        await ctx.send(f'Please make sure to enter a number. `{getprefix2(ctx)}purge <amount>`', delete_after=5)
+    else:
+        await ctx.send(f"Unknown error:{error}", delete_after=5)
+
+@restrict.error
+async def clear_error(ctx, error):
+    if isinstance(error, commands.MissingRequiredArgument):
+            await ctx.message.delete()
+            await ctx.send(f'Please specify the restrict type you would like to apply. `{getprefix2(ctx)}restrict <type>`', delete_after=5)
+    else:
+        await ctx.send(f"Unknown error:{error}", delete_after=5)
+
+@setrestrict.error
+async def clear_error(ctx, error):
+    if isinstance(error, commands.MissingRequiredArgument):
+            await ctx.message.delete()
+            await ctx.send(f'Please make sure to give all arguments correctly. `{getprefix2(ctx)}setrestrict <type> <role1> [role2] [role3]`', delete_after=5)
+    else:
+        await ctx.send(f"Unknown error:{error}", delete_after=5)
+    
+@setprefix.error
+async def clear_error(ctx, error):
+    if isinstance(error, commands.MissingRequiredArgument):
+            await ctx.message.delete()
+            await ctx.send(f'Please specify the prefix you would like to apply. `{getprefix2(ctx)}setprefix <prefix>`', delete_after=5)
+    else:
+        await ctx.send(f"Unknown error:{error}", delete_after=5)
 
 # ------- SLASH COMMANDS -------
     
@@ -783,8 +780,7 @@ async def accept(ctx, messageid):
     print(moderatorcheck1)
     if moderatorcheck1 == 0:
         await ctx.defer(hidden=True)
-        embedDiscription  = (f"You don't have permission to do this.")
-        await ctx.send(embed=addEmbed(ctx,None,embedDiscription ), delete_after=5)
+        await ctx.send(embed=await nopermission(ctx), delete_after=5)
         return
     result = selectquery(sql, 'guilds', 'acceptedsuggestions', f'guild_id = {ctx.guild.id}')
     if result == 0:
@@ -822,29 +818,22 @@ async def ham5teak(ctx):
 async def help(ctx):
     await ctx.defer(hidden=True)
     await ctx.send("boo")
+    webhook = Webhook.partial(841220865236140032, TOKEN, adapter=RequestsWebhookAdapter())
+    webhook.send(username='Foo', embed=addEmbed(ctx, "dark_teal", "Test Embed"))
 
 @slash.slash(name="move", description="Move a channel to specified category.", )
 async def move(ctx, category):
     await ctx.defer(hidden=True)
     moderatorcheck1 = await moderatorcheck(ctx.guild, ctx.author)
     if moderatorcheck1 == 0:
-        embedDiscription  = (f"You don't have permission to do this.")
-        await ctx.send(embed=addEmbed(ctx,None,embedDiscription ))
+        await ctx.send(embed=await nopermission(ctx), delete_after=5)
         return
     alias = category
-    sql.connect()
-    mycursor = sql.cursor()
-    mycursor.execute(f"SELECT category_name FROM categories WHERE guild_id = {ctx.guild.id}")
-    aliaslist = mycursor.fetchall()
-    mycursor.close()
+    aliaslist = selectquery(sql, "categories", "category_name", f"guild_id = {ctx.guild.id}")
     for stralias in aliaslist:
         if alias == stralias[0]:
             ctxchannel = ctx.channel
-            sql.connect()
-            mycursor = sql.cursor()
-            mycursor.execute(f"SELECT category_id FROM categories WHERE category_name = '{alias}' AND guild_id = {ctx.guild.id}")
-            result = mycursor.fetchone()
-            mycursor.close()
+            result = selectquery(sql, "categories", "category_id", f"category_name = '{alias}' AND guild_id = {ctx.guild.id}")
             cat = client.get_channel(result[0])
             await ctxchannel.edit(category=cat)
             embedDiscription  = (f"{ctxchannel.mention} has been moved to category {alias}")
@@ -856,8 +845,7 @@ async def tag(ctx, note, user:discord.User = None, channel:discord.TextChannel =
     print(moderatorcheck1)
     if moderatorcheck1 == 0:
         await ctx.defer(hidden=True)
-        embedDiscription  = (f"You don't have permission to do this.")
-        await ctx.send(embed=addEmbed(ctx,None,embedDiscription ), delete_after=5)
+        await ctx.send(embed=await nopermission(ctx), delete_after=5)
         return
     await ctx.defer(hidden=False)
     print(f"{note} {user} {channel} {role}")
@@ -889,8 +877,7 @@ async def setchannel(ctx, value: discord.TextChannel, channel):
     await ctx.defer(hidden=True)
     administratorcheck1 = await administratorcheck(ctx.guild, ctx.author)
     if administratorcheck1 == 0:
-        embedDiscription  = (f"You don't have permission to do this.")
-        await ctx.send(embed=addEmbed(ctx,None,embedDiscription ))
+        await ctx.send(embed=await nopermission(ctx), delete_after=5)
         return
     guild_id = ctx.guild.id
     channelid = str(value.id)
@@ -917,8 +904,7 @@ async def setmove(ctx, categoryi: discord.CategoryChannel, alias):
     await administratorcheck(ctx.guild, ctx.author)
     administratorcheck1 = await administratorcheck(ctx.guild, ctx.author)
     if administratorcheck1 == 0:
-        embedDiscription  = (f"You don't have permission to do this.")
-        await ctx.send(embed=addEmbed(ctx,None,embedDiscription ))
+        await ctx.send(embed=await nopermission(ctx), delete_after=5)
         return
     guild_id = ctx.guild.id
     categoryid = str(categoryi.id)
@@ -951,8 +937,7 @@ async def setrole(ctx, administrator:discord.Role, moderator: discord.Role):
     await ctx.defer(hidden=True)
     administratorcheck1 = await administratorcheck(ctx.guild, ctx.author)
     if administratorcheck1 == 0:
-        embedDiscription  = (f"You don't have permission to do this.")
-        await ctx.send(embed=addEmbed(ctx,None,embedDiscription ))
+        await ctx.send(embed=await nopermission(ctx), delete_after=5)
         return
     print(f"{administrator.id} {moderator.id}")
     result = selectquery(sql, 'guilds', 'moderator_id', f'guild_id = {ctx.guild.id}')
@@ -1094,9 +1079,11 @@ the following choices by clicking the button describing your issue.
             await msg.edit(embed=await embed1(embedDescription1),components=[
             Button(style=ButtonStyle.green, label=f"{res.user} chose {res.component.id}", disabled=True)
             ]) 
-        serversandcats = {"Survival": 848284762514391061, "Skyblocks": 841403196693413888, "Semi-Vanilla": 841403196693413888, 
+        serversandcats = {
+        "Survival": 848284762514391061, "Skyblocks": 841403196693413888, "Semi-Vanilla": 841403196693413888, 
         "Factions": 841403196693413888, "Prison": 841403196693413888, "Creative": 841403196693413888, 
-        "Caveblocks": 841403196693413888, "Minigames": 841403196693413888}
+        "Caveblocks": 841403196693413888, "Minigames": 841403196693413888
+        }
         options1 = []
         for server in serversandcats.keys():
             options1.append(Option(label=server, value=server))
