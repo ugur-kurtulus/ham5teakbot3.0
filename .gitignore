@@ -142,3 +142,4 @@ dmypy.json
 logs/
 discord.py
 >>>>>>> 5f1bb73c8afb0cde5615bcc18f59cd28b8412dd2
+/music.py.old
