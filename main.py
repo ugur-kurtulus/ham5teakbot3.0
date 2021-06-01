@@ -1,8 +1,9 @@
 import os
 from select import select
-from discord import channel, voice_client, Webhook, RequestsWebhookAdapter
+from discord import channel, voice_client, Webhook, RequestsWebhookAdapter, Intents
 from discord.ext.commands.errors import UserNotFound
 from discord.ext.commands import CommandNotFound
+from discord.errors import HTTPException
 from discord_components.select import Option
 from dns.resolver import query
 from dotenv import load_dotenv
@@ -14,7 +15,6 @@ from discord_components import DiscordComponents, Button, ButtonStyle, Interacti
 from mcstatus import MinecraftServer
 import asyncio
 import emoji as e
-import requests
 import mysql.connector
 import re
 
@@ -326,7 +326,7 @@ async def on_ready():
     embedDiscription  = (f"**__Guilds:__ **\n{message}")
     channel = client.get_channel(841245744421273620)
     await channel.send(embed=addEmbed(None,"teal", embedDiscription ))
-    # client.load_extension('music')
+    #client.load_extension('music')
     client.remove_command('help')
     while True:
         await statuscheck()
@@ -379,7 +379,7 @@ async def setup(ctx, password, admin_role_id:discord.Role,mod_role_id:discord.Ro
     guild_id = ctx.guild.id
     if guild_id in premium_guilds:
         embedDiscription  = (f"You are already Logged in as Premium")
-        await ctx.send(embed=addEmbed(ctx,discord.Color.blue,embedDiscription ))
+        await ctx.send(embed=addEmbed(ctx,"blue",embedDiscription ))
         return
     else:
         guild_name = ctx.guild.name
@@ -425,7 +425,7 @@ async def setrestrict(ctx, alias ,role1:discord.Role, role2:discord.Role = None,
         return
     if guild_id not in premium_guilds:
         embedDiscription  = (f"You premium to use this command.")
-        await ctx.send(embed=addEmbed(ctx,discord.Color.blue,embedDiscription ), delete_after=5)
+        await ctx.send(embed=addEmbed(ctx,"blue",embedDiscription ), delete_after=5)
         return
     restricttypes = selectqueryall(sql, 'hambot3_.restrict', 'restrictrole_name', f'guild_id = {ctx.guild.id}')
     for stralias in restricttypes:
@@ -625,7 +625,7 @@ async def setmove(ctx, categoryi: discord.CategoryChannel, alias):
     categoryname = alias
     if guild_id not in premium_guilds:
         embedDiscription  = (f"You need premium to use this command.")
-        await ctx.send(embed=addEmbed(ctx,discord.Color.blue,embedDiscription ))
+        await ctx.send(embed=addEmbed(ctx,"blue",embedDiscription ))
         return
     categoryn = selectqueryall(sql, 'categories', 'category_name', f'guild_id = {ctx.guild.id}')
     for stralias in categoryn:
@@ -796,11 +796,20 @@ async def accept(ctx, messageid):
                 await ctx.defer(hidden=True)
                 reactiona = reaction
                 aschannel = client.get_channel(result)
-                embedDiscription  = (f"**{reactiona.count} Upvotes:** [Go To Suggestion]({msg.jump_url}) - Suggestion was made in: {ctx.channel.mention}")
-                await aschannel.send(embed=addEmbed(ctx,discord.Color.blue,embedDiscription ))
-                await aschannel.send(embed=msg.embeds[0])
+                finalcount = int(reactiona.count - 1)
+                embedDiscription  = (f"**{finalcount} Upvotes:** [Go To Suggestion]({msg.jump_url}) - Suggestion was made in: {ctx.channel.mention}")
+                embed1 = addEmbed(ctx,"dark_teal",embedDiscription)
+                embed2 = msg.embeds[0]
+                sent = False
+                for w in await ctx.guild.webhooks():
+                    if "Accepted Suggestions" == w.name:
+                        await w.send(avatar_url=ctx.author.avatar_url, embeds=[embed1, embed2])
+                        sent = True
+                if sent == False:
+                    webhook = await aschannel.create_webhook(name="Accepted Suggestions")
+                    await webhook.send(avatar_url=ctx.author.avatar_url, embeds=[embed1, embed2])
                 embedDiscription  = (f"[Suggestion]({msg.jump_url}) successfully accepted!")
-                await ctx.send(embed=addEmbed(ctx,discord.Color.blue,embedDiscription ))
+                await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDiscription ))
                 return
 
 @slash.slash(name="ham5teak", description="View Ham5teak network status")
@@ -819,8 +828,6 @@ async def ham5teak(ctx):
 async def help(ctx):
     await ctx.defer(hidden=True)
     await ctx.send("boo")
-    webhook = Webhook.partial(841220865236140032, TOKEN, adapter=RequestsWebhookAdapter())
-    webhook.send(username='Foo', embed=addEmbed(ctx, "dark_teal", "Test Embed"))
 
 @slash.slash(name="move", description="Move a channel to specified category.", )
 async def move(ctx, category):
@@ -1159,7 +1166,18 @@ async def on_reaction_add(reaction, user):
                     if f'https://discordapp.com/channels/{reaction.message.guild.id}/{reaction.message.channel.id}/{messageid}' in sc.content:
                         return
                 try:
-                    await dsuggestionschannel.send(f'**{reaction.count} upvotes:** https://discordapp.com/channels/{reaction.message.guild.id}/{reaction.message.channel.id}/{messageid}',embed=msg.embeds[0])
+                    finalcount = int(reaction.count - 1)
+                    embedDiscription  = (f"**{finalcount} Upvotes:** [Go To Suggestion]({msg.jump_url}) - Suggestion was made in: {reaction.message.channel.mention}")
+                    embed1 = addEmbed(None,"dark_teal",embedDiscription)
+                    embed2 = msg.embeds[0]
+                    sent = False
+                    for w in await reaction.message.guild.webhooks():
+                        if "Demanded Suggestions" == w.name:
+                            await w.send(avatar_url=client.user.avatar_url, embeds=[embed1, embed2])
+                            sent = True
+                    if sent == False:
+                        webhook = await dsuggestionschannel.create_webhook(name="Demanded Suggestions")
+                        await webhook.send(avatar_url=client.user.avatar_url, embeds=[embed1, embed2])
                 except AttributeError as e:
                     print(f"{reaction.message.guild.name} doesn't have a demanded suggestions channel set.")
                 return
@@ -1179,7 +1197,18 @@ async def on_reaction_add(reaction, user):
                 except AttributeError as e:
                     print(f"{rsuggestions} channel has no suggestion history.")
                 try:
-                    await rsuggestionschannel.send(f'**{reaction.count} downvotes:** https://discordapp.com/channels/{reaction.message.guild.id}/{reaction.message.channel.id}/{messageid}',embed=msg.embeds[0])
+                    finalcount = int(reaction.count - 1)
+                    embedDiscription  = (f"**{finalcount} Downvotes:** [Go To Suggestion]({msg.jump_url}) - Suggestion was made in: {reaction.message.channel.mention}")
+                    embed1 = addEmbed(None,"dark_teal",embedDiscription)
+                    embed2 = msg.embeds[0]
+                    sent = False
+                    for w in await reaction.message.guild.webhooks():
+                        if "Rejected Suggestions" == w.name:
+                            await w.send(avatar_url=client.user.avatar_url, embeds=[embed1, embed2])
+                            sent = True
+                    if sent == False:
+                        webhook = await rsuggestionschannel.create_webhook(name="Rejected Suggestions")
+                        await webhook.send(avatar_url=client.user.avatar_url, embeds=[embed1, embed2])
                 except AttributeError as e:
                     print(f"{reaction.message.guild.name} doesn't have a rejected suggestions channel set.")
                 return
@@ -1279,7 +1308,10 @@ async def on_message(ctx):
                                 pass
                         reactionstotal1 = str(reactionstotal).replace("{", " ").replace("}", "").replace(",", f"\n").replace(":", "").replace("'", "")
                     embedDescription  = (f"{ctx.content}\n\n```{reactionstotal1}\n```")
-                    msg = await ctx.channel.send(embed=addEmbed(ctx,None,embedDescription, f"attachment://{ctx.attachments[0].filename}"), components=[components1], file=file)
+                    try:
+                        msg = await ctx.channel.send(embed=addEmbed(ctx,None,embedDescription, f"attachment://{ctx.attachments[0].filename}"), components=[components1], file=file)
+                    except HTTPException:
+                        await ctx.channel.send("Please enter a message with emojis as options.", delete_after=3)
                     print(f"An image inclusive poll was made in #{ctx.channel.name} by {ctx.author}.")
                     while sent == True:
                         try:
@@ -1325,7 +1357,10 @@ async def on_message(ctx):
                                 pass
                         reactionstotal1 = str(reactionstotal).replace("{", " ").replace("}", "").replace(",", f"\n").replace(":", "").replace("'", "")
                         embedDescription  = (f"{ctx.content}\n\n```{reactionstotal1}\n```")
-                        msg = await ctx.channel.send(embed=addEmbed(ctx,None,embedDescription ), components=[components1])
+                        try:
+                            msg = await ctx.channel.send(embed=addEmbed(ctx,None,embedDescription ), components=[components1])
+                        except HTTPException:
+                            await ctx.channel.send("Please enter a message with emojis as options.", delete_after=3)
                     else:
                         embedDescription  = (f"{ctx.content}\n\n```{reactionstotal1}\n```")
                         msg = await ctx.channel.send(embed=addEmbed(ctx,None,embedDescription ), components=[])
