@@ -1,5 +1,5 @@
 import os
-from select import select
+import aiohttp
 from discord import channel, voice_client, Webhook, RequestsWebhookAdapter, Intents
 from discord.ext.commands.errors import UserNotFound
 from discord.ext.commands import CommandNotFound
@@ -163,7 +163,9 @@ quilds_query = ('''
             crashalertschannel BIGINT,
             demandedsuggestions BIGINT,
             acceptedsuggestions BIGINT,
-            rejectedsuggestions BIGINT)''')
+            rejectedsuggestions BIGINT,
+            custommovecount INT DEFALT 0,
+            betaannouncements BOOLEAN)''')
 categories_query = ('''
         CREATE TABLE categories 
             (id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -192,6 +194,7 @@ createtable(sql,'restrict', restrict_query)
 colors = {"green": 0x00ff00, "red": 0xff0000, "blue": 0x0000ff, "aqua": 0x00FFFF,
  "dark_teal": 0x10816a, "teal": 0x1abc9c}
 premium_guilds = [selectqueryall(sql, 'guilds', 'guild_id', None)]
+betaannouncementguilds = []
 ham_guilds = [380308776114454528, 841225582967783445, 820383461202329671,
 82038346120232967, 650658756803428381, 571626209868382236, 631067371661950977]
 prefixes = {}
@@ -211,13 +214,27 @@ slash = SlashCommand(client, sync_commands=False)  # Defines slash commands
 def getprefix2(ctx):
     return prefixes[f"{ctx.guild.id}"]
 
+async def sendwebhook(ctx, webhookname, channel, file, embeds):
+    for w in await ctx.guild.webhooks():
+        if ctx is None: image = client.user.avatar_url
+        if ctx != None: image = ctx.author.avatar_url
+        if webhookname == w.name and w.channel == ctx.channel:
+            return await w.send(avatar_url=image, embeds=embeds, file=file)
+    webhook = await channel.create_webhook(name=webhookname)
+    return await webhook.send(avatar_url=image, embeds=embeds, file=file)
+
+async def getwebhook(ctx, webhookname):
+    for w in await ctx.guild.webhooks():
+        if webhookname == w.name and w.channel == ctx.channel:
+            return w
+
 async def removeperms(ctx):
     for role in ctx.guild.roles:
         await ctx.channel.set_permissions(role, overwrite=None)
         
 def nopermission(ctx):
-    embedDiscription  = (f"You don't have permission to do this.")
-    return addEmbed(ctx,None,embedDiscription )
+    embedDescription  = (f"You don't have permission to do this.")
+    return addEmbed(ctx,None,embedDescription )
 
 async def stripmessage(string, targetstring):
     if targetstring in string:
@@ -278,6 +295,23 @@ async def statuscheck():
         except:
             print(f"{guildname} doesn't have a status channel set.")
     await asyncio.sleep(600)
+    
+def addEmbed2(ctx , color, new, image = None):
+    if image != None and ctx != None:
+        newEmbed = discord.Embed(description=f"{new}", color=ctx.author.color)
+        newEmbed.set_image(url=image)
+    elif image != None and ctx == None:
+        newEmbed = discord.Embed(description=f"{new}", color=colors[color])
+        newEmbed.set_image(url=image)
+    else:
+        if ctx != None and color == None:
+            newEmbed = discord.Embed(description=f"{new}", color=ctx.author.color)
+        elif ctx != None and color != None:
+            newEmbed = discord.Embed(description=f"{new}", color=colors[color])
+        elif ctx == None:
+            newEmbed = discord.Embed(description=f"{new}", color=colors[color])
+    newEmbed.set_footer(text="Ham5teak Bot 3.0 | play.ham5teak.xyz | Made by Beastman#1937 and Jaymz#7815")
+    return newEmbed
 
 def addEmbed(ctx , color, new, image = None):
     if image != None and ctx != None:
@@ -323,11 +357,16 @@ async def on_ready():
     message = ""
     for guild in client.guilds:
         message += f"{guild.name}\n"
-    embedDiscription  = (f"**__Guilds:__ **\n{message}")
+    embedDescription  = (f"**__Guilds:__ **\n{message}")
     channel = client.get_channel(841245744421273620)
-    await channel.send(embed=addEmbed(None,"teal", embedDiscription ))
+    await channel.send(embed=addEmbed(None,"teal", embedDescription ))
     #client.load_extension('music')
     client.remove_command('help')
+    result = selectqueryall(sql, 'guilds', 'guild_id', 'betaannouncements = 1')
+    for type in result:
+        type1 = type[0]
+        betaannouncementguilds.append(type1)
+    print(betaannouncementguilds)
     while True:
         await statuscheck()
 
@@ -343,12 +382,12 @@ async def setprefix(ctx, prefix = None):
         return
     await ctx.message.delete()
     if prefix is None:
-        embedDiscription  = (f"Please provide all required arguments. `-setprefix <prefix>`.")
-        await ctx.send(embed=addEmbed(ctx,"red",embedDiscription ), delete_after=5)
+        embedDescription  = (f"Please provide all required arguments. `-setprefix <prefix>`.")
+        await ctx.send(embed=addEmbed(ctx,"red",embedDescription ), delete_after=5)
         return
     if len(prefix) >= 6:
-        embedDiscription  = (f"{prefix} has too many characters for a prefix.")
-        await ctx.send(embed=addEmbed(ctx,"red",embedDiscription ), delete_after=5)
+        embedDescription  = (f"{prefix} has too many characters for a prefix.")
+        await ctx.send(embed=addEmbed(ctx,"red",embedDescription ), delete_after=5)
         return
     if ctx.guild.id in premium_guilds:
         insertquery(sql, "guilds", "prefix", f"'{prefix}'", f"guild_id={ctx.guild.id}")
@@ -357,8 +396,8 @@ async def setprefix(ctx, prefix = None):
         prefixes[f"{ctx.guild.id}"] = prefix
     else: 
         return
-    embedDiscription  = (f"Prefix succesfully set to `{prefix}`")
-    await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDiscription ), delete_after=5)
+    embedDescription  = (f"Prefix succesfully set to `{prefix}`")
+    await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDescription ), delete_after=5)
 
 @client.command()
 @commands.has_permissions(manage_messages=True)
@@ -369,8 +408,8 @@ async def purge(ctx, amount:int):
         return
     await ctx.message.delete()
     await ctx.channel.purge(limit=amount)
-    embedDiscription  = (f"{amount} messages were successfully deleted.")
-    await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDiscription ), delete_after=1)
+    embedDescription  = (f"{amount} messages were successfully deleted.")
+    await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDescription ), delete_after=1)
 
 @client.command()
 @discord.ext.commands.has_guild_permissions(manage_guild=True)
@@ -378,8 +417,8 @@ async def setup(ctx, password, admin_role_id:discord.Role,mod_role_id:discord.Ro
     await ctx.message.delete()
     guild_id = ctx.guild.id
     if guild_id in premium_guilds:
-        embedDiscription  = (f"You are already Logged in as Premium")
-        await ctx.send(embed=addEmbed(ctx,"blue",embedDiscription ))
+        embedDescription  = (f"You are already Logged in as Premium")
+        await ctx.send(embed=addEmbed(ctx,"blue",embedDescription ))
         return
     else:
         guild_name = ctx.guild.name
@@ -395,11 +434,11 @@ async def setup(ctx, password, admin_role_id:discord.Role,mod_role_id:discord.Ro
         sql.commit()
         querycursor.close()        
         if (result == 0):
-            embedDiscription  = (f"Registered successfully")
-            await ctx.send(embed=addEmbed(ctx,"green",embedDiscription ), delete_after=5)
+            embedDescription  = (f"Registered successfully")
+            await ctx.send(embed=addEmbed(ctx,"green",embedDescription ), delete_after=5)
         else:
-            embedDiscription  = (f"Register Failed")
-            await ctx.send(embed=addEmbed(ctx,"red",embedDiscription ), delete_after=5)
+            embedDescription  = (f"Register Failed")
+            await ctx.send(embed=addEmbed(ctx,"red",embedDescription ), delete_after=5)
         query = 'SELECT guild_id FROM guilds NATURAL JOIN restrict'
         sql.connect()
         querycursor = sql.cursor()
@@ -408,11 +447,11 @@ async def setup(ctx, password, admin_role_id:discord.Role,mod_role_id:discord.Ro
         sql.commit()
         querycursor.close()        
         if (result == 0):
-            embedDiscription  = (f"Registered successfully")
-            await ctx.send(embed=addEmbed(ctx,"green",embedDiscription ), delete_after=5)
+            embedDescription  = (f"Registered successfully")
+            await ctx.send(embed=addEmbed(ctx,"green",embedDescription ), delete_after=5)
         else:
-            embedDiscription  = (f"Register Failed")
-            await ctx.send(embed=addEmbed(ctx,"red",embedDiscription ), delete_after=5)
+            embedDescription  = (f"Register Failed")
+            await ctx.send(embed=addEmbed(ctx,"red",embedDescription ), delete_after=5)
 
 @client.command()
 @discord.ext.commands.has_guild_permissions(manage_guild=True)
@@ -424,14 +463,14 @@ async def setrestrict(ctx, alias ,role1:discord.Role, role2:discord.Role = None,
         await ctx.send(embed=await nopermission(ctx), delete_after=5)
         return
     if guild_id not in premium_guilds:
-        embedDiscription  = (f"You premium to use this command.")
-        await ctx.send(embed=addEmbed(ctx,"blue",embedDiscription ), delete_after=5)
+        embedDescription  = (f"You premium to use this command.")
+        await ctx.send(embed=addEmbed(ctx,"blue",embedDescription ), delete_after=5)
         return
     restricttypes = selectqueryall(sql, 'hambot3_.restrict', 'restrictrole_name', f'guild_id = {ctx.guild.id}')
     for stralias in restricttypes:
         if alias == stralias[0]:
-            embedDiscription  =(f"Restrict type `{alias}` already exists.")
-            await ctx.send(embed=addEmbed(ctx,"red",embedDiscription ), delete_after=5)
+            embedDescription  =(f"Restrict type `{alias}` already exists.")
+            await ctx.send(embed=addEmbed(ctx,"red",embedDescription ), delete_after=5)
             return 1
     else:
         if role3 is None:
@@ -445,11 +484,11 @@ async def setrestrict(ctx, alias ,role1:discord.Role, role2:discord.Role = None,
                 sql.commit()
                 querycursor.close()        
                 if (result == 0):
-                    embedDiscription  = (f"Restrict `{alias}` successfully set as {role1.mention}")
-                    await ctx.send(embed=addEmbed(ctx,"green",embedDiscription ), delete_after=5)
+                    embedDescription  = (f"Restrict `{alias}` successfully set as {role1.mention}")
+                    await ctx.send(embed=addEmbed(ctx,"green",embedDescription ), delete_after=5)
                 else:
-                    embedDiscription  = (f"Restrict `{alias}` failed to set as {role1.mention}")
-                    await ctx.send(embed=addEmbed(ctx,"red",embedDiscription ), delete_after=5)
+                    embedDescription  = (f"Restrict `{alias}` failed to set as {role1.mention}")
+                    await ctx.send(embed=addEmbed(ctx,"red",embedDescription ), delete_after=5)
                 return
             column = '(guild_id  , restrictrole_name , restrictrole_id , restrictrole2_id)'
             values = (guild_id , alias , role1.id , role2.id)
@@ -460,11 +499,11 @@ async def setrestrict(ctx, alias ,role1:discord.Role, role2:discord.Role = None,
             sql.commit()
             querycursor.close()        
             if (result == 0):
-                embedDiscription  = (f"Restrict `{alias}` successfully set as {role1.mention} and {role2.mention}")
-                await ctx.send(embed=addEmbed(ctx,"green",embedDiscription ), delete_after=5)
+                embedDescription  = (f"Restrict `{alias}` successfully set as {role1.mention} and {role2.mention}")
+                await ctx.send(embed=addEmbed(ctx,"green",embedDescription ), delete_after=5)
             else:
-                embedDiscription  = (f"Restrict `{alias}` failed to set as {role1.mention} and {role2.mention}")
-                await ctx.send(embed=addEmbed(ctx,"red",embedDiscription ), delete_after=5)
+                embedDescription  = (f"Restrict `{alias}` failed to set as {role1.mention} and {role2.mention}")
+                await ctx.send(embed=addEmbed(ctx,"red",embedDescription ), delete_after=5)
             return
         column = '(guild_id  , restrictrole_name , restrictrole_id , restrictrole2_id, restrictrole3_id)'
         values = (guild_id , alias , role1.id , role2.id, role3.id)
@@ -475,21 +514,28 @@ async def setrestrict(ctx, alias ,role1:discord.Role, role2:discord.Role = None,
         sql.commit()
         querycursor.close()        
         if (result == 0):
-            embedDiscription  = (f"Restrict `{alias}` successfully set as {role1.mention}, {role2.mention} and {role3.mention}")
-            await ctx.send(embed=addEmbed(ctx,"green",embedDiscription ), delete_after=5)
+            embedDescription  = (f"Restrict `{alias}` successfully set as {role1.mention}, {role2.mention} and {role3.mention}")
+            await ctx.send(embed=addEmbed(ctx,"green",embedDescription ), delete_after=5)
         else:
-            embedDiscription  = (f"Restrict `{alias}` failed to set as {role1.mention}, {role2.mention} and {role3.mention}")
-            await ctx.send(embed=addEmbed(ctx,"red",embedDiscription ), delete_after=5)
+            embedDescription  = (f"Restrict `{alias}` failed to set as {role1.mention}, {role2.mention} and {role3.mention}")
+            await ctx.send(embed=addEmbed(ctx,"red",embedDescription ), delete_after=5)
         return
 
 @client.command()
-async def edit(ctx, id, *, embedDiscription):
+async def edit(ctx, id, *, embedDescription):
     moderatorcheck1 = await moderatorcheck(ctx.guild, ctx.author)
     if moderatorcheck1 == 0:
         await ctx.send(embed=await nopermission(ctx), delete_after=5)
         return
+    if ctx.guild.id in betaannouncementguilds:
+        await ctx.message.delete()
+        webhook1 = await getwebhook(ctx, ctx.author.display_name)
+        async with aiohttp.ClientSession() as session:
+            webh = discord.Webhook.from_url(webhook1.url, adapter=discord.AsyncWebhookAdapter(session=session))
+            await webh.edit_message(id, embeds=[addEmbed2(ctx, None, embedDescription)])
+        return
     await ctx.message.delete()
-    await ctx.channel.get_partial_message(id).edit(embed = addEmbed(ctx, None, embedDiscription ))
+    await ctx.channel.get_partial_message(id).edit(embed = addEmbed(ctx, None, embedDescription ))
 
 @client.command()
 @commands.guild_only()
@@ -517,11 +563,11 @@ async def setchannel(ctx, command, channel: discord.TextChannel):
             where = (f"guild_id = {guild_id}")
             result = (insertquery(sql, 'guilds', column , values, where))
             if (result == 0):
-                embedDiscription  = (f"Successfully registered {command} as `{channel.id}`")
-                await ctx.channel.send(embed=addEmbed(ctx,"green",embedDiscription ), delete_after=5)
+                embedDescription  = (f"Successfully registered {command} as `{channel.id}`")
+                await ctx.channel.send(embed=addEmbed(ctx,"green",embedDescription ), delete_after=5)
             else:
-                embedDiscription  = (f"Couldn't register {command} as {channelid}")
-                await ctx.channel.send(embed=addEmbed(ctx,"red",embedDiscription ), delete_after=5)     
+                embedDescription  = (f"Couldn't register {command} as {channelid}")
+                await ctx.channel.send(embed=addEmbed(ctx,"red",embedDescription ), delete_after=5)     
 
 @client.command()
 @commands.has_permissions(manage_messages=True)
@@ -538,8 +584,8 @@ async def move(ctx, alias):
             result = selectquery(sql, "categories", "category_id", f"category_name = '{alias}' AND guild_id = {ctx.guild.id}")
             cat = client.get_channel(result)
             await ctxchannel.edit(category=cat)
-            embedDiscription  = (f"{ctxchannel.mention} has been moved to category {alias}")
-            await ctx.send(embed=addEmbed(ctx,None,embedDiscription ), delete_after=5)
+            embedDescription  = (f"{ctxchannel.mention} has been moved to category {alias}")
+            await ctx.send(embed=addEmbed(ctx,None,embedDescription ), delete_after=5)
 
 @client.command(aliases=['rl'])
 @commands.has_permissions(manage_messages=True)
@@ -555,9 +601,9 @@ async def restrictlist(ctx):
             await ctx.send(embed=await nopermission(ctx), delete_after=5)
             return
         type1 = str(type).replace('(', '').replace(')', '').replace('(', '').replace("'", '').replace("[", '').replace("]", '').replace(',', '').replace(' ', f'\n')
-        embedDiscription  = (f"__**Restriction types you can use:**__\n{type1}")
-        await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDiscription), delete_after=10)
-        print(addEmbed(ctx,"red",embedDiscription))
+        embedDescription  = (f"__**Restriction types you can use:**__\n{type1}")
+        await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDescription), delete_after=10)
+        print(addEmbed(ctx,"red",embedDescription))
 
 @client.command()
 @commands.has_permissions(manage_messages=True)
@@ -569,8 +615,8 @@ async def restrict(ctx, alias):
     await ctx.message.delete()
     if alias.lower() == "none":
         await ctx.channel.set_permissions(ctx.guild.default_role, view_channel=True)
-        embedDiscription  = (f"{ctx.channel.mention} has been opened to public.")
-        await ctx.send(embed=addEmbed(ctx,None,embedDiscription ), delete_after=5)
+        embedDescription  = (f"{ctx.channel.mention} has been opened to public.")
+        await ctx.send(embed=addEmbed(ctx,None,embedDescription ), delete_after=5)
     aliaslist = selectqueryall(sql, "hambot3_.restrict", "restrictrole_name", f"guild_id = {ctx.guild.id}")
     for stralias in aliaslist:
         if alias == stralias[0]:
@@ -586,8 +632,8 @@ async def restrict(ctx, alias):
                     overwrites1.update({role: discord.PermissionOverwrite(view_channel=True),
                     ctx.guild.default_role: discord.PermissionOverwrite(view_channel=False)})
                     await ctx.channel.edit(overwrites=overwrites1)
-                    embedDiscription  = (f"{ctxchannel.mention} has been restricted to {cat.mention}")
-                    await ctx.send(embed=addEmbed(ctx,None,embedDiscription ), delete_after=5)
+                    embedDescription  = (f"{ctxchannel.mention} has been restricted to {cat.mention}")
+                    await ctx.send(embed=addEmbed(ctx,None,embedDescription ), delete_after=5)
                     return
                 result2 = selectquery(sql, 'hambot3_.restrict', 'restrictrole_id', f"restrictrole_name = '{alias}' AND guild_id = {ctx.guild.id}")
                 cat = ctx.guild.get_role(result1)
@@ -597,8 +643,8 @@ async def restrict(ctx, alias):
                 overwrites2.update({cat: discord.PermissionOverwrite(view_channel=True), cat2: discord.PermissionOverwrite(view_channel=True),
                 ctx.guild.default_role: discord.PermissionOverwrite(view_channel=False)})
                 await ctx.channel.edit(overwrites=overwrites2)
-                embedDiscription  = (f"{ctxchannel.mention} has been restricted to {cat.mention} and {cat2.mention}")
-                await ctx.send(embed=addEmbed(ctx,None,embedDiscription ), delete_after=5)
+                embedDescription  = (f"{ctxchannel.mention} has been restricted to {cat.mention} and {cat2.mention}")
+                await ctx.send(embed=addEmbed(ctx,None,embedDescription ), delete_after=5)
                 return
             result2 = selectquery(sql, 'hambot3_.restrict', 'restrictrole_id', f"restrictrole_name = '{alias}' AND guild_id = {ctx.guild.id}")
             result3 = selectquery(sql, 'hambot3_.restrict', 'restrictrole2_id', f"restrictrole_name = '{alias}' AND guild_id = {ctx.guild.id}")
@@ -609,8 +655,8 @@ async def restrict(ctx, alias):
             overwrites3.update({cat: discord.PermissionOverwrite(view_channel=True), cat2: discord.PermissionOverwrite(view_channel=True),
             cat3: discord.PermissionOverwrite(view_channel=True), ctx.guild.default_role: discord.PermissionOverwrite(view_channel=False)})
             await ctx.channel.edit(overwrites=overwrites3)
-            embedDiscription  = (f"{ctxchannel.mention} has been restricted to {cat.mention}, {cat2.mention} and {cat3.mention}")
-            await ctx.send(embed=addEmbed(ctx,None,embedDiscription ), delete_after=5)
+            embedDescription  = (f"{ctxchannel.mention} has been restricted to {cat.mention}, {cat2.mention} and {cat3.mention}")
+            await ctx.send(embed=addEmbed(ctx,None,embedDescription ), delete_after=5)
 
 @client.command()
 @commands.has_permissions(manage_guild=True)
@@ -619,19 +665,23 @@ async def setmove(ctx, categoryi: discord.CategoryChannel, alias):
     if administratorcheck1 == 0:
         await ctx.send(embed=await nopermission(ctx), delete_after=5)
         return
+    movecheck = selectquery(sql, 'guilds', 'custommovecount', f'guild_id = {ctx.guild.id}')
+    if movecheck >= 15:
+        await ctx.send(embed=await addEmbed(ctx, None, f"Guild has {movecheck} custommoves set which is over the limit."), delete_after=5)
+        return
     await ctx.message.delete()
     guild_id = ctx.guild.id
     categoryid = str(categoryi.id)
     categoryname = alias
     if guild_id not in premium_guilds:
-        embedDiscription  = (f"You need premium to use this command.")
-        await ctx.send(embed=addEmbed(ctx,"blue",embedDiscription ))
+        embedDescription  = (f"You need premium to use this command.")
+        await ctx.send(embed=addEmbed(ctx,"blue",embedDescription ))
         return
     categoryn = selectqueryall(sql, 'categories', 'category_name', f'guild_id = {ctx.guild.id}')
     for stralias in categoryn:
         if categoryname == stralias[0]:
-            embedDiscription  =(f"Category `{categoryname}` already exists.")
-            await ctx.send(embed=addEmbed(ctx,"red",embedDiscription ), delete_after=5)
+            embedDescription  =(f"Category `{categoryname}` already exists.")
+            await ctx.send(embed=addEmbed(ctx,"red",embedDescription ), delete_after=5)
             return 1
     print(f"{categoryid} {categoryname}")
     column = '(guild_id, category_id)'
@@ -643,11 +693,12 @@ async def setmove(ctx, categoryi: discord.CategoryChannel, alias):
     where = (f"category_id = {categoryid}")
     result = (insertquery(sql, 'categories', column , values, where))
     if (result == 0):
-        embedDiscription =(f"Successfully registered {categoryname} as `{categoryid}`")
-        await ctx.send(embed=addEmbed(ctx,None,embedDiscription ), delete_after=5)    
+        embedDescription =(f"Successfully registered {categoryname} as `{categoryid}`")
+        await ctx.send(embed=addEmbed(ctx,None,embedDescription ), delete_after=5)    
+        insertquery(sql, 'guilds', 'custommovecount', f'{len(categoryn) + 1}', f'guild_id = {ctx.guild.id}')
     else:
-        embedDiscription  =(f"Couldn't register {categoryname} as `{categoryid}`")
-        await ctx.send(embed=addEmbed(ctx,"red",embedDiscription ), delete_after=5)
+        embedDescription  =(f"Couldn't register {categoryname} as `{categoryid}`")
+        await ctx.send(embed=addEmbed(ctx,"red",embedDescription ), delete_after=5)
 
 @client.command()
 @commands.has_permissions(manage_guild=True)
@@ -662,11 +713,11 @@ async def removemove(ctx, alias):
     for stralias in categoryn:
         if categoryname == stralias[0]:
             categoryn = deletequery(sql, 'categories', f"category_name = '{categoryname}'")
-            embedDiscription  =(f"Category `{categoryname}` has been removed.")
-            await ctx.send(embed=addEmbed(ctx,"green",embedDiscription ), delete_after=5)
+            embedDescription  =(f"Category `{categoryname}` has been removed.")
+            await ctx.send(embed=addEmbed(ctx,"red",embedDescription ), delete_after=5)
             return 1
-    embedDiscription  =(f"Category `{categoryname}` couldn't be removed.")
-    await ctx.send(embed=addEmbed(ctx,"green",embedDiscription ), delete_after=5)
+    embedDescription  =(f"Category `{categoryname}` couldn't be removed.")
+    await ctx.send(embed=addEmbed(ctx,"red",embedDescription ), delete_after=5)
     return 1
     
 @client.command(aliases=['scc'])
@@ -688,8 +739,25 @@ async def movelist(ctx):
             await ctx.send(embed=await nopermission(ctx), delete_after=5)
             return
         newcat = str(category).replace('(', '').replace(')', '').replace('(', '').replace("'", '').replace("[", '').replace("]", '').replace(',', '').replace(' ', f'\n')
-        embedDiscription  = (f"__**Categories you can move channels to:**__\n{newcat}")
-        await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDiscription ), delete_after=10)    
+        embedDescription  = (f"__**Categories you can move channels to:**__\n{newcat}")
+        await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDescription ), delete_after=10)   
+        
+@client.command(aliases=['ba'])
+@commands.has_permissions(manage_guild=True)
+async def betaannouncements(ctx, bool:bool):
+    administratorcheck1 = await administratorcheck(ctx.guild, ctx.author)
+    if administratorcheck1 == 0:
+        await ctx.send(embed=await nopermission(ctx), delete_after=5) 
+        return
+    await ctx.message.delete()
+    if bool == True:
+        insertquery(sql, 'guilds', 'betaannouncements', ('1'), f'guild_id = {ctx.guild.id}')
+        betaannouncementguilds.append(ctx.guild.id)
+    if bool == False:
+        insertquery(sql, 'guilds', 'betaannouncements', ('0'), f'guild_id = {ctx.guild.id}')
+        betaannouncementguilds.remove(ctx.guild.id)
+    embedDescription  = (f"Beta-Announcements have successfully been set to `{bool}`.")
+    await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDescription ), delete_after=5) 
 
 # ------- ERROR HANDLERS -------
 
@@ -785,8 +853,8 @@ async def accept(ctx, messageid):
         return
     result = selectquery(sql, 'guilds', 'acceptedsuggestions', f'guild_id = {ctx.guild.id}')
     if result == 0:
-        embedDiscription  = (f"This server doesn't have an accepted suggestions channel set.")
-        await ctx.send(embed=addEmbed(ctx,discord.Color.teal,embedDiscription ), hidden=True)
+        embedDescription  = (f"This server doesn't have an accepted suggestions channel set.")
+        await ctx.send(embed=addEmbed(ctx,discord.Color.teal,embedDescription ), hidden=True)
     else:
         msg = await ctx.guild.get_channel(ctx.channel.id).fetch_message(messageid)
         for reaction in msg.reactions:
@@ -797,19 +865,12 @@ async def accept(ctx, messageid):
                 reactiona = reaction
                 aschannel = client.get_channel(result)
                 finalcount = int(reactiona.count - 1)
-                embedDiscription  = (f"**{finalcount} Upvotes:** [Go To Suggestion]({msg.jump_url}) - Suggestion was made in: {ctx.channel.mention}")
-                embed1 = addEmbed(ctx,"dark_teal",embedDiscription)
+                embedDescription  = (f"**{finalcount} Upvotes:** [Go To Suggestion]({msg.jump_url}) - Suggestion was made in: {ctx.channel.mention}")
+                embed1 = addEmbed(ctx,"dark_teal",embedDescription)
                 embed2 = msg.embeds[0]
-                sent = False
-                for w in await ctx.guild.webhooks():
-                    if "Accepted Suggestions" == w.name:
-                        await w.send(avatar_url=ctx.author.avatar_url, embeds=[embed1, embed2])
-                        sent = True
-                if sent == False:
-                    webhook = await aschannel.create_webhook(name="Accepted Suggestions")
-                    await webhook.send(avatar_url=ctx.author.avatar_url, embeds=[embed1, embed2])
-                embedDiscription  = (f"[Suggestion]({msg.jump_url}) successfully accepted!")
-                await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDiscription ))
+                await sendwebhook(ctx, "Accepted Suggestions", aschannel, None, [embed1, embed2])
+                embedDescription  = (f"[Suggestion]({msg.jump_url}) successfully accepted!")
+                await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDescription ))
                 return
 
 @slash.slash(name="ham5teak", description="View Ham5teak network status")
@@ -821,8 +882,8 @@ async def ham5teak(ctx):
     else:
         ham5teak = "Offline ❌"
     print("The server has {0} players and replied in {1} ms".format(status.players.online, status.latency))
-    embedDiscription =(f"**Ham5teak Status:** {ham5teak} \n **Players:** {status.players.online}")
-    await ctx.send(embed=addEmbed(ctx,None,embedDiscription ))  
+    embedDescription =(f"**Ham5teak Status:** {ham5teak} \n **Players:** {status.players.online}")
+    await ctx.send(embed=addEmbed(ctx,None,embedDescription ))  
 
 @slash.slash(name="help")
 async def help(ctx):
@@ -844,8 +905,8 @@ async def move(ctx, category):
             result = selectquery(sql, "categories", "category_id", f"category_name = '{alias}' AND guild_id = {ctx.guild.id}")
             cat = client.get_channel(result[0])
             await ctxchannel.edit(category=cat)
-            embedDiscription  = (f"{ctxchannel.mention} has been moved to category {alias}")
-            await ctx.send(embed=addEmbed(ctx,None,embedDiscription ))
+            embedDescription  = (f"{ctxchannel.mention} has been moved to category {alias}")
+            await ctx.send(embed=addEmbed(ctx,None,embedDescription ))
 
 @slash.slash(name="tag", description="A command used to leave a note to a channel")
 async def tag(ctx, note, user:discord.User = None, channel:discord.TextChannel = None, role:discord.Role = None):
@@ -870,12 +931,12 @@ async def tag(ctx, note, user:discord.User = None, channel:discord.TextChannel =
         if mention is not None:
             print(finalmentions)
             print("message has a mention")
-            embedDiscription =(f"{ctx.author.mention} has tagged the channel as `{note.upper()}` \n\n**Mentions:** {', '.join(finalmentions)}")
-            await ctx.send(embed=addEmbed(ctx,None,embedDiscription ))
+            embedDescription =(f"{ctx.author.mention} has tagged the channel as `{note.upper()}` \n\n**Mentions:** {', '.join(finalmentions)}")
+            await ctx.send(embed=addEmbed(ctx,None,embedDescription ))
             return
     print("message doesn't have mentions")
-    embedDiscription  = (f"{ctx.author.mention} has tagged the channel as `{note.upper()}`")
-    await ctx.send(embed=addEmbed(ctx,None,embedDiscription )) 
+    embedDescription  = (f"{ctx.author.mention} has tagged the channel as `{note.upper()}`")
+    await ctx.send(embed=addEmbed(ctx,None,embedDescription )) 
 
 # ------- SETTING SLASH COMMANDS -------
 
@@ -899,11 +960,11 @@ async def setchannel(ctx, value: discord.TextChannel, channel):
             where = (f"guild_id = {guild_id}")
             result = (insertquery(sql, 'guilds', column , values, where))
             if result is not None:
-                embedDiscription  = (f"{channel} successfully registered as <#{channelid}>")
-                await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDiscription ))
+                embedDescription  = (f"{channel} successfully registered as <#{channelid}>")
+                await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDescription ))
             else:
-                embedDiscription  = (f"{channel} couldn't be registered as {channelid}")
-                await ctx.send(embed=addEmbed(ctx,"red",embedDiscription ))  
+                embedDescription  = (f"{channel} couldn't be registered as {channelid}")
+                await ctx.send(embed=addEmbed(ctx,"red",embedDescription ))  
         
 @slash.slash(name="setmove")
 @commands.has_permissions(manage_guild=True)
@@ -914,14 +975,18 @@ async def setmove(ctx, categoryi: discord.CategoryChannel, alias):
     if administratorcheck1 == 0:
         await ctx.send(embed=await nopermission(ctx), delete_after=5)
         return
+    movecheck = selectquery(sql, 'guilds', 'custommovecount', f'guild_id = {ctx.guild.id}')
+    if movecheck >= 15:
+        await ctx.send(embed=await addEmbed(ctx, None, f"Guild has {movecheck} custommoves set which is over the limit."), delete_after=5)
+        return
     guild_id = ctx.guild.id
     categoryid = str(categoryi.id)
     categoryname = alias
     categoryn = selectqueryall(sql, 'categories', 'category_name', f'guild_id = {ctx.guild.id}')
     for stralias in categoryn:
         if categoryname == stralias[0]:
-            embedDiscription  =(f"Category `{categoryname}` already exists.")
-            await ctx.send(embed=addEmbed(ctx,"red",embedDiscription ))
+            embedDescription  =(f"Category `{categoryname}` already exists.")
+            await ctx.send(embed=addEmbed(ctx,"red",embedDescription ))
             return 1
     print(f"{categoryid} {categoryname}")
     column = '(guild_id, category_id)'
@@ -933,11 +998,12 @@ async def setmove(ctx, categoryi: discord.CategoryChannel, alias):
     where = (f"category_id = {categoryid}")
     result = (insertquery(sql, 'categories', column , values, where))
     if (result == 0):
-        embedDiscription =(f"Successfully registered {categoryname} as `{categoryid}`")
-        await ctx.send(embed=addEmbed(ctx,None,embedDiscription ))   
+        embedDescription =(f"Successfully registered {categoryname} as `{categoryid}`")
+        await ctx.send(embed=addEmbed(ctx,None,embedDescription ))   
+        insertquery(sql, 'guilds', 'custommovecount', f'{len(categoryn) + 1}', f'guild_id = {ctx.guild.id}')
     else:
-        embedDiscription  =(f"Couldn't register {categoryname} as `{categoryid}`")
-        await ctx.send(embed=addEmbed(ctx,"red",embedDiscription ))
+        embedDescription  =(f"Couldn't register {categoryname} as `{categoryid}`")
+        await ctx.send(embed=addEmbed(ctx,"red",embedDescription ))
 
 @slash.slash(name="setrole")
 @commands.has_permissions(manage_guild=True)
@@ -950,17 +1016,17 @@ async def setrole(ctx, administrator:discord.Role, moderator: discord.Role):
     print(f"{administrator.id} {moderator.id}")
     result = selectquery(sql, 'guilds', 'moderator_id', f'guild_id = {ctx.guild.id}')
     if result is None:
-        embedDiscription  = (f"Server needs to be setup before executing this command.")
-        await ctx.send(embed=addEmbed(ctx,None,embedDiscription ))
+        embedDescription  = (f"Server needs to be setup before executing this command.")
+        await ctx.send(embed=addEmbed(ctx,None,embedDescription ))
     elif result is not None:
         a = insertquery(sql, "guilds", "moderator_id", f"{moderator.id}", f"guild_id = {ctx.guild.id}")
         b = insertquery(sql, "guilds", "administrator_id", f"{administrator.id}", f"guild_id = {ctx.guild.id}")
         if (a == 0) and (b == 0):
-            embedDiscription  = (f"New administrator and moderator roles have successfully been set as {administrator.mention} {moderator.mention}")
-            await ctx.send(embed=addEmbed(ctx,"green",embedDiscription ))
+            embedDescription  = (f"New administrator and moderator roles have successfully been set as {administrator.mention} {moderator.mention}")
+            await ctx.send(embed=addEmbed(ctx,"green",embedDescription ))
         else:
-            embedDiscription  = (f"Couldn't register {administrator.mention} {moderator.mention} as administrator and moderator.")
-            await ctx.send(embed=addEmbed(ctx,"red",embedDiscription ))
+            embedDescription  = (f"Couldn't register {administrator.mention} {moderator.mention} as administrator and moderator.")
+            await ctx.send(embed=addEmbed(ctx,"red",embedDescription ))
 
 @slash.slash(name="setup")
 @commands.has_permissions(manage_guild=True)
@@ -969,8 +1035,8 @@ async def setup(ctx, password, administrator:discord.Role, moderator:discord.Rol
     print(password)
     guild_id = ctx.guild.id
     if guild_id in premium_guilds:
-        embedDiscription  = (f"You are already logged in as Premium")
-        await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDiscription ))
+        embedDescription  = (f"You are already logged in as Premium")
+        await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDescription ))
         return
     else:
         guild_name = ctx.guild.name
@@ -980,35 +1046,35 @@ async def setup(ctx, password, administrator:discord.Role, moderator:discord.Rol
         await insertquery(sql, 'guilds' , column , values, where)
         insertcheck = selectquery(sql, 'guilds', 'premium', f'guild_id = {ctx.guild.id}')    
         if (insertcheck != 0):
-            embedDiscription  = (f"Setup successfully completed!")
-            await ctx.send(embed=addEmbed(ctx,"green",embedDiscription ))
+            embedDescription  = (f"Setup successfully completed!")
+            await ctx.send(embed=addEmbed(ctx,"green",embedDescription ))
         else:
-            embedDiscription  = (f"Setup failed!")
-            await ctx.send(embed=addEmbed(ctx,"red",embedDiscription ))
+            embedDescription  = (f"Setup failed!")
+            await ctx.send(embed=addEmbed(ctx,"red",embedDescription ))
 
 # ------- SLASH COMMAND ERROR HANDLERS -------
 @client.event
 async def on_slash_command_error(ctx, error):
     print(error)
     if isinstance(error, discord.errors.NotFound):
-        embedDiscription  = (f"Please enter a valid ID. \n{error}")
-        await ctx.send(embed=addEmbed(ctx,"teal",embedDiscription ), hidden=True)
+        embedDescription  = (f"Please enter a valid ID. \n{error}")
+        await ctx.send(embed=addEmbed(ctx,"teal",embedDescription ), hidden=True)
     if isinstance(error, commands.MissingPermissions):
         await ctx.defer(hidden=True)
-        embedDiscription  = (f"Please make sure you have entered all values correctly.\n{error}")
-        await ctx.send(embed=addEmbed(ctx,None,embedDiscription ), hidden=True)
+        embedDescription  = (f"Please make sure you have entered all values correctly.\n{error}")
+        await ctx.send(embed=addEmbed(ctx,None,embedDescription ), hidden=True)
     if isinstance(error, commands.ChannelNotFound):
         await ctx.defer(hidden=True)
-        embedDiscription  = (f"Please make sure you have entered all values correctly.\n{error}")
-        await ctx.send(embed=addEmbed(ctx,None,embedDiscription ), hidden=True)
+        embedDescription  = (f"Please make sure you have entered all values correctly.\n{error}")
+        await ctx.send(embed=addEmbed(ctx,None,embedDescription ), hidden=True)
     if isinstance(error, commands.RoleNotFound):
         await ctx.defer(hidden=True)
-        embedDiscription  = (f"Please make sure you have entered all values correctly.\n{error}")
-        await ctx.send(embed=addEmbed(ctx,None,embedDiscription ), hidden=True)
+        embedDescription  = (f"Please make sure you have entered all values correctly.\n{error}")
+        await ctx.send(embed=addEmbed(ctx,None,embedDescription ), hidden=True)
     if isinstance(error, commands.MemberNotFound):
         await ctx.defer(hidden=True)
-        embedDiscription  = (f"Please make sure you have entered all values correctly.\n{error}")
-        await ctx.send(embed=addEmbed(ctx,None,embedDiscription ), hidden=True)
+        embedDescription  = (f"Please make sure you have entered all values correctly.\n{error}")
+        await ctx.send(embed=addEmbed(ctx,None,embedDescription ), hidden=True)
 
 # ------- EVENT HANDLERS -------
 
@@ -1124,7 +1190,7 @@ the following choices by clicking the button describing your issue.
 @client.event
 async def on_reaction_add(reaction, user):
     messageid = reaction.message.id
-    rcount = 2
+    rcount = 8
     reacted = True
     reacted = False
     if "polls" in reaction.message.channel.name:
@@ -1167,17 +1233,10 @@ async def on_reaction_add(reaction, user):
                         return
                 try:
                     finalcount = int(reaction.count - 1)
-                    embedDiscription  = (f"**{finalcount} Upvotes:** [Go To Suggestion]({msg.jump_url}) - Suggestion was made in: {reaction.message.channel.mention}")
-                    embed1 = addEmbed(None,"dark_teal",embedDiscription)
+                    embedDescription  = (f"**{finalcount} Upvotes:** [Go To Suggestion]({msg.jump_url}) - Suggestion was made in: {reaction.message.channel.mention}")
+                    embed1 = addEmbed(None,"dark_teal",embedDescription)
                     embed2 = msg.embeds[0]
-                    sent = False
-                    for w in await reaction.message.guild.webhooks():
-                        if "Demanded Suggestions" == w.name:
-                            await w.send(avatar_url=client.user.avatar_url, embeds=[embed1, embed2])
-                            sent = True
-                    if sent == False:
-                        webhook = await dsuggestionschannel.create_webhook(name="Demanded Suggestions")
-                        await webhook.send(avatar_url=client.user.avatar_url, embeds=[embed1, embed2])
+                    await sendwebhook(reaction.message, "Demanded Suggestions", dsuggestionschannel, None, [embed1, embed2])
                 except AttributeError as e:
                     print(f"{reaction.message.guild.name} doesn't have a demanded suggestions channel set.")
                 return
@@ -1198,17 +1257,10 @@ async def on_reaction_add(reaction, user):
                     print(f"{rsuggestions} channel has no suggestion history.")
                 try:
                     finalcount = int(reaction.count - 1)
-                    embedDiscription  = (f"**{finalcount} Downvotes:** [Go To Suggestion]({msg.jump_url}) - Suggestion was made in: {reaction.message.channel.mention}")
-                    embed1 = addEmbed(None,"dark_teal",embedDiscription)
+                    embedDescription  = (f"**{finalcount} Downvotes:** [Go To Suggestion]({msg.jump_url}) - Suggestion was made in: {reaction.message.channel.mention}")
+                    embed1 = addEmbed(None,"dark_teal",embedDescription)
                     embed2 = msg.embeds[0]
-                    sent = False
-                    for w in await reaction.message.guild.webhooks():
-                        if "Rejected Suggestions" == w.name:
-                            await w.send(avatar_url=client.user.avatar_url, embeds=[embed1, embed2])
-                            sent = True
-                    if sent == False:
-                        webhook = await rsuggestionschannel.create_webhook(name="Rejected Suggestions")
-                        await webhook.send(avatar_url=client.user.avatar_url, embeds=[embed1, embed2])
+                    await sendwebhook(reaction.message, "Rejected Suggestions", rsuggestionschannel, None, [embed1, embed2])
                 except AttributeError as e:
                     print(f"{reaction.message.guild.name} doesn't have a rejected suggestions channel set.")
                 return
@@ -1217,6 +1269,52 @@ async def on_reaction_add(reaction, user):
 async def on_message(ctx):
     if not ctx.guild:
         return
+    if str(ctx.guild.id) in str(betaannouncementguilds):
+        channelnames = ["announcements", "updates", "competitions", "events"]
+        for channel in channelnames:
+            if channel in ctx.channel.name:
+                if not ctx.author.bot:
+                    if ctx.content.startswith("-") or ctx.content.startswith("?") or ctx.content.startswith("!"):
+                        await client.process_commands(ctx)
+                        return
+                    else:
+                        if ctx.attachments:
+                            for imageextensions in [".jpg", ".jpeg", ".png", ".gif"]:
+                                if imageextensions in ctx.attachments[0].filename:
+                                    await ctx.attachments[0].save(f"./{ctx.attachments[0].filename}")
+                                    file = discord.File(ctx.attachments[0].filename)
+                                    embedDescription  = (f"{ctx.content}")
+                                    embed = addEmbed2(ctx,None,embedDescription )
+                                    embed.set_image(url=f"attachment://{ctx.attachments[0].filename}")
+                                    await sendwebhook(ctx, ctx.author.display_name, ctx.channel, file, [embed])
+                                    msg = await ctx.channel.fetch_message(ctx.channel.last_message_id)
+                                    await msg.add_reaction("👍")
+                                    await msg.add_reaction("❤️")
+                                    print(f"An image inclusive announcement was made in #{ctx.channel.name} by {ctx.author}.")
+                                    await ctx.delete()
+                                    os.remove(f"./{ctx.attachments[0].filename}")
+                                    return
+                            await ctx.attachments[0].save(f"./{ctx.attachments[0].filename}")
+                            file = discord.File(ctx.attachments[0].filename)
+                            embedDescription  = (f"{ctx.content}")
+                            embed = addEmbed2(ctx,None,embedDescription )
+                            await sendwebhook(ctx, ctx.author.display_name, ctx.channel, file, [embed])
+                            msg = await ctx.channel.fetch_message(ctx.channel.last_message_id)
+                            await msg.add_reaction("👍")
+                            await msg.add_reaction("❤️")
+                            print(f"An attachment inclusive announcement was made in #{ctx.channel.name} by {ctx.author}.")
+                            await ctx.delete()
+                            os.remove(f"./{ctx.attachments[0].filename}")
+                        if not ctx.attachments:
+                            await ctx.delete()
+                            embedDescription  = (f"{ctx.content}")
+                            embed = addEmbed2(ctx,None,embedDescription )
+                            await sendwebhook(ctx, ctx.author.display_name, ctx.channel, None, [embed])
+                            msg = await ctx.channel.fetch_message(ctx.channel.last_message_id)
+                            await msg.add_reaction("👍")
+                            await msg.add_reaction("❤️")
+                            print(f"An announcement was made in #{ctx.channel.name} by {ctx.author}.")
+                    return
     channelnames = ["announcements", "updates", "competitions", "events"]
     for channel in channelnames:
         if channel in ctx.channel.name:
@@ -1230,8 +1328,8 @@ async def on_message(ctx):
                             if imageextensions in ctx.attachments[0].filename:
                                 await ctx.attachments[0].save(f"./{ctx.attachments[0].filename}")
                                 file = discord.File(ctx.attachments[0].filename)
-                                embedDiscription  = (f"{ctx.content}")
-                                embed = addEmbed(ctx,None,embedDiscription )
+                                embedDescription  = (f"{ctx.content}")
+                                embed = addEmbed(ctx,None,embedDescription )
                                 embed.set_image(url=f"attachment://{ctx.attachments[0].filename}")
                                 msg = await ctx.channel.send(embed=embed, file=file)
                                 await msg.add_reaction("👍")
@@ -1242,8 +1340,8 @@ async def on_message(ctx):
                                 return
                         await ctx.attachments[0].save(f"./{ctx.attachments[0].filename}")
                         file = discord.File(ctx.attachments[0].filename)
-                        embedDiscription  = (f"{ctx.content}")
-                        embed = addEmbed(ctx,None,embedDiscription )
+                        embedDescription  = (f"{ctx.content}")
+                        embed = addEmbed(ctx,None,embedDescription )
                         msg = await ctx.channel.send(embed=embed, file=file)
                         await msg.add_reaction("👍")
                         await msg.add_reaction("❤️")
@@ -1252,8 +1350,8 @@ async def on_message(ctx):
                         os.remove(f"./{ctx.attachments[0].filename}")
                     if not ctx.attachments:
                         await ctx.delete()
-                        embedDiscription  = (f"{ctx.content}")
-                        msg = await ctx.channel.send(embed=addEmbed(ctx,None,embedDiscription ))
+                        embedDescription  = (f"{ctx.content}")
+                        msg = await ctx.channel.send(embed=addEmbed(ctx,None,embedDescription ))
                         await msg.add_reaction("👍")
                         await msg.add_reaction("❤️")
                         print(f"An announcement was made in #{ctx.channel.name} by {ctx.author}.")
@@ -1266,8 +1364,8 @@ async def on_message(ctx):
                 if ctx.attachments:
                     await ctx.attachments[0].save(f"./{ctx.attachments[0].filename}")
                     file = discord.File(ctx.attachments[0].filename)
-                    embedDiscription  = (f"{ctx.content}")
-                    embed = addEmbed(ctx,None,embedDiscription )
+                    embedDescription  = (f"{ctx.content}")
+                    embed = addEmbed(ctx,None,embedDescription )
                     embed.set_image(url=f"attachment://{ctx.attachments[0].filename}")
                     msg = await ctx.channel.send(embed=embed, file = file)
                     await msg.add_reaction("✅")
@@ -1277,8 +1375,8 @@ async def on_message(ctx):
                     os.remove(f"./{ctx.attachments[0].filename}")
                 if not ctx.attachments:
                     await ctx.delete()
-                    embedDiscription  = (f"{ctx.content}")
-                    msg = await ctx.channel.send(embed=addEmbed(ctx,None,embedDiscription ))
+                    embedDescription  = (f"{ctx.content}")
+                    msg = await ctx.channel.send(embed=addEmbed(ctx,None,embedDescription ))
                     await msg.add_reaction("✅")
                     await msg.add_reaction("❌")
                     print(f"A suggestion was made in #{ctx.channel.name} by {ctx.author}.")
@@ -1286,6 +1384,8 @@ async def on_message(ctx):
         if not ctx.author.bot:
             if ctx.content.startswith("-") or ctx.content.startswith("?") or ctx.content.startswith("!"):
                 await client.process_commands(ctx)
+                return
+            if ctx.webook_id:
                 return
             else:
                 if ctx.attachments:
@@ -1385,10 +1485,13 @@ async def on_message(ctx):
                                     content=f'Successfully voted for {res.component.id}.'
                                 )
                                 reactedusers.append(res.user.id)
-                        except asyncio.TimeoutError:
+                        except asyncio.TimeoutError and KeyError:
                             embedDescription1 = f"{ctx.content}\n\n```{reactionstotal1}\n```\n\n **This poll has ended.**"
-                            await msg.edit(embed=addEmbed(ctx,None,embedDescription1 ),
-                                    components=[])
+                            try:
+                                await msg.edit(embed=addEmbed(ctx,None,embedDescription1 ),
+                                        components=[])
+                            except:
+                                pass
                             sent = False
 
     await client.process_commands(ctx)
