@@ -297,10 +297,10 @@ async def statuscheck():
     await asyncio.sleep(600)
     
 async def attachmentAutoEmbed(ctx, image:bool, type, emoji, emoji1, webhook:bool = None):
-    await ctx.delete()
     await ctx.attachments[0].save(f"./{ctx.attachments[0].filename}")
     file = discord.File(ctx.attachments[0].filename)
     embedDescription  = (f"{ctx.content}")
+    await ctx.delete()
     if webhook != None and webhook == True:
         embed = addEmbed2(ctx,None,embedDescription)
     else:
@@ -550,15 +550,17 @@ async def edit(ctx, id, *, embedDescription):
     if moderatorcheck1 == 0:
         await ctx.send(embed=await nopermission(ctx), delete_after=5)
         return
+    msg = await ctx.channel.fetch_message(id)
+    embedobj = msg.embeds[0]
     if ctx.guild.id in betaannouncementguilds:
         await ctx.message.delete()
         webhook1 = await getwebhook(ctx, ctx.author.display_name)
         async with aiohttp.ClientSession() as session:
             webh = discord.Webhook.from_url(webhook1.url, adapter=discord.AsyncWebhookAdapter(session=session))
-            await webh.edit_message(id, embeds=[addEmbed2(ctx, None, embedDescription)])
+            await webh.edit_message(id, embeds=[addEmbed2(ctx, None, embedDescription, embedobj.image.url)])
         return
     await ctx.message.delete()
-    await ctx.channel.get_partial_message(id).edit(embed = addEmbed(ctx, None, embedDescription ))
+    await ctx.channel.get_partial_message(id).edit(embed = addEmbed(ctx, None, embedDescription, embedobj.image.url))
 
 @client.command()
 @commands.guild_only()
