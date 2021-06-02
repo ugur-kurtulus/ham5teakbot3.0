@@ -702,6 +702,26 @@ async def setmove(ctx, categoryi: discord.CategoryChannel, alias):
 
 @client.command()
 @commands.has_permissions(manage_guild=True)
+async def removerestrict(ctx, alias):
+    administratorcheck1 = await administratorcheck(ctx.guild, ctx.author)
+    if administratorcheck1 == 0:
+        await ctx.send(embed=await nopermission(ctx), delete_after=5)
+        return
+    await ctx.message.delete()
+    restrictname = alias
+    restrictlist = selectqueryall(sql, 'hambot3_.restrict', 'restrictrole_name', f'guild_id = {ctx.guild.id}')
+    for stralias in restrictlist:
+        if restrictname == stralias[0]:
+            deletequery(sql, 'hambot3_.restrict', f"restrictrole_name = '{restrictname}'")
+            embedDescription  =(f"Restriction type `{restrictname}` has been removed.")
+            await ctx.send(embed=addEmbed(ctx,"red",embedDescription ), delete_after=5)
+            return 1
+    embedDescription  =(f"Restriction type `{restrictname}` couldn't be removed.")
+    await ctx.send(embed=addEmbed(ctx,"red",embedDescription ), delete_after=5)
+    return 1
+
+@client.command()
+@commands.has_permissions(manage_guild=True)
 async def removemove(ctx, alias):
     administratorcheck1 = await administratorcheck(ctx.guild, ctx.author)
     if administratorcheck1 == 0:
@@ -721,6 +741,7 @@ async def removemove(ctx, alias):
     return 1
     
 @client.command(aliases=['scc'])
+@commands.has_permissions(manage_messages=True)
 async def simchannelcreate(ctx):
     await ctx.message.delete()
     await on_guild_channel_create(ctx.channel)
@@ -773,7 +794,27 @@ async def clear_error(ctx, error):
         await ctx.message.delete()
         await ctx.send(f'Please enter the command correctly. `{getprefix2(ctx)}move <category>`', delete_after=5)
     else:
-        await ctx.send(f"Unknown error:{error}", delete_after=5)
+        await ctx.send(f"Unknown error: {error}", delete_after=5)
+
+@betaannouncements.error
+async def clear_error(ctx, error):
+    await ctx.send(f"Unknown error: {error}", delete_after=5)
+    
+@movelist.error
+async def clear_error(ctx, error):
+    await ctx.send(f"Unknown error: {error}", delete_after=5)
+    
+@restrictlist.error
+async def clear_error(ctx, error):
+    await ctx.send(f"Unknown error: {error}", delete_after=5)
+    
+@setup.error
+async def clear_error(ctx, error):
+    await ctx.send(f"Unknown error: {error}", delete_after=5)
+    
+@removerestrict.error
+async def clear_error(ctx, error):
+    await ctx.send(f"Unknown error: {error}", delete_after=5)
 
 @setmove.error
 async def clear_error(ctx, error):
@@ -781,7 +822,7 @@ async def clear_error(ctx, error):
         await ctx.message.delete()
         await ctx.send(f'Please enter a valid category id. `{getprefix2(ctx)}setmove <categoryid> <alias>`', delete_after=5)
     else:
-        await ctx.send(f"Unknown error:{error}", delete_after=5)
+        await ctx.send(f"Unknown error: {error}", delete_after=5)
         
 @removemove.error
 async def clear_error(ctx, error):
@@ -789,17 +830,17 @@ async def clear_error(ctx, error):
         await ctx.message.delete()
         await ctx.send(f'Please enter a valid category name. `{getprefix2(ctx)}removemove <categoryname>`', delete_after=5)
     else:
-        await ctx.send(f"Unknown error:{error}", delete_after=5)
+        await ctx.send(f"Unknown error: {error}", delete_after=5)
 
 @edit.error
 async def clear_error(ctx, error):
     if isinstance(error, commands.MissingRequiredArgument):
         await ctx.message.delete()
-        await ctx.send(f'Please specify the amount of message you would like to edit. `{getprefix2(ctx)}edit <messageid> <newmessage>`', delete_after=5)
+        await ctx.send(f'Please specify the id of the message you would like to edit. `{getprefix2(ctx)}edit <messageid> <newmessage>`', delete_after=5)
     if isinstance(error, commands.CommandInvokeError):
         await ctx.send('Please enter a valid message ID.', delete_after=5)
     else:
-        await ctx.send(f"Unknown error:{error}", delete_after=5)
+        await ctx.send(f"Unknown error: {error}", delete_after=5)
 
 @setchannel.error
 async def clear_error(ctx, error):
@@ -807,7 +848,7 @@ async def clear_error(ctx, error):
         await ctx.message.delete()
         await ctx.send(f'Please specify the channel you would like to set. `{getprefix2(ctx)}setchannel <channel> <id>`', delete_after=5)
     else:
-        await ctx.send(f"Unknown error:{error}", delete_after=5)
+        await ctx.send(f"Unknown error: {error}", delete_after=5)
 
 @purge.error
 async def clear_error(ctx, error):
@@ -815,7 +856,7 @@ async def clear_error(ctx, error):
         await ctx.message.delete()
         await ctx.send(f'Please make sure to enter a number. `{getprefix2(ctx)}purge <amount>`', delete_after=5)
     else:
-        await ctx.send(f"Unknown error:{error}", delete_after=5)
+        await ctx.send(f"Unknown error: {error}", delete_after=5)
 
 @restrict.error
 async def clear_error(ctx, error):
@@ -823,7 +864,7 @@ async def clear_error(ctx, error):
             await ctx.message.delete()
             await ctx.send(f'Please specify the restrict type you would like to apply. `{getprefix2(ctx)}restrict <type>`', delete_after=5)
     else:
-        await ctx.send(f"Unknown error:{error}", delete_after=5)
+        await ctx.send(f"Unknown error: {error}", delete_after=5)
 
 @setrestrict.error
 async def clear_error(ctx, error):
@@ -831,7 +872,7 @@ async def clear_error(ctx, error):
             await ctx.message.delete()
             await ctx.send(f'Please make sure to give all arguments correctly. `{getprefix2(ctx)}setrestrict <type> <role1> [role2] [role3]`', delete_after=5)
     else:
-        await ctx.send(f"Unknown error:{error}", delete_after=5)
+        await ctx.send(f"Unknown error: {error}", delete_after=5)
     
 @setprefix.error
 async def clear_error(ctx, error):
@@ -839,7 +880,7 @@ async def clear_error(ctx, error):
             await ctx.message.delete()
             await ctx.send(f'Please specify the prefix you would like to apply. `{getprefix2(ctx)}setprefix <prefix>`', delete_after=5)
     else:
-        await ctx.send(f"Unknown error:{error}", delete_after=5)
+        await ctx.send(f"Unknown error: {error}", delete_after=5)
 
 # ------- SLASH COMMANDS -------
     
