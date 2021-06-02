@@ -191,7 +191,7 @@ createtable(sql,'guilds', quilds_query)
 createtable(sql,'categories', categories_query)
 createtable(sql,'restrict', restrict_query)
 
-colors = {"green": 0x00ff00, "red": 0xff0000, "blue": 0x0000ff, "aqua": 0x00FFFF,
+colors = {"green": 0x3aa45c, "red": 0xed4344, "blue": 0x5864f3, "aqua": 0x00FFFF,
  "dark_teal": 0x10816a, "teal": 0x1abc9c}
 premium_guilds = [selectqueryall(sql, 'guilds', 'guild_id', None)]
 betaannouncementguilds = []
@@ -296,6 +296,30 @@ async def statuscheck():
             print(f"{guildname} doesn't have a status channel set.")
     await asyncio.sleep(600)
     
+async def attachmentAutoEmbed(ctx, image:bool, type, emoji, emoji1, webhook:bool = None):
+    await ctx.attachments[0].save(f"./{ctx.attachments[0].filename}")
+    file = discord.File(ctx.attachments[0].filename)
+    embedDescription  = (f"{ctx.content}")
+    if webhook != None and webhook == True:
+        embed = addEmbed2(ctx,None,embedDescription)
+    else:
+        embed = addEmbed(ctx,None,embedDescription)
+    if image == True:
+        embed.set_image(url=f"attachment://{ctx.attachments[0].filename}")
+        var = "image"
+    if image == False:
+        var = "attachment"
+    if webhook != None and webhook == True:
+        await sendwebhook(ctx, ctx.author.display_name, ctx.channel, file, [embed])
+        msg = await ctx.channel.fetch_message(ctx.channel.last_message_id)
+    else:
+        msg = await ctx.channel.send(embed=embed, file=file)
+    await msg.add_reaction(emoji)
+    await msg.add_reaction(emoji1)
+    print(f"An {var} inclusive {type} was made in #{ctx.channel.name} by {ctx.author}.")
+    await ctx.delete()
+    os.remove(f"./{ctx.attachments[0].filename}")
+    
 def addEmbed2(ctx , color, new, image = None):
     if image != None and ctx != None:
         newEmbed = discord.Embed(description=f"{new}", color=ctx.author.color)
@@ -359,14 +383,13 @@ async def on_ready():
         message += f"{guild.name}\n"
     embedDescription  = (f"**__Guilds:__ **\n{message}")
     channel = client.get_channel(841245744421273620)
-    await channel.send(embed=addEmbed(None,"teal", embedDescription ))
+    await channel.send(embed=addEmbed(None, "teal", embedDescription))
     #client.load_extension('music')
     client.remove_command('help')
     result = selectqueryall(sql, 'guilds', 'guild_id', 'betaannouncements = 1')
     for type in result:
         type1 = type[0]
         betaannouncementguilds.append(type1)
-    print(betaannouncementguilds)
     while True:
         await statuscheck()
 
@@ -557,7 +580,6 @@ async def setchannel(ctx, command, channel: discord.TextChannel):
     , "rejectedsuggestions", "acceptedsuggestions", "demandedsuggestions"]
     for commanda in commandsloop:
         if commanda == command:
-            print(f"{commanda} {channelid}")
             column = (command)
             values = (channelid)
             where = (f"guild_id = {guild_id}")
@@ -603,7 +625,6 @@ async def restrictlist(ctx):
         type1 = str(type).replace('(', '').replace(')', '').replace('(', '').replace("'", '').replace("[", '').replace("]", '').replace(',', '').replace(' ', f'\n')
         embedDescription  = (f"__**Restriction types you can use:**__\n{type1}")
         await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDescription), delete_after=10)
-        print(addEmbed(ctx,"red",embedDescription))
 
 @client.command()
 @commands.has_permissions(manage_messages=True)
@@ -638,7 +659,6 @@ async def restrict(ctx, alias):
                 result2 = selectquery(sql, 'hambot3_.restrict', 'restrictrole_id', f"restrictrole_name = '{alias}' AND guild_id = {ctx.guild.id}")
                 cat = ctx.guild.get_role(result1)
                 cat2 = ctx.guild.get_role(result2)
-                print(f"{cat} {cat2}")
                 overwrites2 = {}
                 overwrites2.update({cat: discord.PermissionOverwrite(view_channel=True), cat2: discord.PermissionOverwrite(view_channel=True),
                 ctx.guild.default_role: discord.PermissionOverwrite(view_channel=False)})
@@ -683,7 +703,6 @@ async def setmove(ctx, categoryi: discord.CategoryChannel, alias):
             embedDescription  =(f"Category `{categoryname}` already exists.")
             await ctx.send(embed=addEmbed(ctx,"red",embedDescription ), delete_after=5)
             return 1
-    print(f"{categoryid} {categoryname}")
     column = '(guild_id, category_id)'
     values = (guild_id, categoryid)
     where = None
@@ -792,87 +811,87 @@ async def on_command_error(ctx, error):
 async def clear_error(ctx, error):
     if isinstance(error, discord.ext.commands.errors.MissingRequiredArgument):
         await ctx.message.delete()
-        await ctx.send(f'Please enter the command correctly. `{getprefix2(ctx)}move <category>`', delete_after=5)
+        await ctx.send(embed=addEmbed2(ctx, "red", f'Please enter the command correctly. `{getprefix2(ctx)}move <category>`'), delete_after=5)
     else:
-        await ctx.send(f"Unknown error: {error}", delete_after=5)
+        await ctx.send(embed=addEmbed2(ctx, "red", f"Unknown error: {error}", None), delete_after=5)
 
 @betaannouncements.error
 async def clear_error(ctx, error):
-    await ctx.send(f"Unknown error: {error}", delete_after=5)
+    await ctx.send(embed=addEmbed2(ctx, "red", f"Unknown error: {error}", None), delete_after=5)
     
 @movelist.error
 async def clear_error(ctx, error):
-    await ctx.send(f"Unknown error: {error}", delete_after=5)
+    await ctx.send(embed=addEmbed2(ctx, "red", f"Unknown error: {error}", None), delete_after=5)
     
 @restrictlist.error
 async def clear_error(ctx, error):
-    await ctx.send(f"Unknown error: {error}", delete_after=5)
+    await ctx.send(embed=addEmbed2(ctx, "red", f"Unknown error: {error}", None), delete_after=5)
     
 @setup.error
 async def clear_error(ctx, error):
-    await ctx.send(f"Unknown error: {error}", delete_after=5)
+    await ctx.send(embed=addEmbed2(ctx, "red", f"Unknown error: {error}", None), delete_after=5)
     
 @removerestrict.error
 async def clear_error(ctx, error):
-    await ctx.send(f"Unknown error: {error}", delete_after=5)
+    await ctx.send(embed=addEmbed2(ctx, "red", f"Unknown error: {error}", None), delete_after=5)
 
 @setmove.error
 async def clear_error(ctx, error):
     if isinstance(error, discord.ext.commands.errors.ChannelNotFound):
         await ctx.message.delete()
-        await ctx.send(f'Please enter a valid category id. `{getprefix2(ctx)}setmove <categoryid> <alias>`', delete_after=5)
+        await ctx.send(embed=addEmbed2(ctx, "red", f'Please enter a valid category id. `{getprefix2(ctx)}setmove <categoryid> <alias>`'), delete_after=5)
     else:
-        await ctx.send(f"Unknown error: {error}", delete_after=5)
+        await ctx.send(embed=addEmbed2(ctx, "red", f"Unknown error: {error}", None), delete_after=5)
         
 @removemove.error
 async def clear_error(ctx, error):
     if isinstance(error, discord.ext.commands.errors.MissingRequiredArgument):
         await ctx.message.delete()
-        await ctx.send(f'Please enter a valid category name. `{getprefix2(ctx)}removemove <categoryname>`', delete_after=5)
+        await ctx.send(embed=addEmbed2(ctx, "red", f'Please enter a valid category name. `{getprefix2(ctx)}removemove <categoryname>`'), delete_after=5)
     else:
-        await ctx.send(f"Unknown error: {error}", delete_after=5)
+        await ctx.send(embed=addEmbed2(ctx, "red", f"Unknown error: {error}", None), delete_after=5)
 
 @edit.error
 async def clear_error(ctx, error):
     if isinstance(error, commands.MissingRequiredArgument):
         await ctx.message.delete()
-        await ctx.send(f'Please specify the id of the message you would like to edit. `{getprefix2(ctx)}edit <messageid> <newmessage>`', delete_after=5)
-    if isinstance(error, commands.CommandInvokeError):
-        await ctx.send('Please enter a valid message ID.', delete_after=5)
+        await ctx.send(embed=addEmbed2(ctx, "red", f'Please specify the id of the message you would like to edit. `{getprefix2(ctx)}edit <messageid> <newmessage>`'), delete_after=5)
+    elif isinstance(error, commands.CommandInvokeError):
+        await ctx.send(embed=addEmbed2(ctx, "red", 'Please enter a valid message ID.', None), delete_after=5)
     else:
-        await ctx.send(f"Unknown error: {error}", delete_after=5)
+        await ctx.send(embed=addEmbed2(ctx, "red", f"Unknown error: {error}", None), delete_after=5)
 
 @setchannel.error
 async def clear_error(ctx, error):
     if isinstance(error, commands.MissingRequiredArgument):
         await ctx.message.delete()
-        await ctx.send(f'Please specify the channel you would like to set. `{getprefix2(ctx)}setchannel <channel> <id>`', delete_after=5)
+        await ctx.send(embed=addEmbed2(ctx, "red", f'Please specify the channel you would like to set. `{getprefix2(ctx)}setchannel <channel> <id>`', None), delete_after=5)
     else:
-        await ctx.send(f"Unknown error: {error}", delete_after=5)
+        await ctx.send(embed=addEmbed2(ctx, "red", f"Unknown error: {error}", None), delete_after=5)
 
 @purge.error
 async def clear_error(ctx, error):
     if isinstance(error, discord.ext.commands.errors.BadArgument):
         await ctx.message.delete()
-        await ctx.send(f'Please make sure to enter a number. `{getprefix2(ctx)}purge <amount>`', delete_after=5)
+        await ctx.send(embed=addEmbed2(ctx, "red", f'Please make sure to enter a number. `{getprefix2(ctx)}purge <amount>`', None), delete_after=5)
     else:
-        await ctx.send(f"Unknown error: {error}", delete_after=5)
+        await ctx.send(embed=addEmbed2(ctx, "red", f"Unknown error: {error}", None), delete_after=5)
 
 @restrict.error
 async def clear_error(ctx, error):
     if isinstance(error, commands.MissingRequiredArgument):
             await ctx.message.delete()
-            await ctx.send(f'Please specify the restrict type you would like to apply. `{getprefix2(ctx)}restrict <type>`', delete_after=5)
+            await ctx.send(embed=addEmbed2(ctx, "red", f'Please specify the restrict type you would like to apply. `{getprefix2(ctx)}restrict <type>`', None), delete_after=5)
     else:
-        await ctx.send(f"Unknown error: {error}", delete_after=5)
+        await ctx.send(embed=addEmbed2(ctx, "red", f"Unknown error: {error}", None), delete_after=5)
 
 @setrestrict.error
 async def clear_error(ctx, error):
     if isinstance(error, commands.MissingRequiredArgument):
             await ctx.message.delete()
-            await ctx.send(f'Please make sure to give all arguments correctly. `{getprefix2(ctx)}setrestrict <type> <role1> [role2] [role3]`', delete_after=5)
+            await ctx.send(embed=addEmbed2(ctx, "red", f'Please make sure to give all arguments correctly. `{getprefix2(ctx)}setrestrict <type> <role1> [role2] [role3]`', None), delete_after=5)
     else:
-        await ctx.send(f"Unknown error: {error}", delete_after=5)
+        await ctx.send(embed=addEmbed2(ctx, "red", f"Unknown error: {error}", None), delete_after=5)
     
 @setprefix.error
 async def clear_error(ctx, error):
@@ -880,14 +899,13 @@ async def clear_error(ctx, error):
             await ctx.message.delete()
             await ctx.send(f'Please specify the prefix you would like to apply. `{getprefix2(ctx)}setprefix <prefix>`', delete_after=5)
     else:
-        await ctx.send(f"Unknown error: {error}", delete_after=5)
+        await ctx.send(embed=addEmbed2(ctx, "red", f"Unknown error: {error}", None), delete_after=5)
 
 # ------- SLASH COMMANDS -------
     
 @slash.slash(name="accept")
 async def accept(ctx, messageid):
     moderatorcheck1 = await moderatorcheck(ctx.guild, ctx.author)
-    print(moderatorcheck1)
     if moderatorcheck1 == 0:
         await ctx.defer(hidden=True)
         await ctx.send(embed=await nopermission(ctx), delete_after=5)
@@ -952,30 +970,23 @@ async def move(ctx, category):
 @slash.slash(name="tag", description="A command used to leave a note to a channel")
 async def tag(ctx, note, user:discord.User = None, channel:discord.TextChannel = None, role:discord.Role = None):
     moderatorcheck1 = await moderatorcheck(ctx.guild, ctx.author)
-    print(moderatorcheck1)
     if moderatorcheck1 == 0:
         await ctx.defer(hidden=True)
         await ctx.send(embed=await nopermission(ctx), delete_after=5)
         return
     await ctx.defer(hidden=False)
-    print(f"{note} {user} {channel} {role}")
     finalmentions = []
     mentions = [user, channel, role]
     for mention in mentions:
         if mention is not None:
             if finalmentions == 0:
                 finalmentions.insert(mention.mention)
-                print(', '.join(finalmentions))
             finalmentions.append(mention.mention)
-            print(', '.join(finalmentions))
     for mention in mentions:
         if mention is not None:
-            print(finalmentions)
-            print("message has a mention")
             embedDescription =(f"{ctx.author.mention} has tagged the channel as `{note.upper()}` \n\n**Mentions:** {', '.join(finalmentions)}")
             await ctx.send(embed=addEmbed(ctx,None,embedDescription ))
             return
-    print("message doesn't have mentions")
     embedDescription  = (f"{ctx.author.mention} has tagged the channel as `{note.upper()}`")
     await ctx.send(embed=addEmbed(ctx,None,embedDescription )) 
 
@@ -995,7 +1006,6 @@ async def setchannel(ctx, value: discord.TextChannel, channel):
     , "acceptedsuggestions", "rejectedsuggestions", "demandedsuggestions"]
     for commanda in commandsloop:
         if commanda == channel:
-            print(f"{commanda} {channelid}")
             column = (channel)
             values = (channelid)
             where = (f"guild_id = {guild_id}")
@@ -1029,7 +1039,6 @@ async def setmove(ctx, categoryi: discord.CategoryChannel, alias):
             embedDescription  =(f"Category `{categoryname}` already exists.")
             await ctx.send(embed=addEmbed(ctx,"red",embedDescription ))
             return 1
-    print(f"{categoryid} {categoryname}")
     column = '(guild_id, category_id)'
     values = (guild_id, categoryid)
     where = None
@@ -1054,7 +1063,6 @@ async def setrole(ctx, administrator:discord.Role, moderator: discord.Role):
     if administratorcheck1 == 0:
         await ctx.send(embed=await nopermission(ctx), delete_after=5)
         return
-    print(f"{administrator.id} {moderator.id}")
     result = selectquery(sql, 'guilds', 'moderator_id', f'guild_id = {ctx.guild.id}')
     if result is None:
         embedDescription  = (f"Server needs to be setup before executing this command.")
@@ -1322,30 +1330,10 @@ async def on_message(ctx):
                         if ctx.attachments:
                             for imageextensions in [".jpg", ".jpeg", ".png", ".gif"]:
                                 if imageextensions in ctx.attachments[0].filename:
-                                    await ctx.attachments[0].save(f"./{ctx.attachments[0].filename}")
-                                    file = discord.File(ctx.attachments[0].filename)
-                                    embedDescription  = (f"{ctx.content}")
-                                    embed = addEmbed2(ctx,None,embedDescription )
-                                    embed.set_image(url=f"attachment://{ctx.attachments[0].filename}")
-                                    await sendwebhook(ctx, ctx.author.display_name, ctx.channel, file, [embed])
-                                    msg = await ctx.channel.fetch_message(ctx.channel.last_message_id)
-                                    await msg.add_reaction("👍")
-                                    await msg.add_reaction("❤️")
-                                    print(f"An image inclusive announcement was made in #{ctx.channel.name} by {ctx.author}.")
-                                    await ctx.delete()
-                                    os.remove(f"./{ctx.attachments[0].filename}")
+                                    await attachmentAutoEmbed(ctx, 1, "announcement", "👍", "❤️", 1)
                                     return
-                            await ctx.attachments[0].save(f"./{ctx.attachments[0].filename}")
-                            file = discord.File(ctx.attachments[0].filename)
-                            embedDescription  = (f"{ctx.content}")
-                            embed = addEmbed2(ctx,None,embedDescription )
-                            await sendwebhook(ctx, ctx.author.display_name, ctx.channel, file, [embed])
-                            msg = await ctx.channel.fetch_message(ctx.channel.last_message_id)
-                            await msg.add_reaction("👍")
-                            await msg.add_reaction("❤️")
-                            print(f"An attachment inclusive announcement was made in #{ctx.channel.name} by {ctx.author}.")
-                            await ctx.delete()
-                            os.remove(f"./{ctx.attachments[0].filename}")
+                            await attachmentAutoEmbed(ctx, 0, "announcement", "👍", "❤️", 1)
+                            return
                         if not ctx.attachments:
                             await ctx.delete()
                             embedDescription  = (f"{ctx.content}")
@@ -1365,30 +1353,12 @@ async def on_message(ctx):
                     return
                 else:
                     if ctx.attachments:
-                        for imageextensions in [".jpg", ".jpeg", ".png", ".gif"]:
-                            if imageextensions in ctx.attachments[0].filename:
-                                await ctx.attachments[0].save(f"./{ctx.attachments[0].filename}")
-                                file = discord.File(ctx.attachments[0].filename)
-                                embedDescription  = (f"{ctx.content}")
-                                embed = addEmbed(ctx,None,embedDescription )
-                                embed.set_image(url=f"attachment://{ctx.attachments[0].filename}")
-                                msg = await ctx.channel.send(embed=embed, file=file)
-                                await msg.add_reaction("👍")
-                                await msg.add_reaction("❤️")  
-                                print(f"An image inclusive announcement was made in #{ctx.channel.name} by {ctx.author}.")
-                                await ctx.delete()
-                                os.remove(f"./{ctx.attachments[0].filename}")
-                                return
-                        await ctx.attachments[0].save(f"./{ctx.attachments[0].filename}")
-                        file = discord.File(ctx.attachments[0].filename)
-                        embedDescription  = (f"{ctx.content}")
-                        embed = addEmbed(ctx,None,embedDescription )
-                        msg = await ctx.channel.send(embed=embed, file=file)
-                        await msg.add_reaction("👍")
-                        await msg.add_reaction("❤️")
-                        print(f"An attachment inclusive announcement was made in #{ctx.channel.name} by {ctx.author}.")
-                        await ctx.delete()
-                        os.remove(f"./{ctx.attachments[0].filename}")
+                            for imageextensions in [".jpg", ".jpeg", ".png", ".gif"]:
+                                if imageextensions in ctx.attachments[0].filename:
+                                    await attachmentAutoEmbed(ctx, 1, "announcement", "👍", "❤️")
+                                    return
+                            await attachmentAutoEmbed(ctx, 0, "announcement", "👍", "❤️")
+                            return
                     if not ctx.attachments:
                         await ctx.delete()
                         embedDescription  = (f"{ctx.content}")
@@ -1403,17 +1373,12 @@ async def on_message(ctx):
                 return
             else:
                 if ctx.attachments:
-                    await ctx.attachments[0].save(f"./{ctx.attachments[0].filename}")
-                    file = discord.File(ctx.attachments[0].filename)
-                    embedDescription  = (f"{ctx.content}")
-                    embed = addEmbed(ctx,None,embedDescription )
-                    embed.set_image(url=f"attachment://{ctx.attachments[0].filename}")
-                    msg = await ctx.channel.send(embed=embed, file = file)
-                    await msg.add_reaction("✅")
-                    await msg.add_reaction("❌")
-                    print(f"An image inclusive suggestion was made in #{ctx.channel.name} by {ctx.author}.")
-                    await ctx.delete()
-                    os.remove(f"./{ctx.attachments[0].filename}")
+                    for imageextensions in [".jpg", ".jpeg", ".png", ".gif"]:
+                        if imageextensions in ctx.attachments[0].filename:
+                            await attachmentAutoEmbed(ctx, 1, "suggestion", "✅", "❌")
+                            return
+                    await attachmentAutoEmbed(ctx, 0, "suggestion", "✅", "❌")
+                    return
                 if not ctx.attachments:
                     await ctx.delete()
                     embedDescription  = (f"{ctx.content}")
