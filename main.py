@@ -297,6 +297,7 @@ async def statuscheck():
     await asyncio.sleep(600)
     
 async def attachmentAutoEmbed(ctx, image:bool, type, emoji, emoji1, webhook:bool = None):
+    await ctx.delete()
     await ctx.attachments[0].save(f"./{ctx.attachments[0].filename}")
     file = discord.File(ctx.attachments[0].filename)
     embedDescription  = (f"{ctx.content}")
@@ -317,7 +318,6 @@ async def attachmentAutoEmbed(ctx, image:bool, type, emoji, emoji1, webhook:bool
     await msg.add_reaction(emoji)
     await msg.add_reaction(emoji1)
     print(f"An {var} inclusive {type} was made in #{ctx.channel.name} by {ctx.author}.")
-    await ctx.delete()
     os.remove(f"./{ctx.attachments[0].filename}")
     
 def addEmbed2(ctx , color, new, image = None):
