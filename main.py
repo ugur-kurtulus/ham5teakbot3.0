@@ -1,17 +1,13 @@
 import os
 import aiohttp
-from discord import channel, voice_client, Webhook, RequestsWebhookAdapter, Intents
-from discord.ext.commands.errors import UserNotFound
 from discord.ext.commands import CommandNotFound
 from discord.errors import HTTPException
 from discord_components.select import Option
-from dns.resolver import query
 from dotenv import load_dotenv
-from discord.utils import get  
 import discord
 from discord.ext import commands 
-from discord_slash import SlashCommand, SlashContext
-from discord_components import DiscordComponents, Button, ButtonStyle, InteractionType, Select, button, component
+from discord_slash import SlashCommand
+from discord_components import DiscordComponents, Button, ButtonStyle, InteractionType, Select
 from mcstatus import MinecraftServer
 import asyncio
 import emoji as e
@@ -227,14 +223,13 @@ async def getwebhook(ctx, webhookname):
     for w in await ctx.guild.webhooks():
         if webhookname == w.name and w.channel == ctx.channel:
             return w
-
-async def removeperms(ctx):
-    for role in ctx.guild.roles:
-        await ctx.channel.set_permissions(role, overwrite=None)
         
 def nopermission(ctx):
     embedDescription  = (f"You don't have permission to do this.")
     return addEmbed(ctx,None,embedDescription )
+
+async def unknownerror(ctx, error):
+    return await ctx.send(embed=addEmbed2(ctx, "red", f"Unknown error: `{error}`", None), delete_after=5)
 
 async def stripmessage(string, targetstring):
     if targetstring in string:
@@ -246,6 +241,14 @@ async def stripmessage(string, targetstring):
 async def moderatorcheck(guild, member):
     if not guild:
         return 1
+    try:
+        if guild.id == 380308776114454528:
+            discordstaff = guild.get_role(name="Discord Staff")
+            highstaff = guild.get_role(name="High Staff")
+            if discordstaff in member.roles or highstaff in member.roles:
+                return 1
+    except:
+        pass
     moderatorrole = selectquery(sql, 'guilds', 'moderator_id', f'guild_id = {guild.id}')
     roleobject = guild.get_role(moderatorrole)
     administratorrole = selectquery(sql, 'guilds', 'administrator_id', f'guild_id = {guild.id}')
@@ -814,28 +817,31 @@ async def clear_error(ctx, error):
     if isinstance(error, discord.ext.commands.errors.MissingRequiredArgument):
         await ctx.message.delete()
         await ctx.send(embed=addEmbed2(ctx, "red", f'Please enter the command correctly. `{getprefix2(ctx)}move <category>`'), delete_after=5)
+    elif isinstance(error, discord.ext.commands.errors.ChannelNotFound):
+        await ctx.message.delete()
+        await ctx.send(embed=addEmbed2(ctx, "red", f'Please enter a valid category. `{getprefix2(ctx)}move <category>`'), delete_after=5)
     else:
-        await ctx.send(embed=addEmbed2(ctx, "red", f"Unknown error: {error}", None), delete_after=5)
+        await unknownerror(ctx, error)
 
 @betaannouncements.error
 async def clear_error(ctx, error):
-    await ctx.send(embed=addEmbed2(ctx, "red", f"Unknown error: {error}", None), delete_after=5)
+    await unknownerror(ctx, error)
     
 @movelist.error
 async def clear_error(ctx, error):
-    await ctx.send(embed=addEmbed2(ctx, "red", f"Unknown error: {error}", None), delete_after=5)
+    await unknownerror(ctx, error)
     
 @restrictlist.error
 async def clear_error(ctx, error):
-    await ctx.send(embed=addEmbed2(ctx, "red", f"Unknown error: {error}", None), delete_after=5)
+    await unknownerror(ctx, error)
     
 @setup.error
 async def clear_error(ctx, error):
-    await ctx.send(embed=addEmbed2(ctx, "red", f"Unknown error: {error}", None), delete_after=5)
+    await unknownerror(ctx, error)
     
 @removerestrict.error
 async def clear_error(ctx, error):
-    await ctx.send(embed=addEmbed2(ctx, "red", f"Unknown error: {error}", None), delete_after=5)
+    await unknownerror(ctx, error)
 
 @setmove.error
 async def clear_error(ctx, error):
@@ -843,7 +849,7 @@ async def clear_error(ctx, error):
         await ctx.message.delete()
         await ctx.send(embed=addEmbed2(ctx, "red", f'Please enter a valid category id. `{getprefix2(ctx)}setmove <categoryid> <alias>`'), delete_after=5)
     else:
-        await ctx.send(embed=addEmbed2(ctx, "red", f"Unknown error: {error}", None), delete_after=5)
+        await unknownerror(ctx, error)
         
 @removemove.error
 async def clear_error(ctx, error):
@@ -851,7 +857,7 @@ async def clear_error(ctx, error):
         await ctx.message.delete()
         await ctx.send(embed=addEmbed2(ctx, "red", f'Please enter a valid category name. `{getprefix2(ctx)}removemove <categoryname>`'), delete_after=5)
     else:
-        await ctx.send(embed=addEmbed2(ctx, "red", f"Unknown error: {error}", None), delete_after=5)
+        await unknownerror(ctx, error)
 
 @edit.error
 async def clear_error(ctx, error):
@@ -861,7 +867,7 @@ async def clear_error(ctx, error):
     elif isinstance(error, commands.CommandInvokeError):
         await ctx.send(embed=addEmbed2(ctx, "red", 'Please enter a valid message ID.', None), delete_after=5)
     else:
-        await ctx.send(embed=addEmbed2(ctx, "red", f"Unknown error: {error}", None), delete_after=5)
+        await unknownerror(ctx, error)
 
 @setchannel.error
 async def clear_error(ctx, error):
@@ -869,7 +875,7 @@ async def clear_error(ctx, error):
         await ctx.message.delete()
         await ctx.send(embed=addEmbed2(ctx, "red", f'Please specify the channel you would like to set. `{getprefix2(ctx)}setchannel <channel> <id>`', None), delete_after=5)
     else:
-        await ctx.send(embed=addEmbed2(ctx, "red", f"Unknown error: {error}", None), delete_after=5)
+        await unknownerror(ctx, error)
 
 @purge.error
 async def clear_error(ctx, error):
@@ -877,7 +883,7 @@ async def clear_error(ctx, error):
         await ctx.message.delete()
         await ctx.send(embed=addEmbed2(ctx, "red", f'Please make sure to enter a number. `{getprefix2(ctx)}purge <amount>`', None), delete_after=5)
     else:
-        await ctx.send(embed=addEmbed2(ctx, "red", f"Unknown error: {error}", None), delete_after=5)
+        await unknownerror(ctx, error)
 
 @restrict.error
 async def clear_error(ctx, error):
@@ -885,7 +891,7 @@ async def clear_error(ctx, error):
             await ctx.message.delete()
             await ctx.send(embed=addEmbed2(ctx, "red", f'Please specify the restrict type you would like to apply. `{getprefix2(ctx)}restrict <type>`', None), delete_after=5)
     else:
-        await ctx.send(embed=addEmbed2(ctx, "red", f"Unknown error: {error}", None), delete_after=5)
+        await unknownerror(ctx, error)
 
 @setrestrict.error
 async def clear_error(ctx, error):
@@ -893,7 +899,7 @@ async def clear_error(ctx, error):
             await ctx.message.delete()
             await ctx.send(embed=addEmbed2(ctx, "red", f'Please make sure to give all arguments correctly. `{getprefix2(ctx)}setrestrict <type> <role1> [role2] [role3]`', None), delete_after=5)
     else:
-        await ctx.send(embed=addEmbed2(ctx, "red", f"Unknown error: {error}", None), delete_after=5)
+        await unknownerror(ctx, error)
     
 @setprefix.error
 async def clear_error(ctx, error):
@@ -901,7 +907,7 @@ async def clear_error(ctx, error):
             await ctx.message.delete()
             await ctx.send(f'Please specify the prefix you would like to apply. `{getprefix2(ctx)}setprefix <prefix>`', delete_after=5)
     else:
-        await ctx.send(embed=addEmbed2(ctx, "red", f"Unknown error: {error}", None), delete_after=5)
+        await unknownerror(ctx, error)
 
 # ------- SLASH COMMANDS -------
     
@@ -959,12 +965,12 @@ async def move(ctx, category):
         await ctx.send(embed=await nopermission(ctx), delete_after=5)
         return
     alias = category
-    aliaslist = selectquery(sql, "categories", "category_name", f"guild_id = {ctx.guild.id}")
+    aliaslist = selectqueryall(sql, "categories", "category_name", f"guild_id = {ctx.guild.id}")
     for stralias in aliaslist:
         if alias == stralias[0]:
             ctxchannel = ctx.channel
             result = selectquery(sql, "categories", "category_id", f"category_name = '{alias}' AND guild_id = {ctx.guild.id}")
-            cat = client.get_channel(result[0])
+            cat = client.get_channel(result)
             await ctxchannel.edit(category=cat)
             embedDescription  = (f"{ctxchannel.mention} has been moved to category {alias}")
             await ctx.send(embed=addEmbed(ctx,None,embedDescription ))
@@ -1126,6 +1132,8 @@ async def on_slash_command_error(ctx, error):
         await ctx.defer(hidden=True)
         embedDescription  = (f"Please make sure you have entered all values correctly.\n{error}")
         await ctx.send(embed=addEmbed(ctx,None,embedDescription ), hidden=True)
+    else:
+        await ctx.send(embed=addEmbed2(ctx, "red", f"Unknown error: {error}", None), hidden=True)
 
 # ------- EVENT HANDLERS -------
 
@@ -1205,9 +1213,9 @@ the following choices by clicking the button describing your issue.
             Button(style=ButtonStyle.green, label=f"{res.user} chose {res.component.id}", disabled=True)
             ]) 
         serversandcats = {
-        "Survival": 848284762514391061, "Skyblocks": 841403196693413888, "Semi-Vanilla": 841403196693413888, 
-        "Factions": 841403196693413888, "Prison": 841403196693413888, "Creative": 841403196693413888, 
-        "Caveblocks": 841403196693413888, "Minigames": 841403196693413888
+        "Survival": 632946682207928321, "Skyblocks": 632946712805244948, "Semi-Vanilla": 667988805059346435, 
+        "Factions": 659020993553104896, "Prison": 632946839792123948, "Creative": 632946812092678154, 
+        "Caveblocks": 786399045081890858, "Minigames": 664805277991960586
         }
         options1 = []
         for server in serversandcats.keys():
@@ -1242,34 +1250,7 @@ the following choices by clicking the button describing your issue.
 async def on_reaction_add(reaction, user):
     messageid = reaction.message.id
     rcount = 8
-    reacted = True
-    reacted = False
-    if "polls" in reaction.message.channel.name:
-        if user.bot:
-            return
-        while reacted == False:
-            messageobj = await reaction.message.channel.fetch_message(messageid)
-            messagereactions = messageobj.reactions
-            reactioncounts = []
-            await asyncio.sleep(10)
-            for reaction in messagereactions:
-                reactioncounts.append(int(reaction.count))
-            for reaction in messagereactions:
-                if reaction.count == int(max(reactioncounts)):
-                    finalcount = int(reaction.count - 1)
-                    channel = reaction.message.channel
-                    dsuggestionschannel = client.get_channel(channel.id)
-                    msg = await channel.fetch_message(messageid)
-                    channelcheck = await client.get_channel(channel.id).history(limit=20).flatten()
-                    for sc in channelcheck:
-                        if f'https://discordapp.com/channels/{reaction.message.guild.id}/{reaction.message.channel.id}/{messageid}' in sc.content:
-                            return
-                    try:
-                        await messageobj.edit(content=f'**{reaction.emoji} won with {finalcount} votes:**\n https://discordapp.com/channels/{reaction.message.guild.id}/{reaction.message.channel.id}/{messageid}',embed=msg.embeds[0])
-                    except AttributeError as e:
-                        print(f"{reaction.message.guild.name} doesn't have a demanded suggestions channel set.")
-                    return
-    if "suggestions" in reaction.message.channel.name:
+    if "suggestions" in reaction.message.channel.name and "staff-suggestions" not in reaction.message.channel.name:
         if reaction.emoji == "✅":
             if reaction.count == rcount:
                 dsuggestions = selectquery(sql, 'guilds', 'demandedsuggestions', f'guild_id = {reaction.message.guild.id}')
