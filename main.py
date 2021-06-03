@@ -426,6 +426,11 @@ async def setprefix(ctx, prefix = None):
     await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDescription ), delete_after=5)
 
 @client.command()
+async def ping(ctx):
+    await ctx.message.delete()
+    await ctx.send(embed=addEmbed(ctx, "dark_teal", f"Bot Latency: `{client.latency}ms`"), delete_after=5)
+
+@client.command()
 @commands.has_permissions(manage_messages=True)
 async def purge(ctx, amount:int):
     moderatorcheck1 = await moderatorcheck(ctx.guild, ctx.author)
@@ -822,6 +827,10 @@ async def clear_error(ctx, error):
         await ctx.send(embed=addEmbed2(ctx, "red", f'Please enter a valid category. `{getprefix2(ctx)}move <category>`'), delete_after=5)
     else:
         await unknownerror(ctx, error)
+
+@ping.error
+async def clear_error(ctx, error):
+    await unknownerror(ctx, error)
 
 @betaannouncements.error
 async def clear_error(ctx, error):
