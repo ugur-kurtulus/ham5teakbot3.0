@@ -304,9 +304,8 @@ async def statuscheck():
             embed.set_footer(text="Ham5teak Bot 3.0 | play.ham5teak.xyz | Made by Beastman#1937 and Jaymz#7815")
             embed.set_author(name="Ham5teak Network Status", icon_url="https://cdn.discordapp.com/icons/380308776114454528/a_be4514bb0a52a206d1bddbd5fbd2250f.png?size=4096")
             await channel.send(embed=embed)
-            print(f"{guild.name} status successfully sent!")
         except:
-            print(f"{guildname} doesn't have a status channel set.")
+            pass
     await asyncio.sleep(600)
     
 async def attachmentAutoEmbed(ctx, image:bool, type, emoji, emoji1, webhook:bool = None):
@@ -868,6 +867,8 @@ async def betaannouncements(ctx, bool:bool):
 
 @client.event
 async def on_command_error(ctx, error):
+    if isinstance(error, commands.CommandOnCooldown):
+        return
     print(error)
     if isinstance(error, CommandNotFound):
         return
@@ -1318,9 +1319,8 @@ the following choices by clicking the button describing your issue.
             options1.append(Option(label=server, value=server))
         await res.respond(
             type=InteractionType.ChannelMessageWithSource,
-            embed= await embed1(f"""{res.component.id} chosen.
-        \nIf your issue is occurring in a specific server you can optionally select it."""),
-            components=[Select(id=f"{res.component.id}-{res.user.name}",options=options1
+            embed= await embed1(f"""{res.component.id} chosen."""),
+            components=[Select(id=f"{res.component.id}-{res.user.name}",options=options1, placeholder="Choose A Server"
         )])
         if "ticket-" in channel.name:
             await channel.edit(name=f"{res.component.id}-{res.user.name}")
