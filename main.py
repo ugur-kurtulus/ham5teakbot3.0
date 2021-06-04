@@ -300,7 +300,7 @@ async def statuscheck():
                 ham5teak = "Online ✅"
             else:
                 ham5teak = "Offline ❌"
-            embed = discord.Embed(description=f"**Ham5teak Status:** {ham5teak} \n**Players:** {status.players.online}\n**IP:** play.ham5teak.xyz\n**Versions:** 1.13.x, 1.14.x, 1.15.x, 1.16.x", color=discord.Color.teal())
+            embed = discord.Embed(description=f"**Ham5teak Status:** {ham5teak} \n**Players:** {status.players.online - 20}\n**IP:** play.ham5teak.xyz\n**Versions:** 1.13.x, 1.14.x, 1.15.x, 1.16.x", color=discord.Color.teal())
             embed.set_footer(text="Ham5teak Bot 3.0 | play.ham5teak.xyz | Made by Beastman#1937 and Jaymz#7815")
             embed.set_author(name="Ham5teak Network Status", icon_url="https://cdn.discordapp.com/icons/380308776114454528/a_be4514bb0a52a206d1bddbd5fbd2250f.png?size=4096")
             await channel.send(embed=embed)
@@ -1014,8 +1014,7 @@ async def ham5teak(ctx):
         ham5teak = "Online ✅"
     else:
         ham5teak = "Offline ❌"
-    print("The server has {0} players and replied in {1} ms".format(status.players.online, status.latency))
-    embedDescription =(f"**Ham5teak Status:** {ham5teak} \n **Players:** {status.players.online}")
+    embedDescription =(f"**Ham5teak Status:** {ham5teak} \n **Players:** {status.players.online - 20}")
     await ctx.send(embed=addEmbed(ctx,None,embedDescription ))  
 
 @slash.slash(name="help")
