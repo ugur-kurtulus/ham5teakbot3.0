@@ -1,9 +1,12 @@
 import os
 import aiohttp
-from discord.ext.commands import CommandNotFound
+from discord.ext.commands import CommandNotFound, cooldown, BucketType
 from discord.errors import HTTPException
 from discord_components.select import Option
 from dotenv import load_dotenv
+from luhn import *
+import random
+import string
 import discord
 from discord.ext import commands 
 from discord_slash import SlashCommand
@@ -180,12 +183,19 @@ restrict_query = ('''
             restrictrole2_id BIGINT,
             restrictrole3_id BIGINT
             )''')
+passwords_query = ('''
+        CREATE TABLE hambot3_.passwords (
+            guild_id BIGINT DEFAULT NULL,
+            password VARCHAR(255),
+            used INT
+            )''')
 
 
 sql = sqlconnect()      
 createtable(sql,'guilds', quilds_query)
 createtable(sql,'categories', categories_query)
 createtable(sql,'restrict', restrict_query)
+createtable(sql,'passwords', passwords_query)
 
 colors = {"green": 0x3aa45c, "red": 0xed4344, "blue": 0x5864f3, "aqua": 0x00FFFF,
  "dark_teal": 0x10816a, "teal": 0x1abc9c}
@@ -229,7 +239,7 @@ def nopermission(ctx):
     return addEmbed(ctx,None,embedDescription )
 
 async def unknownerror(ctx, error):
-    return await ctx.send(embed=addEmbed2(ctx, "red", f"Unknown error: `{error}`", None), delete_after=5)
+    return await ctx.send(embed=addEmbed2(ctx, "red", f"`{error}`", None), delete_after=5)
 
 async def stripmessage(string, targetstring):
     if targetstring in string:
@@ -444,8 +454,36 @@ async def purge(ctx, amount:int):
 
 @client.command()
 @discord.ext.commands.has_guild_permissions(manage_guild=True)
-async def setup(ctx, password, admin_role_id:discord.Role,mod_role_id:discord.Role):
+@commands.cooldown(1, 15, commands.BucketType.user)
+async def setup(ctx, password, admin_role_id:discord.Role, mod_role_id:discord.Role):
     await ctx.message.delete()
+    async def invalidpass():
+        embedDescription  = (f"Invalid password.")
+        await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDescription), delete_after=5)
+    cc = password[:16]
+    password = password[16:].strip()
+    if verify(cc) == False:
+        print("cc fail")
+        await invalidpass()
+        return
+    elif verify(cc) == True:
+        check = selectqueryall(sql, 'hambot3_.passwords', 'password', None)
+        found = False
+        for pass1 in check:
+            if pass1[0] == password:
+                found = True
+        if found != True:
+            print("pass doesn't exist")
+            await invalidpass()
+            return
+        check2 = selectquery(sql, 'hambot3_.passwords', 'used', f"password = '{password}'")
+        if check2 == 1:
+            embedDescription  = (f"This password was already used.")
+            await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDescription ))
+            return
+        elif check2 == 0:
+            insertquery(sql, 'hambot3_.passwords', 'used', '(1)', f'password = "{str(password)}"')
+            insertquery(sql, 'hambot3_.passwords', 'guild_id', f'{ctx.guild.id}', f'password = "{str(password)}"')
     guild_id = ctx.guild.id
     if guild_id in premium_guilds:
         embedDescription  = (f"You are already Logged in as Premium")
@@ -456,28 +494,8 @@ async def setup(ctx, password, admin_role_id:discord.Role,mod_role_id:discord.Ro
         column = '(guild_id , guild_name , premium , administrator_id , moderator_id)'
         values = (guild_id , guild_name , True , admin_role_id.id , mod_role_id.id)
         where = None
-        result = (insertquery(sql, 'guilds' , column , values, where))
-        query = 'SELECT guild_id FROM guilds NATURAL JOIN categories'
-        sql.connect()
-        querycursor = sql.cursor()
-        querycursor.execute(query)  
-        result = querycursor.fetchall()
-        sql.commit()
-        querycursor.close()        
-        if (result == 0):
-            embedDescription  = (f"Registered successfully")
-            await ctx.send(embed=addEmbed(ctx,"green",embedDescription ), delete_after=5)
-        else:
-            embedDescription  = (f"Register Failed")
-            await ctx.send(embed=addEmbed(ctx,"red",embedDescription ), delete_after=5)
-        query = 'SELECT guild_id FROM guilds NATURAL JOIN restrict'
-        sql.connect()
-        querycursor = sql.cursor()
-        querycursor.execute(query)  
-        result = querycursor.fetchall()
-        sql.commit()
-        querycursor.close()        
-        if (result == 0):
+        result = (insertquery(sql, 'guilds' , column , values, where))       
+        if result == 0:
             embedDescription  = (f"Registered successfully")
             await ctx.send(embed=addEmbed(ctx,"green",embedDescription ), delete_after=5)
         else:
@@ -486,6 +504,31 @@ async def setup(ctx, password, admin_role_id:discord.Role,mod_role_id:discord.Ro
 
 @client.command()
 @discord.ext.commands.has_guild_permissions(manage_guild=True)
+@commands.cooldown(1, 10, commands.BucketType.user)
+async def generate(ctx):
+    if ctx.channel != client.get_channel(850260644322344960):
+        return
+    password = ''
+    stringpunc = string.punctuation.replace("'", "").replace('"', '').replace('`', '')
+    await ctx.message.delete()
+    for x in range (0,4):
+        Password = random.choice(string.digits)
+    for y in range(8):
+        password = password + random.choice(string.digits)
+    check = selectqueryall(sql, 'hambot3_.passwords', 'password', None)
+    for pass1 in check:
+        if pass1 == password:
+            return await generate(ctx)
+    result = insertquery(sql, 'hambot3_.passwords', '(password, used)', (password, 0), None)
+    if result != 1:
+        embedDescription  = (f"**Generated Password:** `{password}`")
+    else:
+        embedDescription  = (f"Password generation failed.")
+    await ctx.send(embed=addEmbed(None, "aqua", embedDescription))
+
+@client.command()
+@discord.ext.commands.has_guild_permissions(manage_guild=True)
+@commands.cooldown(1, 5, commands.BucketType.user)
 async def setrestrict(ctx, alias ,role1:discord.Role, role2:discord.Role = None, role3:discord.Role = None):
     await ctx.message.delete()
     guild_id = ctx.guild.id
@@ -560,7 +603,7 @@ async def edit(ctx, id, *, embedDescription):
         return
     msg = await ctx.channel.fetch_message(id)
     embedobj = msg.embeds[0]
-    if ctx.guild.id in betaannouncementguilds:
+    if msg.author.id != client.user.id:
         await ctx.message.delete()
         webhook1 = await getwebhook(ctx, ctx.author.display_name)
         async with aiohttp.ClientSession() as session:
@@ -578,6 +621,7 @@ async def prefix(ctx):
     await ctx.send(embed=addEmbed(ctx, None, f"Bot Prefix: `{prefix}`"), delete_after=5)
 
 @client.command()
+@commands.cooldown(1, 5, commands.BucketType.user)
 async def setchannel(ctx, command, channel: discord.TextChannel):
     administratorcheck1 = await administratorcheck(ctx.guild, ctx.author)
     if administratorcheck1 == 0:
@@ -602,6 +646,7 @@ async def setchannel(ctx, command, channel: discord.TextChannel):
                 await ctx.channel.send(embed=addEmbed(ctx,"red",embedDescription ), delete_after=5)     
 
 @client.command()
+@commands.cooldown(1, 5, commands.BucketType.user)
 @commands.has_permissions(manage_messages=True)
 async def move(ctx, alias):
     moderatorcheck1 = await moderatorcheck(ctx.guild, ctx.author)
@@ -620,6 +665,7 @@ async def move(ctx, alias):
             await ctx.send(embed=addEmbed(ctx,None,embedDescription ), delete_after=5)
 
 @client.command(aliases=['rl'])
+@commands.cooldown(1, 5, commands.BucketType.user)
 @commands.has_permissions(manage_messages=True)
 async def restrictlist(ctx):
     moderatorcheck1 = await moderatorcheck(ctx.guild, ctx.author)
@@ -637,6 +683,7 @@ async def restrictlist(ctx):
         await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDescription), delete_after=10)
 
 @client.command()
+@commands.cooldown(1, 5, commands.BucketType.user)
 @commands.has_permissions(manage_messages=True)
 async def restrict(ctx, alias):
     moderatorcheck1 = await moderatorcheck(ctx.guild, ctx.author)
@@ -689,6 +736,7 @@ async def restrict(ctx, alias):
             await ctx.send(embed=addEmbed(ctx,None,embedDescription ), delete_after=5)
 
 @client.command()
+@commands.cooldown(1, 5, commands.BucketType.user)
 @commands.has_permissions(manage_guild=True)
 async def setmove(ctx, categoryi: discord.CategoryChannel, alias):
     administratorcheck1 = await administratorcheck(ctx.guild, ctx.author)
@@ -730,6 +778,7 @@ async def setmove(ctx, categoryi: discord.CategoryChannel, alias):
         await ctx.send(embed=addEmbed(ctx,"red",embedDescription ), delete_after=5)
 
 @client.command()
+@commands.cooldown(1, 5, commands.BucketType.user)
 @commands.has_permissions(manage_guild=True)
 async def removerestrict(ctx, alias):
     administratorcheck1 = await administratorcheck(ctx.guild, ctx.author)
@@ -750,6 +799,7 @@ async def removerestrict(ctx, alias):
     return 1
 
 @client.command()
+@commands.cooldown(1, 5, commands.BucketType.user)
 @commands.has_permissions(manage_guild=True)
 async def removemove(ctx, alias):
     administratorcheck1 = await administratorcheck(ctx.guild, ctx.author)
@@ -770,12 +820,14 @@ async def removemove(ctx, alias):
     return 1
     
 @client.command(aliases=['scc'])
+@commands.cooldown(1, 5, commands.BucketType.user)
 @commands.has_permissions(manage_messages=True)
 async def simchannelcreate(ctx):
     await ctx.message.delete()
     await on_guild_channel_create(ctx.channel)
 
 @client.command(aliases=['ml'])
+@commands.cooldown(1, 5, commands.BucketType.user)
 @commands.has_permissions(manage_guild=True)
 async def movelist(ctx):
     moderatorcheck1 = await moderatorcheck(ctx.guild, ctx.author)
@@ -793,6 +845,7 @@ async def movelist(ctx):
         await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDescription ), delete_after=10)   
         
 @client.command(aliases=['ba'])
+@commands.cooldown(1, 5, commands.BucketType.user)
 @commands.has_permissions(manage_guild=True)
 async def betaannouncements(ctx, bool:bool):
     administratorcheck1 = await administratorcheck(ctx.guild, ctx.author)
@@ -849,6 +902,10 @@ async def clear_error(ctx, error):
     await unknownerror(ctx, error)
     
 @removerestrict.error
+async def clear_error(ctx, error):
+    await unknownerror(ctx, error)
+    
+@generate.error
 async def clear_error(ctx, error):
     await unknownerror(ctx, error)
 
@@ -1098,10 +1155,35 @@ async def setrole(ctx, administrator:discord.Role, moderator: discord.Role):
 @commands.has_permissions(manage_guild=True)
 async def setup(ctx, password, administrator:discord.Role, moderator:discord.Role):
     await ctx.defer(hidden=True)
-    print(password)
+    async def invalidpass():
+        embedDescription  = (f"Invalid password.")
+        await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDescription))
+    cc = password[:16]
+    password = password[16:].strip()
+    if verify(cc) == False:
+        await invalidpass()
+        return
+    elif verify(cc) == True:
+        check = selectqueryall(sql, 'hambot3_.passwords', 'password', None)
+        for pass1 in check:
+            if pass1[0] != password:
+                found = False
+            if pass1[0] == password:
+                found = True
+        if found != True:
+            await invalidpass()
+            return
+        check2 = selectquery(sql, 'hambot3_.passwords', 'used', f"password = '{password}'")
+        if check2 == 1:
+            embedDescription  = (f"This password was already used.")
+            await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDescription ))
+            return
+        elif check2 == 0:
+            insertquery(sql, 'hambot3_.passwords', 'used', '(1)', f'password = "{str(password)}"')
+            insertquery(sql, 'hambot3_.passwords', 'guild_id', f'{ctx.guild.id}', f'password = "{str(password)}"')
     guild_id = ctx.guild.id
     if guild_id in premium_guilds:
-        embedDescription  = (f"You are already logged in as Premium")
+        embedDescription  = (f"You are already logged in as Premium.")
         await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDescription ))
         return
     else:
@@ -1109,9 +1191,9 @@ async def setup(ctx, password, administrator:discord.Role, moderator:discord.Rol
         column = '(guild_id , guild_name , premium , administrator_id , moderator_id)'
         values = (guild_id , guild_name , True , administrator.id , moderator.id)
         where = None
-        await insertquery(sql, 'guilds' , column , values, where)
+        insertquery(sql, 'guilds' , column , values, where)
         insertcheck = selectquery(sql, 'guilds', 'premium', f'guild_id = {ctx.guild.id}')    
-        if (insertcheck != 0):
+        if insertcheck != 0:
             embedDescription  = (f"Setup successfully completed!")
             await ctx.send(embed=addEmbed(ctx,"green",embedDescription ))
         else:
@@ -1552,4 +1634,4 @@ async def on_message(ctx):
                         await channel.send(f'```{messagestrip}```')
     return
 
-client.run(TOKEN)  # Changes
+client.run(TOKEN)  # Bot Run
