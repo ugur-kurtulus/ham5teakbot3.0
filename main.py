@@ -148,8 +148,8 @@ def insertquery(sql, table , column , values , where):
         print(f'Failed to execute insert query')
         return 1
 
-quilds_query = ('''
-        CREATE TABLE guilds
+quilds_query = (f'''
+        CREATE TABLE {database}.guilds
             (guild_id BIGINT NOT NULL PRIMARY KEY,
             guild_name VARCHAR(255) NOT NULL,
             premium BOOLEAN,
@@ -164,13 +164,12 @@ quilds_query = ('''
             demandedsuggestions BIGINT,
             acceptedsuggestions BIGINT,
             rejectedsuggestions BIGINT,
-            custommovecount INT DEFALT 0,
-            betaannouncements BOOLEAN)''')
-categories_query = ('''
-        CREATE TABLE categories 
+            custommovecount INT DEFAULT 0,
+            betaannouncements TINYINT)''')
+categories_query = (f'''
+        CREATE TABLE {database}.categories 
             (id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
             guild_id BIGINT NOT NULL,
-            FOREIGN KEY(guild_id) REFERENCES guilds(guild_id),
             category_id BIGINT,
             category_name VARCHAR(255),
             category_less VARCHAR(255)
@@ -235,7 +234,7 @@ async def getwebhook(ctx, webhookname):
         if webhookname == w.name and w.channel == ctx.channel:
             return w
         
-def nopermission(ctx):
+async def nopermission(ctx):
     embedDescription  = (f"You don't have permission to do this.")
     return addEmbed(ctx,None,embedDescription )
 
@@ -297,7 +296,7 @@ async def statuscheck():
             await channel.purge(limit=10)
             server = MinecraftServer.lookup("play.ham5teak.xyz:25565")
             status = server.status()
-            if status.latency >= 1:
+            if status.latency >= 0.0001:
                 ham5teak = "Online ✅"
             else:
                 ham5teak = "Offline ❌"
@@ -495,7 +494,8 @@ async def setup(ctx, password, admin_role_id:discord.Role, mod_role_id:discord.R
         column = '(guild_id , guild_name , premium , administrator_id , moderator_id)'
         values = (guild_id , guild_name , True , admin_role_id.id , mod_role_id.id)
         where = None
-        result = (insertquery(sql, 'guilds' , column , values, where))       
+        result = (insertquery(sql, 'guilds' , column , values, where))
+        premium_guilds.append(ctx.guild.id)
         if result == 0:
             embedDescription  = (f"Registered successfully")
             await ctx.send(embed=addEmbed(ctx,"green",embedDescription ), delete_after=5)
@@ -1012,7 +1012,7 @@ async def accept(ctx, messageid):
 async def ham5teak(ctx):
     server = MinecraftServer.lookup("play.ham5teak.xyz:25565")
     status = server.status()
-    if status.latency >= 1:
+    if status.latency >= 0.0001:
         ham5teak = "Online ✅"
     else:
         ham5teak = "Offline ❌"
@@ -1193,7 +1193,8 @@ async def setup(ctx, password, administrator:discord.Role, moderator:discord.Rol
         values = (guild_id , guild_name , True , administrator.id , moderator.id)
         where = None
         insertquery(sql, 'guilds' , column , values, where)
-        insertcheck = selectquery(sql, 'guilds', 'premium', f'guild_id = {ctx.guild.id}')    
+        insertcheck = selectquery(sql, 'guilds', 'premium', f'guild_id = {ctx.guild.id}')   
+        premium_guilds.append(ctx.guild.id) 
         if insertcheck != 0:
             embedDescription  = (f"Setup successfully completed!")
             await ctx.send(embed=addEmbed(ctx,"green",embedDescription ))
@@ -1469,7 +1470,7 @@ async def on_message(ctx):
             if ctx.content.startswith("-") or ctx.content.startswith("?") or ctx.content.startswith("!"):
                 await client.process_commands(ctx)
                 return
-            if ctx.webook_id:
+            if ctx.webhook_id:
                 return
             else:
                 if ctx.attachments:
