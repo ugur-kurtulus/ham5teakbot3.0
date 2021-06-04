@@ -5,6 +5,7 @@ from discord.errors import HTTPException
 from discord_components.select import Option
 from dotenv import load_dotenv
 from luhn import *
+from cardvalidator import luhn
 import random
 import string
 import discord
@@ -63,7 +64,7 @@ def createtable(sql,table_name , query):
 
 def deletequery(sql, table , where):
     sql.connect()
-    query = (f'DELETE FROM {table} WHERE {where}')
+    query = (f'DELETE FROM {database}.{table} WHERE {where}')
     print(query)
     try:
         with sql as sql:
@@ -84,7 +85,7 @@ def deletequery(sql, table , where):
 def selectquery(sql, table , column , where):
     sql.connect()
     wherenew = str(where)
-    query = (f'SELECT {column} FROM {table} WHERE {wherenew}')
+    query = (f'SELECT {column} FROM {database}.{table} WHERE {wherenew}')
     try:
         with sql as sql:
             sql.connect()
@@ -92,7 +93,7 @@ def selectquery(sql, table , column , where):
             querycursor.execute(query)  
             result = querycursor.fetchone()[0]
             sql.commit()
-            querycursor.close()
+            querycursor.close() 
             return result
     except mysql.connector.Error as e:
         print(e)
@@ -104,9 +105,9 @@ def selectquery(sql, table , column , where):
 def selectqueryall(sql, table , column, where):
     sql.connect()
     if where is not None:
-        query = (f'SELECT {column} FROM {table} WHERE {where}')
+        query = (f'SELECT {column} FROM {database}.{table} WHERE {where}')
     if where is None:
-        query = (f'SELECT {column} FROM {table}')
+        query = (f'SELECT {column} FROM {database}.{table}')
     print(query)
     try:
         with sql as sql:
@@ -129,15 +130,15 @@ def insertquery(sql, table , column , values , where):
     size = len(values)
     sql.connect()
     if where == None:
-        query = (f'INSERT INTO {table} {column} VALUES(%s'+(size-1)*(',%s')+')')
+        query = (f'INSERT INTO {database}.{table} {column} VALUES(%s'+(size-1)*(',%s')+')')
         print(query)
     else:
-        query = (f'UPDATE {table} SET {column} = {values}' + f' WHERE {where}')
+        query = (f'UPDATE {database}.{table} SET {column} = {values}' + f' WHERE {where}')
         print(query)
     try:
         with sql as sql:
             querycursor = sql.cursor()
-            querycursor.execute(query , values)  
+            querycursor.execute(query , values)
             sql.commit()
             querycursor.close()
             print(f'Insert query executed successfully!')
@@ -148,7 +149,7 @@ def insertquery(sql, table , column , values , where):
         return 1
 
 quilds_query = ('''
-        CREATE TABLE guilds 
+        CREATE TABLE guilds
             (guild_id BIGINT NOT NULL PRIMARY KEY,
             guild_name VARCHAR(255) NOT NULL,
             premium BOOLEAN,
@@ -174,8 +175,8 @@ categories_query = ('''
             category_name VARCHAR(255),
             category_less VARCHAR(255)
             )''') 
-restrict_query = ('''
-        CREATE TABLE hambot3_.restrict (
+restrict_query = (f'''
+        CREATE TABLE {database}.restrict (
             id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
             guild_id BIGINT DEFAULT NULL,
             restrictrole_name VARCHAR(255),
@@ -183,11 +184,11 @@ restrict_query = ('''
             restrictrole2_id BIGINT,
             restrictrole3_id BIGINT
             )''')
-passwords_query = ('''
-        CREATE TABLE hambot3_.passwords (
+passwords_query = (f'''
+        CREATE TABLE {database}.passwords (
             guild_id BIGINT DEFAULT NULL,
             password VARCHAR(255),
-            used INT
+            used TINYINT
             )''')
 
 
@@ -426,7 +427,7 @@ async def setprefix(ctx, prefix = None):
         await ctx.send(embed=addEmbed(ctx,"red",embedDescription ), delete_after=5)
         return
     if ctx.guild.id in premium_guilds:
-        insertquery(sql, "guilds", "prefix", f"'{prefix}'", f"guild_id={ctx.guild.id}")
+        insertquery(sql, "guilds", "prefix", f"'{prefix}'", f"guild_id = {ctx.guild.id}")
         prefixes[f"{ctx.guild.id}"] = prefix
     elif ctx.guild.id not in premium_guilds:
         prefixes[f"{ctx.guild.id}"] = prefix
@@ -467,7 +468,7 @@ async def setup(ctx, password, admin_role_id:discord.Role, mod_role_id:discord.R
         await invalidpass()
         return
     elif verify(cc) == True:
-        check = selectqueryall(sql, 'hambot3_.passwords', 'password', None)
+        check = selectqueryall(sql, f'passwords', 'password', None)
         found = False
         for pass1 in check:
             if pass1[0] == password:
@@ -476,14 +477,14 @@ async def setup(ctx, password, admin_role_id:discord.Role, mod_role_id:discord.R
             print("pass doesn't exist")
             await invalidpass()
             return
-        check2 = selectquery(sql, 'hambot3_.passwords', 'used', f"password = '{password}'")
+        check2 = selectquery(sql, f'passwords', 'used', f"password = '{password}'")
         if check2 == 1:
             embedDescription  = (f"This password was already used.")
             await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDescription ))
             return
         elif check2 == 0:
-            insertquery(sql, 'hambot3_.passwords', 'used', '(1)', f'password = "{str(password)}"')
-            insertquery(sql, 'hambot3_.passwords', 'guild_id', f'{ctx.guild.id}', f'password = "{str(password)}"')
+            insertquery(sql, f'passwords', 'used', '(1)', f'password = "{str(password)}"')
+            insertquery(sql, f'passwords', 'guild_id', f'{ctx.guild.id}', f'password = "{str(password)}"')
     guild_id = ctx.guild.id
     if guild_id in premium_guilds:
         embedDescription  = (f"You are already Logged in as Premium")
@@ -515,13 +516,14 @@ async def generate(ctx):
         Password = random.choice(string.digits)
     for y in range(8):
         password = password + random.choice(string.digits)
-    check = selectqueryall(sql, 'hambot3_.passwords', 'password', None)
+    check = selectqueryall(sql, f'passwords', 'password', None)
     for pass1 in check:
         if pass1 == password:
             return await generate(ctx)
-    result = insertquery(sql, 'hambot3_.passwords', '(password, used)', (password, 0), None)
+    result = insertquery(sql, f'passwords', '(password, used)', (password, 0), None)
     if result != 1:
-        embedDescription  = (f"**Generated Password:** `{password}`")
+        cc = luhn.generate(16)
+        embedDescription  = (f"**Generated Password:** `{cc}{password}`")
     else:
         embedDescription  = (f"Password generation failed.")
     await ctx.send(embed=addEmbed(None, "aqua", embedDescription))
@@ -540,7 +542,7 @@ async def setrestrict(ctx, alias ,role1:discord.Role, role2:discord.Role = None,
         embedDescription  = (f"You premium to use this command.")
         await ctx.send(embed=addEmbed(ctx,"blue",embedDescription ), delete_after=5)
         return
-    restricttypes = selectqueryall(sql, 'hambot3_.restrict', 'restrictrole_name', f'guild_id = {ctx.guild.id}')
+    restricttypes = selectqueryall(sql, f'restrict', 'restrictrole_name', f'guild_id = {ctx.guild.id}')
     for stralias in restricttypes:
         if alias == stralias[0]:
             embedDescription  =(f"Restrict type `{alias}` already exists.")
@@ -552,7 +554,7 @@ async def setrestrict(ctx, alias ,role1:discord.Role, role2:discord.Role = None,
                 column = '(guild_id  , restrictrole_name , restrictrole_id)'
                 values = (guild_id , alias , role1.id)
                 where = None
-                result = (insertquery(sql, 'hambot3_.restrict' , column , values, where))
+                result = (insertquery(sql, f'restrict' , column , values, where))
                 sql.connect()
                 querycursor = sql.cursor()
                 sql.commit()
@@ -567,7 +569,7 @@ async def setrestrict(ctx, alias ,role1:discord.Role, role2:discord.Role = None,
             column = '(guild_id  , restrictrole_name , restrictrole_id , restrictrole2_id)'
             values = (guild_id , alias , role1.id , role2.id)
             where = None
-            result = (insertquery(sql, 'hambot3_.restrict' , column , values, where))
+            result = (insertquery(sql, f'restrict' , column , values, where))
             sql.connect()
             querycursor = sql.cursor()
             sql.commit()
@@ -582,7 +584,7 @@ async def setrestrict(ctx, alias ,role1:discord.Role, role2:discord.Role = None,
         column = '(guild_id  , restrictrole_name , restrictrole_id , restrictrole2_id, restrictrole3_id)'
         values = (guild_id , alias , role1.id , role2.id, role3.id)
         where = None
-        result = (insertquery(sql, 'hambot3_.restrict' , column , values, where))
+        result = (insertquery(sql, f'restrict' , column , values, where))
         sql.connect()
         querycursor = sql.cursor()
         sql.commit()
@@ -673,7 +675,7 @@ async def restrictlist(ctx):
         await ctx.send(embed=await nopermission(ctx), delete_after=5)
         return
     await ctx.message.delete()
-    types = [selectqueryall(sql, 'hambot3_.restrict', 'restrictrole_name', f'guild_id = {ctx.guild.id}')]
+    types = [selectqueryall(sql, f'restrict', 'restrictrole_name', f'guild_id = {ctx.guild.id}')]
     for type in types:
         if types == 0:
             await ctx.send(embed=await nopermission(ctx), delete_after=5)
@@ -695,16 +697,16 @@ async def restrict(ctx, alias):
         await ctx.channel.set_permissions(ctx.guild.default_role, view_channel=True)
         embedDescription  = (f"{ctx.channel.mention} has been opened to public.")
         await ctx.send(embed=addEmbed(ctx,None,embedDescription ), delete_after=5)
-    aliaslist = selectqueryall(sql, "hambot3_.restrict", "restrictrole_name", f"guild_id = {ctx.guild.id}")
+    aliaslist = selectqueryall(sql, f"restrict", "restrictrole_name", f"guild_id = {ctx.guild.id}")
     for stralias in aliaslist:
         if alias == stralias[0]:
             ctxchannel = ctx.channel
             sql.connect()
-            result = selectquery(sql, "hambot3_.restrict", "restrictrole3_id", f"restrictrole_name = '{alias}' AND guild_id = {ctx.guild.id}")
+            result = selectquery(sql, f"restrict", "restrictrole3_id", f"restrictrole_name = '{alias}' AND guild_id = {ctx.guild.id}")
             if result is None:
-                result1 = selectquery(sql, 'hambot3_.restrict', 'restrictrole2_id', f"restrictrole_name = '{alias}' AND guild_id = {ctx.guild.id}")
+                result1 = selectquery(sql, f'restrict', 'restrictrole2_id', f"restrictrole_name = '{alias}' AND guild_id = {ctx.guild.id}")
                 if result1 is None:
-                    result2 = selectquery(sql, 'hambot3_.restrict', 'restrictrole_id', f"restrictrole_name = '{alias}' AND guild_id = {ctx.guild.id}")
+                    result2 = selectquery(sql, f'restrict', 'restrictrole_id', f"restrictrole_name = '{alias}' AND guild_id = {ctx.guild.id}")
                     role = ctx.guild.get_role(result2)
                     overwrites1= {}
                     overwrites1.update({role: discord.PermissionOverwrite(view_channel=True),
@@ -713,7 +715,7 @@ async def restrict(ctx, alias):
                     embedDescription  = (f"{ctxchannel.mention} has been restricted to {cat.mention}")
                     await ctx.send(embed=addEmbed(ctx,None,embedDescription ), delete_after=5)
                     return
-                result2 = selectquery(sql, 'hambot3_.restrict', 'restrictrole_id', f"restrictrole_name = '{alias}' AND guild_id = {ctx.guild.id}")
+                result2 = selectquery(sql, f'restrict', 'restrictrole_id', f"restrictrole_name = '{alias}' AND guild_id = {ctx.guild.id}")
                 cat = ctx.guild.get_role(result1)
                 cat2 = ctx.guild.get_role(result2)
                 overwrites2 = {}
@@ -723,8 +725,8 @@ async def restrict(ctx, alias):
                 embedDescription  = (f"{ctxchannel.mention} has been restricted to {cat.mention} and {cat2.mention}")
                 await ctx.send(embed=addEmbed(ctx,None,embedDescription ), delete_after=5)
                 return
-            result2 = selectquery(sql, 'hambot3_.restrict', 'restrictrole_id', f"restrictrole_name = '{alias}' AND guild_id = {ctx.guild.id}")
-            result3 = selectquery(sql, 'hambot3_.restrict', 'restrictrole2_id', f"restrictrole_name = '{alias}' AND guild_id = {ctx.guild.id}")
+            result2 = selectquery(sql, f'restrict', 'restrictrole_id', f"restrictrole_name = '{alias}' AND guild_id = {ctx.guild.id}")
+            result3 = selectquery(sql, f'restrict', 'restrictrole2_id', f"restrictrole_name = '{alias}' AND guild_id = {ctx.guild.id}")
             cat = ctx.guild.get_role(result)
             cat2 = ctx.guild.get_role(result2)
             cat3 = ctx.guild.get_role(result3)
@@ -787,10 +789,10 @@ async def removerestrict(ctx, alias):
         return
     await ctx.message.delete()
     restrictname = alias
-    restrictlist = selectqueryall(sql, 'hambot3_.restrict', 'restrictrole_name', f'guild_id = {ctx.guild.id}')
+    restrictlist = selectqueryall(sql, f'restrict', 'restrictrole_name', f'guild_id = {ctx.guild.id}')
     for stralias in restrictlist:
         if restrictname == stralias[0]:
-            deletequery(sql, 'hambot3_.restrict', f"restrictrole_name = '{restrictname}'")
+            deletequery(sql, f'restrict', f"restrictrole_name = '{restrictname}'")
             embedDescription  =(f"Restriction type `{restrictname}` has been removed.")
             await ctx.send(embed=addEmbed(ctx,"red",embedDescription ), delete_after=5)
             return 1
@@ -998,7 +1000,7 @@ async def accept(ctx, messageid):
                 reactiona = reaction
                 aschannel = client.get_channel(result)
                 finalcount = int(reactiona.count - 1)
-                embedDescription  = (f"**{finalcount} Upvotes:** [Go To Suggestion]({msg.jump_url}) - Suggestion was made in: {ctx.channel.mention}")
+                embedDescription  = (f"**{finalcount} Upvotes:** [Go To Suggestion]({msg.jump_url}) - {ctx.channel.mention}")
                 embed1 = addEmbed(ctx,"dark_teal",embedDescription)
                 embed2 = msg.embeds[0]
                 await sendwebhook(ctx, "Accepted Suggestions", aschannel, None, [embed1, embed2])
@@ -1163,7 +1165,7 @@ async def setup(ctx, password, administrator:discord.Role, moderator:discord.Rol
         await invalidpass()
         return
     elif verify(cc) == True:
-        check = selectqueryall(sql, 'hambot3_.passwords', 'password', None)
+        check = selectqueryall(sql, f'passwords', 'password', None)
         for pass1 in check:
             if pass1[0] != password:
                 found = False
@@ -1172,14 +1174,14 @@ async def setup(ctx, password, administrator:discord.Role, moderator:discord.Rol
         if found != True:
             await invalidpass()
             return
-        check2 = selectquery(sql, 'hambot3_.passwords', 'used', f"password = '{password}'")
+        check2 = selectquery(sql, f'passwords', 'used', f"password = '{password}'")
         if check2 == 1:
             embedDescription  = (f"This password was already used.")
             await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDescription ))
             return
         elif check2 == 0:
-            insertquery(sql, 'hambot3_.passwords', 'used', '(1)', f'password = "{str(password)}"')
-            insertquery(sql, 'hambot3_.passwords', 'guild_id', f'{ctx.guild.id}', f'password = "{str(password)}"')
+            insertquery(sql, f'passwords', 'used', '(1)', f'password = "{str(password)}"')
+            insertquery(sql, f'passwords', 'guild_id', f'{ctx.guild.id}', f'password = "{str(password)}"')
     guild_id = ctx.guild.id
     if guild_id in premium_guilds:
         embedDescription  = (f"You are already logged in as Premium.")
@@ -1255,8 +1257,11 @@ the following choices by clicking the button describing your issue.
         embed1.set_footer(text="Ham5teak Bot 3.0 | play.ham5teak.xyz | Made by Beastman#1937 and Jaymz#7815")
         return embed1
     
-
-    msg = await channel.send(embed=await embed1(embedDescription),components=[
+    if channel.guild.id == 380308776114454528:
+        content1 = "<@&832198461495443506>"
+    else:
+        content1 = None
+    msg = await channel.send(content=content1, embed=await embed1(embedDescription),components=[
                 # Row 1
                 [Button(style=ButtonStyle.green, label=f"1", id="Item Lost"),
                 Button(style=ButtonStyle.green, label=f"2", id="Issue or Bug Report"),
@@ -1355,7 +1360,7 @@ async def on_reaction_add(reaction, user):
                         return
                 try:
                     finalcount = int(reaction.count - 1)
-                    embedDescription  = (f"**{finalcount} Upvotes:** [Go To Suggestion]({msg.jump_url}) - Suggestion was made in: {reaction.message.channel.mention}")
+                    embedDescription  = (f"**{finalcount} Upvotes:** [Go To Suggestion]({msg.jump_url}) - {reaction.message.channel.mention}")
                     embed1 = addEmbed(None,"dark_teal",embedDescription)
                     embed2 = msg.embeds[0]
                     await sendwebhook(reaction.message, "Demanded Suggestions", dsuggestionschannel, None, [embed1, embed2])
@@ -1379,7 +1384,7 @@ async def on_reaction_add(reaction, user):
                     print(f"{rsuggestions} channel has no suggestion history.")
                 try:
                     finalcount = int(reaction.count - 1)
-                    embedDescription  = (f"**{finalcount} Downvotes:** [Go To Suggestion]({msg.jump_url}) - Suggestion was made in: {reaction.message.channel.mention}")
+                    embedDescription  = (f"**{finalcount} Downvotes:** [Go To Suggestion]({msg.jump_url}) - {reaction.message.channel.mention}")
                     embed1 = addEmbed(None,"dark_teal",embedDescription)
                     embed2 = msg.embeds[0]
                     await sendwebhook(reaction.message, "Rejected Suggestions", rsuggestionschannel, None, [embed1, embed2])
