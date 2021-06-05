@@ -747,8 +747,8 @@ async def setmove(ctx, categoryi: discord.CategoryChannel, alias):
         await ctx.send(embed=await nopermission(ctx), delete_after=5)
         return
     movecheck = selectquery(sql, 'guilds', 'custommovecount', f'guild_id = {ctx.guild.id}')
-    if movecheck >= 15:
-        await ctx.send(embed=await addEmbed(ctx, None, f"Guild has {movecheck} custommoves set which is over the limit."), delete_after=5)
+    if movecheck >= 45:
+        await ctx.send(embed=addEmbed(ctx, None, f"Guild has {movecheck} custommoves set which is over the limit."), delete_after=5)
         return
     await ctx.message.delete()
     guild_id = ctx.guild.id
@@ -764,6 +764,12 @@ async def setmove(ctx, categoryi: discord.CategoryChannel, alias):
             embedDescription  =(f"Category `{categoryname}` already exists.")
             await ctx.send(embed=addEmbed(ctx,"red",embedDescription ), delete_after=5)
             return 1
+    categoryi = selectqueryall(sql, 'categories', 'category_id', f'guild_id = {ctx.guild.id}')
+    for stralias in categoryi:
+        if categoryid == stralias[0]:
+            embedDescription  =(f"Category `{categoryid}` already exists.")
+            await ctx.send(embed=addEmbed(ctx,"red",embedDescription ), delete_after=5)
+            return 1
     column = '(guild_id, category_id)'
     values = (guild_id, categoryid)
     where = None
@@ -774,7 +780,7 @@ async def setmove(ctx, categoryi: discord.CategoryChannel, alias):
     result = (insertquery(sql, 'categories', column , values, where))
     if (result == 0):
         embedDescription =(f"Successfully registered {categoryname} as `{categoryid}`")
-        await ctx.send(embed=addEmbed(ctx,None,embedDescription ), delete_after=5)    
+        await ctx.send(embed=addEmbed(ctx,None,embedDescription ), delete_after=5)
         insertquery(sql, 'guilds', 'custommovecount', f'{len(categoryn) + 1}', f'guild_id = {ctx.guild.id}')
     else:
         embedDescription  =(f"Couldn't register {categoryname} as `{categoryid}`")
@@ -1107,8 +1113,8 @@ async def setmove(ctx, categoryi: discord.CategoryChannel, alias):
         await ctx.send(embed=await nopermission(ctx), delete_after=5)
         return
     movecheck = selectquery(sql, 'guilds', 'custommovecount', f'guild_id = {ctx.guild.id}')
-    if movecheck >= 15:
-        await ctx.send(embed=await addEmbed(ctx, None, f"Guild has {movecheck} custommoves set which is over the limit."), delete_after=5)
+    if movecheck >= 45:
+        await ctx.send(embed=addEmbed(ctx, None, f"Guild has {movecheck} custommoves set which is over the limit."), delete_after=5)
         return
     guild_id = ctx.guild.id
     categoryid = str(categoryi.id)
@@ -1118,6 +1124,12 @@ async def setmove(ctx, categoryi: discord.CategoryChannel, alias):
         if categoryname == stralias[0]:
             embedDescription  =(f"Category `{categoryname}` already exists.")
             await ctx.send(embed=addEmbed(ctx,"red",embedDescription ))
+            return 1
+    categoryi = selectqueryall(sql, 'categories', 'category_id', f'guild_id = {ctx.guild.id}')
+    for stralias in categoryi:
+        if categoryid == stralias[0]:
+            embedDescription  =(f"Category `{categoryid}` already exists.")
+            await ctx.send(embed=addEmbed(ctx,"red",embedDescription ), delete_after=5)
             return 1
     column = '(guild_id, category_id)'
     values = (guild_id, categoryid)
