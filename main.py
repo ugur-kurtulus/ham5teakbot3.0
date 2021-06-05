@@ -608,7 +608,7 @@ async def edit(ctx, id, *, embedDescription):
     embedobj = msg.embeds[0]
     if msg.author.id != client.user.id:
         await ctx.message.delete()
-        webhook1 = await getwebhook(ctx, ctx.author.name)
+        webhook1 = await getwebhook(ctx, "Ham5teakBot3")
         async with aiohttp.ClientSession() as session:
             webh = discord.Webhook.from_url(webhook1.url, adapter=discord.AsyncWebhookAdapter(session=session))
             await webh.edit_message(id, embeds=[addEmbed2(ctx, None, embedDescription, embedobj.image.url)])
