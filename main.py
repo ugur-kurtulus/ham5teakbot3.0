@@ -826,6 +826,10 @@ async def removemove(ctx, alias):
 @commands.cooldown(1, 5, commands.BucketType.user)
 @commands.has_permissions(manage_messages=True)
 async def simchannelcreate(ctx):
+    moderatorcheck1 = await moderatorcheck(ctx.guild, ctx.author)
+    if moderatorcheck1 == 0:
+        await ctx.send(embed=await nopermission(ctx), delete_after=5)
+        return
     await ctx.message.delete()
     await on_guild_channel_create(ctx.channel)
 
@@ -869,11 +873,9 @@ async def betaannouncements(ctx, bool:bool):
 
 @client.event
 async def on_command_error(ctx, error):
-    if isinstance(error, commands.CommandOnCooldown):
+    if isinstance(error, commands.CommandOnCooldown) or isinstance(error, commands.errors.CommandNotFound):
         return
     print(error)
-    if isinstance(error, CommandNotFound):
-        return
 
 @move.error
 async def clear_error(ctx, error):
@@ -1585,8 +1587,6 @@ async def on_message(ctx):
                                 pass
                             sent = False
 
-    await client.process_commands(ctx)
-
     if "console-" in ctx.channel.name:
         messagestrip = await stripmessage(ctx.content, 'a server operator')
         if messagestrip:
@@ -1622,10 +1622,9 @@ async def on_message(ctx):
                 if generalchannelcheck != 0:
                     generalchannel = client.get_channel(generalchannelcheck)
                     await generalchannel.send(f'**WARNING!** {ctx.channel.mention} has just **hard crashed!** Check {crashalertschannel.mention} for more info.')
-    if "console-lobby" in ctx.channel.name:
-        lptriggers = ["now inherits permissions from", "no longer inherits permissions from", "[LP] Demoting",
-         "[LP] Promoting", "[LP] Web editor data was applied", "[LP] LOG > webeditor", "[LP] LOG > (Console@"
-         , "[LP] Set"]
+    if "console-" in ctx.channel.name:
+        lptriggers = ["now inherits permissions from", "no longer inherits permissions from",
+        "[LP] Set group.", "[LP] Web editor data was applied to user", "[LP] Web editor data was applied to group"]
         for trigger in lptriggers:
             messagestrip = await stripmessage(ctx.content, trigger)
             if messagestrip:
@@ -1633,7 +1632,10 @@ async def on_message(ctx):
                 lpalertschannelcheck = selectquery(sql, 'guilds', 'lpalertschannel', f'guild_id = {ctx.guild.id}')
                 if lpalertschannelcheck != 0:
                     lpalertschannel = client.get_channel(lpalertschannelcheck)
-                    await lpalertschannel.send(f'```{messagestrip}``` It originated from {ctx.channel.mention}!')
+                    try:
+                        await lpalertschannel.send(f'```{messagestrip}``` It originated from {ctx.channel.mention}!')
+                    except:
+                        pass
     if ctx.guild.id in ham_guilds:
         if "console-survival" in ctx.channel.name:
             messagestrip = await stripmessage(ctx.content, '[HamAlerts] Thank you')
@@ -1643,6 +1645,9 @@ async def on_message(ctx):
                 for channel in guildchannels:
                     if "receipts" in channel.name:
                         await channel.send(f'```{messagestrip}```')
+
+    await client.process_commands(ctx)
+
     return
 
 client.run(TOKEN)  # Bot Run
