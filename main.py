@@ -224,10 +224,12 @@ async def sendwebhook(ctx, webhookname, channel, file, embeds):
     for w in await ctx.guild.webhooks():
         if ctx is None: image = client.user.avatar_url
         if ctx != None: image = ctx.author.avatar_url
-        if webhookname == w.name and w.channel == ctx.channel:
-            return await w.send(avatar_url=image, embeds=embeds, file=file)
-    webhook = await channel.create_webhook(name=webhookname)
-    return await webhook.send(avatar_url=image, embeds=embeds, file=file)
+        if "Ham5teakBot3" == w.name and w.channel == ctx.channel:
+            await w.send(username=webhookname, avatar_url=image, embeds=embeds, file=file)
+            return True
+    webhook = await channel.create_webhook(name="Ham5teakBot3")
+    await webhook.send(username=webhookname, avatar_url=image, embeds=embeds, file=file)
+    return True
 
 async def getwebhook(ctx, webhookname):
     for w in await ctx.guild.webhooks():
@@ -323,7 +325,7 @@ async def attachmentAutoEmbed(ctx, image:bool, type, emoji, emoji1, webhook:bool
     if image == False:
         var = "attachment"
     if webhook != None and webhook == True:
-        await sendwebhook(ctx, ctx.author.display_name, ctx.channel, file, [embed])
+        await sendwebhook(ctx, ctx.author.name, ctx.channel, file, [embed])
         msg = await ctx.channel.fetch_message(ctx.channel.last_message_id)
     else:
         msg = await ctx.channel.send(embed=embed, file=file)
@@ -606,7 +608,7 @@ async def edit(ctx, id, *, embedDescription):
     embedobj = msg.embeds[0]
     if msg.author.id != client.user.id:
         await ctx.message.delete()
-        webhook1 = await getwebhook(ctx, ctx.author.display_name)
+        webhook1 = await getwebhook(ctx, ctx.author.name)
         async with aiohttp.ClientSession() as session:
             webh = discord.Webhook.from_url(webhook1.url, adapter=discord.AsyncWebhookAdapter(session=session))
             await webh.edit_message(id, embeds=[addEmbed2(ctx, None, embedDescription, embedobj.image.url)])
@@ -1417,10 +1419,14 @@ async def on_message(ctx):
                             await ctx.delete()
                             embedDescription  = (f"{ctx.content}")
                             embed = addEmbed2(ctx,None,embedDescription )
-                            await sendwebhook(ctx, ctx.author.display_name, ctx.channel, None, [embed])
-                            msg = await ctx.channel.fetch_message(ctx.channel.last_message_id)
-                            await msg.add_reaction("👍")
-                            await msg.add_reaction("❤️")
+                            sent = False
+                            sent = await sendwebhook(ctx, ctx.author.name, ctx.channel, None, [embed])
+                            while sent == True:
+                                msg = await ctx.channel.history(limit=1).flatten()
+                                msg = msg[0]
+                                await msg.add_reaction("👍")
+                                await msg.add_reaction("❤️")
+                                sent = False
                             print(f"An announcement was made in #{ctx.channel.name} by {ctx.author}.")
                     return
     channelnames = ["announcements", "updates", "competitions", "events"]
