@@ -325,8 +325,16 @@ async def attachmentAutoEmbed(ctx, image:bool, type, emoji, emoji1, webhook:bool
     if image == False:
         var = "attachment"
     if webhook != None and webhook == True:
-        await sendwebhook(ctx, ctx.author.name, ctx.channel, file, [embed])
-        msg = await ctx.channel.fetch_message(ctx.channel.last_message_id)
+        sent = False
+        sent = await sendwebhook(ctx, ctx.author.name, ctx.channel, file, [embed])
+        while sent == True:
+            msg = await ctx.channel.history(limit=1).flatten()
+            msg = msg[0]
+            await msg.add_reaction(emoji)
+            await msg.add_reaction(emoji1)
+            print(f"An {var} inclusive {type} was made in #{ctx.channel.name} by {ctx.author}.")
+            os.remove(f"./{ctx.attachments[0].filename}")
+            return
     else:
         msg = await ctx.channel.send(embed=embed, file=file)
     await msg.add_reaction(emoji)
@@ -753,7 +761,7 @@ async def setmove(ctx, categoryi: discord.CategoryChannel, alias):
     await ctx.message.delete()
     guild_id = ctx.guild.id
     categoryid = str(categoryi.id)
-    categoryname = alias
+    categoryname = str(alias).replace('"', '').replace("'", "")
     if guild_id not in premium_guilds:
         embedDescription  = (f"You need premium to use this command.")
         await ctx.send(embed=addEmbed(ctx,"blue",embedDescription ))
@@ -764,19 +772,13 @@ async def setmove(ctx, categoryi: discord.CategoryChannel, alias):
             embedDescription  =(f"Category `{categoryname}` already exists.")
             await ctx.send(embed=addEmbed(ctx,"red",embedDescription ), delete_after=5)
             return 1
-    categoryi = selectqueryall(sql, 'categories', 'category_id', f'guild_id = {ctx.guild.id}')
-    for stralias in categoryi:
-        if categoryid == stralias[0]:
-            embedDescription  =(f"Category `{categoryid}` already exists.")
-            await ctx.send(embed=addEmbed(ctx,"red",embedDescription ), delete_after=5)
-            return 1
-    column = '(guild_id, category_id)'
-    values = (guild_id, categoryid)
+    column = '(guild_id, category_name)'
+    values = (guild_id, categoryname)
     where = None
     result = (insertquery(sql, 'categories', column , values, where))
-    column = ('category_name')
-    values = (f"'{categoryname}'")
-    where = (f"category_id = {categoryid}")
+    column = ('category_id')
+    values = (f"'{categoryid}'")
+    where = (f"category_name = '{categoryname}'")
     result = (insertquery(sql, 'categories', column , values, where))
     if (result == 0):
         embedDescription =(f"Successfully registered {categoryname} as `{categoryid}`")
@@ -827,6 +829,66 @@ async def removemove(ctx, alias):
     embedDescription  =(f"Category `{categoryname}` couldn't be removed.")
     await ctx.send(embed=addEmbed(ctx,"red",embedDescription ), delete_after=5)
     return 1
+
+@client.command()
+@commands.cooldown(1, 5, commands.BucketType.user)
+@commands.has_permissions(manage_guild=True)
+async def demanded(ctx, messageid):
+    moderatorcheck1 = await moderatorcheck(ctx.guild, ctx.author)
+    if moderatorcheck1 == 0:
+        await ctx.send(embed=await nopermission(ctx), delete_after=5)
+        return
+    await ctx.message.delete()
+    result = selectquery(sql, 'guilds', 'demandedsuggestions', f'guild_id = {ctx.guild.id}')
+    if result == 0:
+        embedDescription  = (f"This server doesn't have a demanded suggestions channel set.")
+        await ctx.send(embed=addEmbed(ctx,discord.Color.teal,embedDescription ), delete_after=5)
+    else:
+        msg = await ctx.guild.get_channel(ctx.channel.id).fetch_message(messageid)
+        for reaction in msg.reactions:
+            if reaction.emoji != "✅":
+                pass 
+            else:
+                reactiona = reaction
+                dsuggestionschannel = client.get_channel(result)
+                finalcount = int(reactiona.count - 1)
+                embedDescription  = (f"**{finalcount} Upvotes:** [Go To Suggestion]({msg.jump_url}) - {ctx.channel.mention}")
+                embed1 = addEmbed(ctx,"dark_teal",embedDescription)
+                embed2 = msg.embeds[0]
+                await sendwebhook(msg, "Demanded Suggestions", dsuggestionschannel, None, [embed1, embed2])
+                embedDescription  = (f"[Suggestion]({msg.jump_url}) successfully demanded!")
+                await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDescription ), delete_after=5)
+                return
+
+@client.command()
+@commands.cooldown(1, 5, commands.BucketType.user)
+@commands.has_permissions(manage_guild=True)
+async def reject(ctx, messageid):
+    moderatorcheck1 = await moderatorcheck(ctx.guild, ctx.author)
+    if moderatorcheck1 == 0:
+        await ctx.send(embed=await nopermission(ctx), delete_after=5)
+        return
+    await ctx.message.delete()
+    result = selectquery(sql, 'guilds', 'rejectedsuggestions', f'guild_id = {ctx.guild.id}')
+    if result == 0:
+        embedDescription  = (f"This server doesn't have a rejected suggestions channel set.")
+        await ctx.send(embed=addEmbed(ctx,discord.Color.teal,embedDescription ), delete_after=5)
+    else:
+        msg = await ctx.guild.get_channel(ctx.channel.id).fetch_message(messageid)
+        for reaction in msg.reactions:
+            if reaction.emoji != "❌":
+                pass
+            else:
+                reactiona = reaction
+                rsuggestionschannel = client.get_channel(result)
+                finalcount = int(reactiona.count - 1)
+                embedDescription  = (f"**{finalcount} Downvotes:** [Go To Suggestion]({msg.jump_url}) - {ctx.channel.mention}")
+                embed1 = addEmbed(ctx,"dark_teal",embedDescription)
+                embed2 = msg.embeds[0]
+                await sendwebhook(msg, "Rejected Suggestions", rsuggestionschannel, None, [embed1, embed2])
+                embedDescription  = (f"[Suggestion]({msg.jump_url}) successfully rejected!")
+                await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDescription ), delete_after=5)
+                return
     
 @client.command(aliases=['scc'])
 @commands.cooldown(1, 5, commands.BucketType.user)
@@ -1118,26 +1180,20 @@ async def setmove(ctx, categoryi: discord.CategoryChannel, alias):
         return
     guild_id = ctx.guild.id
     categoryid = str(categoryi.id)
-    categoryname = alias
+    categoryname = str(alias).replace('"', '').replace("'", "")
     categoryn = selectqueryall(sql, 'categories', 'category_name', f'guild_id = {ctx.guild.id}')
     for stralias in categoryn:
         if categoryname == stralias[0]:
             embedDescription  =(f"Category `{categoryname}` already exists.")
             await ctx.send(embed=addEmbed(ctx,"red",embedDescription ))
             return 1
-    categoryi = selectqueryall(sql, 'categories', 'category_id', f'guild_id = {ctx.guild.id}')
-    for stralias in categoryi:
-        if categoryid == stralias[0]:
-            embedDescription  =(f"Category `{categoryid}` already exists.")
-            await ctx.send(embed=addEmbed(ctx,"red",embedDescription ), delete_after=5)
-            return 1
-    column = '(guild_id, category_id)'
-    values = (guild_id, categoryid)
+    column = '(guild_id, category_name)'
+    values = (guild_id, categoryname)
     where = None
     result = (insertquery(sql, 'categories', column , values, where))
-    column = ('category_name')
-    values = (f"'{categoryname}'")
-    where = (f"category_id = {categoryid}")
+    column = ('category_id')
+    values = (categoryid)
+    where = (f"category_name = '{categoryname}'")
     result = (insertquery(sql, 'categories', column , values, where))
     if (result == 0):
         embedDescription =(f"Successfully registered {categoryname} as `{categoryid}`")
@@ -1650,6 +1706,19 @@ async def on_message(ctx):
                         pass
     if ctx.guild.id in ham_guilds:
         if "console-survival" in ctx.channel.name:
+            lptriggers = ["issued server command: /sudo", "issued server command: /attachcommand",
+            "issued server command: /cmi attachcommand", "issued server command: /cmi sudo", 
+            "issued server command: /npc command add"]
+            for trigger in lptriggers:
+                messagestrip = await stripmessage(ctx.content, trigger)
+                if messagestrip:
+                    print(messagestrip)
+                    guildchannels = ctx.guild.channels
+                    for channel in guildchannels:
+                        if "command-alerts" in channel.name:
+                            await channel.send(f'```{messagestrip}```')
+    if ctx.guild.id in ham_guilds:
+        if "console-" in ctx.channel.name:
             messagestrip = await stripmessage(ctx.content, '[HamAlerts] Thank you')
             if messagestrip:
                 print(messagestrip)
