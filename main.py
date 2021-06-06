@@ -658,7 +658,6 @@ async def setchannel(ctx, command, channel: discord.TextChannel):
 
 @client.command()
 @commands.cooldown(1, 5, commands.BucketType.user)
-@commands.has_permissions(manage_messages=True)
 async def move(ctx, alias):
     moderatorcheck1 = await moderatorcheck(ctx.guild, ctx.author)
     if moderatorcheck1 == 0:
@@ -695,7 +694,6 @@ async def restrictlist(ctx):
 
 @client.command()
 @commands.cooldown(1, 5, commands.BucketType.user)
-@commands.has_permissions(manage_messages=True)
 async def restrict(ctx, alias):
     moderatorcheck1 = await moderatorcheck(ctx.guild, ctx.author)
     if moderatorcheck1 == 0:
@@ -832,7 +830,6 @@ async def removemove(ctx, alias):
 
 @client.command()
 @commands.cooldown(1, 5, commands.BucketType.user)
-@commands.has_permissions(manage_guild=True)
 async def demanded(ctx, messageid):
     moderatorcheck1 = await moderatorcheck(ctx.guild, ctx.author)
     if moderatorcheck1 == 0:
@@ -862,7 +859,6 @@ async def demanded(ctx, messageid):
 
 @client.command()
 @commands.cooldown(1, 5, commands.BucketType.user)
-@commands.has_permissions(manage_guild=True)
 async def reject(ctx, messageid):
     moderatorcheck1 = await moderatorcheck(ctx.guild, ctx.author)
     if moderatorcheck1 == 0:
@@ -903,7 +899,6 @@ async def simchannelcreate(ctx):
 
 @client.command(aliases=['ml'])
 @commands.cooldown(1, 5, commands.BucketType.user)
-@commands.has_permissions(manage_guild=True)
 async def movelist(ctx):
     moderatorcheck1 = await moderatorcheck(ctx.guild, ctx.author)
     if moderatorcheck1 == 0:
@@ -1705,10 +1700,10 @@ async def on_message(ctx):
                     except:
                         pass
     if ctx.guild.id in ham_guilds:
-        if "console-survival" in ctx.channel.name:
+        if "console-" in ctx.channel.name:
             lptriggers = ["issued server command: /sudo", "issued server command: /attachcommand",
             "issued server command: /cmi attachcommand", "issued server command: /cmi sudo", 
-            "issued server command: /npc command add"]
+            "issued server command: /npc command add", "issued server command: /ic", "issued server command: /cmi ic"]
             for trigger in lptriggers:
                 messagestrip = await stripmessage(ctx.content, trigger)
                 if messagestrip:
@@ -1718,7 +1713,7 @@ async def on_message(ctx):
                         if "command-alerts" in channel.name:
                             await channel.send(f'```{messagestrip}```')
     if ctx.guild.id in ham_guilds:
-        if "console-" in ctx.channel.name:
+        if "console-survival" in ctx.channel.name:
             messagestrip = await stripmessage(ctx.content, '[HamAlerts] Thank you')
             if messagestrip:
                 print(messagestrip)
