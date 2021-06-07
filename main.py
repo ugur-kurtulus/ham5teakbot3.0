@@ -1,9 +1,13 @@
 import os
 import aiohttp
+import contextlib
+import io
+import textwrap
 from discord.ext.commands import CommandNotFound, cooldown, BucketType
 from discord.errors import HTTPException
 from discord_components.select import Option
 from dotenv import load_dotenv
+from traceback import format_exception
 from luhn import *
 from cardvalidator import luhn
 import random
@@ -198,7 +202,7 @@ createtable(sql,'restrict', restrict_query)
 createtable(sql,'passwords', passwords_query)
 
 colors = {"green": 0x3aa45c, "red": 0xed4344, "blue": 0x5864f3, "aqua": 0x00FFFF,
- "dark_teal": 0x10816a, "teal": 0x1abc9c}
+ "dark_teal": 0x10816a, "teal": 0x1abc9c, "invis": 0x2f3037}
 premium_guilds = [selectqueryall(sql, 'guilds', 'guild_id', None)]
 betaannouncementguilds = []
 ham_guilds = [380308776114454528, 841225582967783445, 820383461202329671,
@@ -216,6 +220,15 @@ DiscordComponents(client)
 slash = SlashCommand(client, sync_commands=False)  # Defines slash commands
 
 # ------- FUNCTIONS -------
+
+def clean_code(content):
+    if content.startswith("```") and content.endswith("```"):
+        return "\n".join(content.split("\n")[1:])[:-3]
+    else:
+        return content
+
+async def is_owner(ctx):
+    return ctx.author.id == 461572795684356098 or ctx.author.id == 610930740422508544 or ctx.author == 258530967096918016
 
 def getprefix2(ctx):
     return prefixes[f"{ctx.guild.id}"]
@@ -913,6 +926,40 @@ async def movelist(ctx):
         newcat = str(category).replace('(', '').replace(')', '').replace('(', '').replace("'", '').replace("[", '').replace("]", '').replace(',', '').replace(' ', f'\n')
         embedDescription  = (f"__**Categories you can move channels to:**__\n{newcat}")
         await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDescription ), delete_after=10)   
+
+@client.command(aliases=['eval', 'e'])
+@commands.check(is_owner)
+async def evaluate(ctx, *, code):
+    code = clean_code(code)
+
+    local_variables = {
+        "discord": discord,
+        "commands": commands,
+        "bot": client,
+        "ctx": ctx,
+        "channel": ctx.channel,
+        "author": ctx.author,
+        "guild": ctx.guild,
+        "message": ctx.message
+    }
+
+    stdout = io.StringIO()
+
+    try:
+        with contextlib.redirect_stdout(stdout):
+            exec(
+                f"async def func():\n{textwrap.indent(code, '    ')}", local_variables,
+            )
+
+            obj = await local_variables["func"]()
+            if obj is not None:
+                result = f"{stdout.getvalue()}\n-- {obj}\n"
+            else:
+                result = f"{stdout.getvalue()}\n"
+    except Exception as e:
+        result = "".join(format_exception(e, e, e.__traceback__))
+   	
+    await ctx.send(embed=addEmbed(ctx, "invis", f"```py\n{result}\n```"))
         
 @client.command(aliases=['ba'])
 @commands.cooldown(1, 5, commands.BucketType.user)
@@ -939,6 +986,10 @@ async def on_command_error(ctx, error):
     if isinstance(error, commands.CommandOnCooldown) or isinstance(error, commands.errors.CommandNotFound):
         return
     print(error)
+
+@evaluate.error
+async def clear_error(ctx, error):
+    await ctx.send(embed=addEmbed2(ctx, "invis", f'```py\n{error}\n```'))
 
 @move.error
 async def clear_error(ctx, error):
@@ -1464,7 +1515,37 @@ async def on_reaction_add(reaction, user):
 async def on_message(ctx):
     if not ctx.guild:
         return
-    if str(ctx.guild.id) in str(betaannouncementguilds):
+    try:
+        if str(ctx.guild.id) in str(betaannouncementguilds):
+            channelnames = ["announcements", "updates", "competitions", "events"]
+            for channel in channelnames:
+                if channel in ctx.channel.name:
+                    if not ctx.author.bot:
+                        if ctx.content.startswith("-") or ctx.content.startswith("?") or ctx.content.startswith("!"):
+                            await client.process_commands(ctx)
+                            return
+                        else:
+                            if ctx.attachments:
+                                for imageextensions in [".jpg", ".jpeg", ".png", ".gif"]:
+                                    if imageextensions in ctx.attachments[0].filename:
+                                        await attachmentAutoEmbed(ctx, 1, "announcement", "👍", "❤️", 1)
+                                        return
+                                await attachmentAutoEmbed(ctx, 0, "announcement", "👍", "❤️", 1)
+                                return
+                            if not ctx.attachments:
+                                await ctx.delete()
+                                embedDescription  = (f"{ctx.content}")
+                                embed = addEmbed2(ctx,None,embedDescription )
+                                sent = False
+                                sent = await sendwebhook(ctx, ctx.author.name, ctx.channel, None, [embed])
+                                while sent == True:
+                                    msg = await ctx.channel.history(limit=1).flatten()
+                                    msg = msg[0]
+                                    await msg.add_reaction("👍")
+                                    await msg.add_reaction("❤️")
+                                    sent = False
+                                print(f"An announcement was made in #{ctx.channel.name} by {ctx.author}.")
+                        return
         channelnames = ["announcements", "updates", "competitions", "events"]
         for channel in channelnames:
             if channel in ctx.channel.name:
@@ -1474,253 +1555,226 @@ async def on_message(ctx):
                         return
                     else:
                         if ctx.attachments:
-                            for imageextensions in [".jpg", ".jpeg", ".png", ".gif"]:
-                                if imageextensions in ctx.attachments[0].filename:
-                                    await attachmentAutoEmbed(ctx, 1, "announcement", "👍", "❤️", 1)
-                                    return
-                            await attachmentAutoEmbed(ctx, 0, "announcement", "👍", "❤️", 1)
-                            return
+                                for imageextensions in [".jpg", ".jpeg", ".png", ".gif"]:
+                                    if imageextensions in ctx.attachments[0].filename:
+                                        await attachmentAutoEmbed(ctx, 1, "announcement", "👍", "❤️")
+                                        return
+                                await attachmentAutoEmbed(ctx, 0, "announcement", "👍", "❤️")
+                                return
                         if not ctx.attachments:
                             await ctx.delete()
                             embedDescription  = (f"{ctx.content}")
-                            embed = addEmbed2(ctx,None,embedDescription )
-                            sent = False
-                            sent = await sendwebhook(ctx, ctx.author.name, ctx.channel, None, [embed])
-                            while sent == True:
-                                msg = await ctx.channel.history(limit=1).flatten()
-                                msg = msg[0]
-                                await msg.add_reaction("👍")
-                                await msg.add_reaction("❤️")
-                                sent = False
+                            msg = await ctx.channel.send(embed=addEmbed(ctx,None,embedDescription ))
+                            await msg.add_reaction("👍")
+                            await msg.add_reaction("❤️")
                             print(f"An announcement was made in #{ctx.channel.name} by {ctx.author}.")
-                    return
-    channelnames = ["announcements", "updates", "competitions", "events"]
-    for channel in channelnames:
-        if channel in ctx.channel.name:
+        if "suggestions" in ctx.channel.name:
             if not ctx.author.bot:
                 if ctx.content.startswith("-") or ctx.content.startswith("?") or ctx.content.startswith("!"):
                     await client.process_commands(ctx)
                     return
                 else:
                     if ctx.attachments:
-                            for imageextensions in [".jpg", ".jpeg", ".png", ".gif"]:
-                                if imageextensions in ctx.attachments[0].filename:
-                                    await attachmentAutoEmbed(ctx, 1, "announcement", "👍", "❤️")
-                                    return
-                            await attachmentAutoEmbed(ctx, 0, "announcement", "👍", "❤️")
-                            return
+                        for imageextensions in [".jpg", ".jpeg", ".png", ".gif"]:
+                            if imageextensions in ctx.attachments[0].filename:
+                                await attachmentAutoEmbed(ctx, 1, "suggestion", "✅", "❌")
+                                return
+                        await attachmentAutoEmbed(ctx, 0, "suggestion", "✅", "❌")
+                        return
                     if not ctx.attachments:
                         await ctx.delete()
                         embedDescription  = (f"{ctx.content}")
                         msg = await ctx.channel.send(embed=addEmbed(ctx,None,embedDescription ))
-                        await msg.add_reaction("👍")
-                        await msg.add_reaction("❤️")
-                        print(f"An announcement was made in #{ctx.channel.name} by {ctx.author}.")
-    if "suggestions" in ctx.channel.name:
-        if not ctx.author.bot:
-            if ctx.content.startswith("-") or ctx.content.startswith("?") or ctx.content.startswith("!"):
-                await client.process_commands(ctx)
-                return
-            else:
-                if ctx.attachments:
-                    for imageextensions in [".jpg", ".jpeg", ".png", ".gif"]:
-                        if imageextensions in ctx.attachments[0].filename:
-                            await attachmentAutoEmbed(ctx, 1, "suggestion", "✅", "❌")
-                            return
-                    await attachmentAutoEmbed(ctx, 0, "suggestion", "✅", "❌")
+                        await msg.add_reaction("✅")
+                        await msg.add_reaction("❌")
+                        print(f"A suggestion was made in #{ctx.channel.name} by {ctx.author}.")
+        if "polls" in ctx.channel.name or "poll" in ctx.channel.name:
+            if not ctx.author.bot:
+                if ctx.content.startswith("-") or ctx.content.startswith("?") or ctx.content.startswith("!"):
+                    await client.process_commands(ctx)
                     return
-                if not ctx.attachments:
-                    await ctx.delete()
-                    embedDescription  = (f"{ctx.content}")
-                    msg = await ctx.channel.send(embed=addEmbed(ctx,None,embedDescription ))
-                    await msg.add_reaction("✅")
-                    await msg.add_reaction("❌")
-                    print(f"A suggestion was made in #{ctx.channel.name} by {ctx.author}.")
-    if "polls" in ctx.channel.name or "poll" in ctx.channel.name:
-        if not ctx.author.bot:
-            if ctx.content.startswith("-") or ctx.content.startswith("?") or ctx.content.startswith("!"):
-                await client.process_commands(ctx)
-                return
-            if ctx.webhook_id:
-                return
-            else:
-                if ctx.attachments:
-                    await ctx.attachments[0].save(f"./{ctx.attachments[0].filename}")
-                    file = discord.File(ctx.attachments[0].filename)
-                    sent = True
-                    await ctx.delete()
-                    components1 = []
-                    reactionstotal = {}
-                    reactedusers = []
-                    content = e.demojize(ctx.content)
-                    messageemojis = re.findall(r'(:[^:]*:)', content)
-                    if messageemojis is not None:
-                        for emoji in messageemojis:
-                            try:
-                                emoji1 = e.emojize(emoji)
-                                components1.append(Button(emoji=emoji1, id=emoji1))
-                                reactionstotal.update({emoji1: 0})
-                            except: 
-                                pass
-                        reactionstotal1 = str(reactionstotal).replace("{", " ").replace("}", "").replace(",", f"\n").replace(":", "").replace("'", "")
-                    embedDescription  = (f"{ctx.content}\n\n```{reactionstotal1}\n```")
-                    try:
-                        msg = await ctx.channel.send(embed=addEmbed(ctx,None,embedDescription, f"attachment://{ctx.attachments[0].filename}"), components=[components1], file=file)
-                    except HTTPException:
-                        await ctx.channel.send("Please enter a message with emojis as options.", delete_after=3)
-                    print(f"An image inclusive poll was made in #{ctx.channel.name} by {ctx.author}.")
-                    while sent == True:
-                        try:
-                            res = await client.wait_for(event="button_click",check=lambda res: res.channel == ctx.channel, timeout=43200)
-                            if res.user.id in reactedusers:
-                                await res.respond(
-                                    type=InteractionType.ChannelMessageWithSource,
-                                    content=f'You have already voted for this poll.'
-                                )
-                            else:
-                                getdata = reactionstotal[res.component.id]
-                                reactionstotal.update({res.component.id: getdata + 1})
-                                reactionstotal1 = str(reactionstotal).replace("{", " ").replace("}", "").replace(",", f"\n").replace(":", "").replace("'", "")
-                                embedDescription1 = f"{ctx.content}\n\n```{reactionstotal1}\n```"
-                                await msg.edit(embed=addEmbed(ctx,None,embedDescription1, f"attachment://{ctx.attachments[0].filename}"),
-                                    components=[components1])
-                                await res.respond(
-                                    type=InteractionType.ChannelMessageWithSource,
-                                    content=f'Successfully voted for {res.component.id}.'
-                                )
-                                reactedusers.append(res.user.id)
-                        except:
-                            embedDescription1 = f"{ctx.content}\n\n```{reactionstotal1}\n```\n\n **This poll has ended.**"
-                            await msg.edit(embed=addEmbed(ctx,None,embedDescription1, f"attachment://{ctx.attachments[0].filename}"),
-                                    components=[])
-                            sent = False
-                    os.remove(f"./{ctx.attachments[0].filename}")
-                if not ctx.attachments:
-                    sent = True
-                    await ctx.delete()
-                    components1 = []
-                    reactionstotal = {}
-                    reactedusers = []
-                    content = e.demojize(ctx.content)
-                    messageemojis = re.findall(r'(:[^:]*:)', content)
-                    if messageemojis is not None:
-                        for emoji in messageemojis:
-                            try:
-                                emoji1 = e.emojize(emoji)
-                                components1.append(Button(emoji=emoji1, id=emoji1))
-                                reactionstotal.update({emoji1: 0})
-                            except: 
-                                pass
-                        reactionstotal1 = str(reactionstotal).replace("{", " ").replace("}", "").replace(",", f"\n").replace(":", "").replace("'", "")
+                if ctx.webhook_id:
+                    return
+                else:
+                    if ctx.attachments:
+                        await ctx.attachments[0].save(f"./{ctx.attachments[0].filename}")
+                        file = discord.File(ctx.attachments[0].filename)
+                        sent = True
+                        await ctx.delete()
+                        components1 = []
+                        reactionstotal = {}
+                        reactedusers = []
+                        content = e.demojize(ctx.content)
+                        messageemojis = re.findall(r'(:[^:]*:)', content)
+                        if messageemojis is not None:
+                            for emoji in messageemojis:
+                                try:
+                                    emoji1 = e.emojize(emoji)
+                                    components1.append(Button(emoji=emoji1, id=emoji1))
+                                    reactionstotal.update({emoji1: 0})
+                                except: 
+                                    pass
+                            reactionstotal1 = str(reactionstotal).replace("{", " ").replace("}", "").replace(",", f"\n").replace(":", "").replace("'", "")
                         embedDescription  = (f"{ctx.content}\n\n```{reactionstotal1}\n```")
                         try:
-                            msg = await ctx.channel.send(embed=addEmbed(ctx,None,embedDescription ), components=[components1])
+                            msg = await ctx.channel.send(embed=addEmbed(ctx,None,embedDescription, f"attachment://{ctx.attachments[0].filename}"), components=[components1], file=file)
                         except HTTPException:
                             await ctx.channel.send("Please enter a message with emojis as options.", delete_after=3)
-                    else:
-                        embedDescription  = (f"{ctx.content}\n\n```{reactionstotal1}\n```")
-                        msg = await ctx.channel.send(embed=addEmbed(ctx,None,embedDescription ), components=[])
-                    print(f"A poll was made in #{ctx.channel.name} by {ctx.author}.")
-                    while sent == True:
-                        try:
-                            res = await client.wait_for(event="button_click",check=lambda res: res.channel == ctx.channel, timeout=43200)
-                            if res.user.id in reactedusers:
-                                await res.respond(
-                                    type=InteractionType.ChannelMessageWithSource,
-                                    content=f'You have already voted for this poll.'
-                                )
-                            else:
-                                getdata = reactionstotal[res.component.id]
-                                reactionstotal.update({res.component.id: getdata + 1})
-                                reactionstotal1 = str(reactionstotal).replace("{", " ").replace("}", "").replace(",", f"\n").replace(":", "").replace("'", "")
-                                embedDescription1 = f"{ctx.content}\n\n```{reactionstotal1}\n```"
-                                await msg.edit(embed=addEmbed(ctx,None,embedDescription1 ),
-                                    components=[components1])
-                                await res.respond(
-                                    type=InteractionType.ChannelMessageWithSource,
-                                    content=f'Successfully voted for {res.component.id}.'
-                                )
-                                reactedusers.append(res.user.id)
-                        except:
-                            embedDescription1 = f"{ctx.content}\n\n```{reactionstotal1}\n```\n\n **This poll has ended.**"
+                        print(f"An image inclusive poll was made in #{ctx.channel.name} by {ctx.author}.")
+                        while sent == True:
                             try:
-                                await msg.edit(embed=addEmbed(ctx,None,embedDescription1 ),
-                                        components=[])
+                                res = await client.wait_for(event="button_click",check=lambda res: res.channel == ctx.channel, timeout=43200)
+                                if res.user.id in reactedusers:
+                                    await res.respond(
+                                        type=InteractionType.ChannelMessageWithSource,
+                                        content=f'You have already voted for this poll.'
+                                    )
+                                else:
+                                    getdata = reactionstotal[res.component.id]
+                                    reactionstotal.update({res.component.id: getdata + 1})
+                                    reactionstotal1 = str(reactionstotal).replace("{", " ").replace("}", "").replace(",", f"\n").replace(":", "").replace("'", "")
+                                    embedDescription1 = f"{ctx.content}\n\n```{reactionstotal1}\n```"
+                                    await msg.edit(embed=addEmbed(ctx,None,embedDescription1, f"attachment://{ctx.attachments[0].filename}"),
+                                        components=[components1])
+                                    await res.respond(
+                                        type=InteractionType.ChannelMessageWithSource,
+                                        content=f'Successfully voted for {res.component.id}.'
+                                    )
+                                    reactedusers.append(res.user.id)
                             except:
-                                pass
-                            sent = False
+                                embedDescription1 = f"{ctx.content}\n\n```{reactionstotal1}\n```\n\n **This poll has ended.**"
+                                await msg.edit(embed=addEmbed(ctx,None,embedDescription1, f"attachment://{ctx.attachments[0].filename}"),
+                                        components=[])
+                                sent = False
+                        os.remove(f"./{ctx.attachments[0].filename}")
+                    if not ctx.attachments:
+                        sent = True
+                        await ctx.delete()
+                        components1 = []
+                        reactionstotal = {}
+                        reactedusers = []
+                        content = e.demojize(ctx.content)
+                        messageemojis = re.findall(r'(:[^:]*:)', content)
+                        if messageemojis is not None:
+                            for emoji in messageemojis:
+                                try:
+                                    emoji1 = e.emojize(emoji)
+                                    components1.append(Button(emoji=emoji1, id=emoji1))
+                                    reactionstotal.update({emoji1: 0})
+                                except: 
+                                    pass
+                            reactionstotal1 = str(reactionstotal).replace("{", " ").replace("}", "").replace(",", f"\n").replace(":", "").replace("'", "")
+                            embedDescription  = (f"{ctx.content}\n\n```{reactionstotal1}\n```")
+                            try:
+                                msg = await ctx.channel.send(embed=addEmbed(ctx,None,embedDescription ), components=[components1])
+                            except HTTPException:
+                                await ctx.channel.send("Please enter a message with emojis as options.", delete_after=3)
+                        else:
+                            embedDescription  = (f"{ctx.content}\n\n```{reactionstotal1}\n```")
+                            msg = await ctx.channel.send(embed=addEmbed(ctx,None,embedDescription ), components=[])
+                        print(f"A poll was made in #{ctx.channel.name} by {ctx.author}.")
+                        while sent == True:
+                            try:
+                                res = await client.wait_for(event="button_click",check=lambda res: res.channel == ctx.channel, timeout=43200)
+                                if res.user.id in reactedusers:
+                                    await res.respond(
+                                        type=InteractionType.ChannelMessageWithSource,
+                                        content=f'You have already voted for this poll.'
+                                    )
+                                else:
+                                    getdata = reactionstotal[res.component.id]
+                                    reactionstotal.update({res.component.id: getdata + 1})
+                                    reactionstotal1 = str(reactionstotal).replace("{", " ").replace("}", "").replace(",", f"\n").replace(":", "").replace("'", "")
+                                    embedDescription1 = f"{ctx.content}\n\n```{reactionstotal1}\n```"
+                                    await msg.edit(embed=addEmbed(ctx,None,embedDescription1 ),
+                                        components=[components1])
+                                    await res.respond(
+                                        type=InteractionType.ChannelMessageWithSource,
+                                        content=f'Successfully voted for {res.component.id}.'
+                                    )
+                                    reactedusers.append(res.user.id)
+                            except:
+                                embedDescription1 = f"{ctx.content}\n\n```{reactionstotal1}\n```\n\n **This poll has ended.**"
+                                try:
+                                    await msg.edit(embed=addEmbed(ctx,None,embedDescription1 ),
+                                            components=[])
+                                except:
+                                    pass
+                                sent = False
 
-    if "console-" in ctx.channel.name:
-        messagestrip = await stripmessage(ctx.content, 'a server operator')
-        if messagestrip:
-            print(messagestrip)
-            alertschannelcheck = selectquery(sql, 'guilds', 'alertschannel', f'guild_id = {ctx.guild.id}')
-            generalchannelcheck = selectquery(sql, 'guilds', 'generalchannel', f'guild_id = {ctx.guild.id}')
-            if alertschannelcheck != 0:
-                alertschannel = client.get_channel(alertschannelcheck)
-                msg = await alertschannel.send(content=f'```{messagestrip}``` It originated from {ctx.channel.mention}!',
-                components=[Button(style=ButtonStyle.red, label="Verify", id=messagestrip)])
-                if generalchannelcheck != 0:
-                    generalchannel = client.get_channel(generalchannelcheck)
-                    await generalchannel.send(content=f'**WARNING!** `/op` or `/deop` was used. Check {alertschannel.mention} for more info.', delete_after=600)
-                verified = False
-                while verified == False:
-                    res = await client.wait_for("button_click")
-                    if res.component.id == messagestrip:
-                        await msg.edit(content=f'```{messagestrip}``` It originated from {ctx.channel.mention}!',
-                        components=[Button(style=ButtonStyle.green, disabled=True ,label=f"OP Verified By {res.user}")])
-                        await res.respond(
-                            type=InteractionType.ChannelMessageWithSource,
-                            content=f'Op successfully verified.'
-                        )
-                        verified = True
-        messagestrip = await stripmessage(ctx.content, 'Main thread terminated by WatchDog due to hard crash')
-        if messagestrip:
-            print(messagestrip)
-            crashalertschannelcheck = selectquery(sql, 'guilds', 'crashalertschannel', f'guild_id = {ctx.guild.id}')
-            generalchannelcheck = selectquery(sql, 'guilds', 'generalchannel', f'guild_id = {ctx.guild.id}')
-            if crashalertschannelcheck != 0:
-                crashalertschannel = client.get_channel(crashalertschannelcheck)
-                await crashalertschannel.send(f'```{messagestrip}``` It originated from {ctx.channel.mention}!')
-                if generalchannelcheck != 0:
-                    generalchannel = client.get_channel(generalchannelcheck)
-                    await generalchannel.send(f'**WARNING!** {ctx.channel.mention} has just **hard crashed!** Check {crashalertschannel.mention} for more info.')
-    if "console-" in ctx.channel.name:
-        lptriggers = ["now inherits permissions from", "no longer inherits permissions from",
-        "[LP] Set group.", "[LP] Web editor data was applied to user", "[LP] Web editor data was applied to group"]
-        for trigger in lptriggers:
-            messagestrip = await stripmessage(ctx.content, trigger)
+        if "console-" in ctx.channel.name:
+            messagestrip = await stripmessage(ctx.content, 'a server operator')
             if messagestrip:
                 print(messagestrip)
-                lpalertschannelcheck = selectquery(sql, 'guilds', 'lpalertschannel', f'guild_id = {ctx.guild.id}')
-                if lpalertschannelcheck != 0:
-                    lpalertschannel = client.get_channel(lpalertschannelcheck)
-                    try:
-                        await lpalertschannel.send(f'```{messagestrip}``` It originated from {ctx.channel.mention}!')
-                    except:
-                        pass
-    if ctx.guild.id in ham_guilds:
+                alertschannelcheck = selectquery(sql, 'guilds', 'alertschannel', f'guild_id = {ctx.guild.id}')
+                generalchannelcheck = selectquery(sql, 'guilds', 'generalchannel', f'guild_id = {ctx.guild.id}')
+                if alertschannelcheck != 0:
+                    alertschannel = client.get_channel(alertschannelcheck)
+                    msg = await alertschannel.send(content=f'```{messagestrip}``` It originated from {ctx.channel.mention}!',
+                    components=[Button(style=ButtonStyle.red, label="Verify", id=messagestrip)])
+                    if generalchannelcheck != 0:
+                        generalchannel = client.get_channel(generalchannelcheck)
+                        await generalchannel.send(content=f'**WARNING!** `/op` or `/deop` was used. Check {alertschannel.mention} for more info.', delete_after=600)
+                    verified = False
+                    while verified == False:
+                        res = await client.wait_for("button_click")
+                        if res.component.id == messagestrip:
+                            await msg.edit(content=f'```{messagestrip}``` It originated from {ctx.channel.mention}!',
+                            components=[Button(style=ButtonStyle.green, disabled=True ,label=f"OP Verified By {res.user}")])
+                            await res.respond(
+                                type=InteractionType.ChannelMessageWithSource,
+                                content=f'Op successfully verified.'
+                            )
+                            verified = True
+            messagestrip = await stripmessage(ctx.content, 'Main thread terminated by WatchDog due to hard crash')
+            if messagestrip:
+                print(messagestrip)
+                crashalertschannelcheck = selectquery(sql, 'guilds', 'crashalertschannel', f'guild_id = {ctx.guild.id}')
+                generalchannelcheck = selectquery(sql, 'guilds', 'generalchannel', f'guild_id = {ctx.guild.id}')
+                if crashalertschannelcheck != 0:
+                    crashalertschannel = client.get_channel(crashalertschannelcheck)
+                    await crashalertschannel.send(f'```{messagestrip}``` It originated from {ctx.channel.mention}!')
+                    if generalchannelcheck != 0:
+                        generalchannel = client.get_channel(generalchannelcheck)
+                        await generalchannel.send(f'**WARNING!** {ctx.channel.mention} has just **hard crashed!** Check {crashalertschannel.mention} for more info.')
         if "console-" in ctx.channel.name:
-            lptriggers = ["issued server command: /sudo", "issued server command: /attachcommand",
-            "issued server command: /cmi attachcommand", "issued server command: /cmi sudo", 
-            "issued server command: /npc command add", "issued server command: /ic", "issued server command: /cmi ic"]
+            lptriggers = ["now inherits permissions from", "no longer inherits permissions from",
+            "[LP] Set group.", "[LP] Web editor data was applied to user", "[LP] Web editor data was applied to group"]
             for trigger in lptriggers:
                 messagestrip = await stripmessage(ctx.content, trigger)
-                if messagestrip and "/icanhasbukkit" not in messagestrip:
+                if messagestrip:
+                    print(messagestrip)
+                    lpalertschannelcheck = selectquery(sql, 'guilds', 'lpalertschannel', f'guild_id = {ctx.guild.id}')
+                    if lpalertschannelcheck != 0:
+                        lpalertschannel = client.get_channel(lpalertschannelcheck)
+                        try:
+                            await lpalertschannel.send(f'```{messagestrip}``` It originated from {ctx.channel.mention}!')
+                        except:
+                            pass
+        if ctx.guild.id in ham_guilds:
+            if "console-" in ctx.channel.name:
+                lptriggers = ["issued server command: /sudo", "issued server command: /attachcommand",
+                "issued server command: /cmi attachcommand", "issued server command: /cmi sudo", 
+                "issued server command: /npc command add", "issued server command: /ic", "issued server command: /cmi ic"]
+                for trigger in lptriggers:
+                    messagestrip = await stripmessage(ctx.content, trigger)
+                    if messagestrip and "/icanhasbukkit" not in messagestrip:
+                        print(messagestrip)
+                        guildchannels = ctx.guild.channels
+                        for channel in guildchannels:
+                            if "command-alerts" in channel.name:
+                                await channel.send(f'```{messagestrip}``` It originated from {ctx.channel.mention}!')
+        if ctx.guild.id in ham_guilds:
+            if "console-survival" in ctx.channel.name:
+                messagestrip = await stripmessage(ctx.content, '[HamAlerts] Thank you')
+                if messagestrip:
                     print(messagestrip)
                     guildchannels = ctx.guild.channels
                     for channel in guildchannels:
-                        if "command-alerts" in channel.name:
-                            await channel.send(f'```{messagestrip}``` It originated from {ctx.channel.mention}!')
-    if ctx.guild.id in ham_guilds:
-        if "console-survival" in ctx.channel.name:
-            messagestrip = await stripmessage(ctx.content, '[HamAlerts] Thank you')
-            if messagestrip:
-                print(messagestrip)
-                guildchannels = ctx.guild.channels
-                for channel in guildchannels:
-                    if "receipts" in channel.name:
-                        await channel.send(f'```{messagestrip}```')
+                        if "receipts" in channel.name:
+                            await channel.send(f'```{messagestrip}```')
+    except Exception as e:
+        print(e)
 
     await client.process_commands(ctx)
 
