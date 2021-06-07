@@ -224,7 +224,7 @@ async def sendwebhook(ctx, webhookname, channel, file, embeds):
     for w in await ctx.guild.webhooks():
         if ctx is None: image = client.user.avatar_url
         if ctx != None: image = ctx.author.avatar_url
-        if "Ham5teakBot3" == w.name and w.channel == ctx.channel:
+        if "Ham5teakBot3" == w.name and w.channel == channel:
             await w.send(username=webhookname, avatar_url=image, embeds=embeds, file=file)
             return True
     webhook = await channel.create_webhook(name="Ham5teakBot3")
@@ -303,7 +303,7 @@ async def statuscheck():
             else:
                 ham5teak = "Offline ❌"
             embed = discord.Embed(description=f"**Ham5teak Status:** {ham5teak} \n**Players:** {status.players.online - 20}\n**IP:** play.ham5teak.xyz\n**Versions:** 1.13.x, 1.14.x, 1.15.x, 1.16.x", color=discord.Color.teal())
-            embed.set_footer(text="Ham5teak Bot 3.0 | play.ham5teak.xyz | Made by Beastman#1937 and Jaymz#7815")
+            embed.set_footer(text="Ham5teak Bot 3.0 | play.ham5teak.xyz | Made by Beastman#1937, SottaByte#1543 and Jaymz#7815")
             embed.set_author(name="Ham5teak Network Status", icon_url="https://cdn.discordapp.com/icons/380308776114454528/a_be4514bb0a52a206d1bddbd5fbd2250f.png?size=4096")
             await channel.send(embed=embed)
         except:
@@ -356,7 +356,7 @@ def addEmbed2(ctx , color, new, image = None):
             newEmbed = discord.Embed(description=f"{new}", color=colors[color])
         elif ctx == None:
             newEmbed = discord.Embed(description=f"{new}", color=colors[color])
-    newEmbed.set_footer(text="Ham5teak Bot 3.0 | play.ham5teak.xyz | Made by Beastman#1937 and Jaymz#7815")
+    newEmbed.set_footer(text="Ham5teak Bot 3.0 | play.ham5teak.xyz | Made by Beastman#1937, SottaByte#1543 and Jaymz#7815")
     return newEmbed
 
 def addEmbed(ctx , color, new, image = None):
@@ -375,7 +375,7 @@ def addEmbed(ctx , color, new, image = None):
             newEmbed = discord.Embed(description=f"{new}", color=colors[color])
         elif ctx == None:
             newEmbed = discord.Embed(description=f"{new}", color=colors[color])
-    newEmbed.set_footer(text="Ham5teak Bot 3.0 | play.ham5teak.xyz | Made by Beastman#1937 and Jaymz#7815")
+    newEmbed.set_footer(text="Ham5teak Bot 3.0 | play.ham5teak.xyz | Made by Beastman#1937, SottaByte#1543 and Jaymz#7815")
     return newEmbed
 
 # ------- STARTUP EVENT -------
@@ -852,7 +852,7 @@ async def demanded(ctx, messageid):
                 embedDescription  = (f"**{finalcount} Upvotes:** [Go To Suggestion]({msg.jump_url}) - {ctx.channel.mention}")
                 embed1 = addEmbed(ctx,"dark_teal",embedDescription)
                 embed2 = msg.embeds[0]
-                await sendwebhook(msg, "Demanded Suggestions", dsuggestionschannel, None, [embed1, embed2])
+                await sendwebhook(ctx, "Demanded Suggestions", dsuggestionschannel, None, [embed1, embed2])
                 embedDescription  = (f"[Suggestion]({msg.jump_url}) successfully demanded!")
                 await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDescription ), delete_after=5)
                 return
@@ -881,7 +881,7 @@ async def reject(ctx, messageid):
                 embedDescription  = (f"**{finalcount} Downvotes:** [Go To Suggestion]({msg.jump_url}) - {ctx.channel.mention}")
                 embed1 = addEmbed(ctx,"dark_teal",embedDescription)
                 embed2 = msg.embeds[0]
-                await sendwebhook(msg, "Rejected Suggestions", rsuggestionschannel, None, [embed1, embed2])
+                await sendwebhook(ctx, "Rejected Suggestions", rsuggestionschannel, None, [embed1, embed2])
                 embedDescription  = (f"[Suggestion]({msg.jump_url}) successfully rejected!")
                 await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDescription ), delete_after=5)
                 return
@@ -1084,7 +1084,7 @@ async def ham5teak(ctx):
         ham5teak = "Online ✅"
     else:
         ham5teak = "Offline ❌"
-    embedDescription =(f"**Ham5teak Status:** {ham5teak} \n **Players:** {status.players.online - 20}")
+    embedDescription =(f"**Ham5teak Status:** {ham5teak} \n**Players:** {status.players.online - 20}")
     await ctx.send(embed=addEmbed(ctx,None,embedDescription ))  
 
 @slash.slash(name="help")
@@ -1323,7 +1323,7 @@ the following choices by clicking the button describing your issue.
     async def embed1(embedDescription):
         embed1 = discord.Embed(description=f"{embedDescription}", color=discord.Color.dark_teal())
         embed1.set_author(name="Ham5teak Bot Ticket Assistant", icon_url="https://cdn.discordapp.com/icons/380308776114454528/a_be4514bb0a52a206d1bddbd5fbd2250f.png?size=4096")
-        embed1.set_footer(text="Ham5teak Bot 3.0 | play.ham5teak.xyz | Made by Beastman#1937 and Jaymz#7815")
+        embed1.set_footer(text="Ham5teak Bot 3.0 | play.ham5teak.xyz | Made by Beastman#1937, SottaByte#1543 and Jaymz#7815")
         return embed1
     
     if channel.guild.id == 380308776114454528:
@@ -1571,7 +1571,7 @@ async def on_message(ctx):
                     print(f"An image inclusive poll was made in #{ctx.channel.name} by {ctx.author}.")
                     while sent == True:
                         try:
-                            res = await client.wait_for(event="button_click",check=lambda res: res.channel == ctx.channel, timeout=108000)
+                            res = await client.wait_for(event="button_click",check=lambda res: res.channel == ctx.channel, timeout=43200)
                             if res.user.id in reactedusers:
                                 await res.respond(
                                     type=InteractionType.ChannelMessageWithSource,
@@ -1589,7 +1589,7 @@ async def on_message(ctx):
                                     content=f'Successfully voted for {res.component.id}.'
                                 )
                                 reactedusers.append(res.user.id)
-                        except asyncio.TimeoutError:
+                        except:
                             embedDescription1 = f"{ctx.content}\n\n```{reactionstotal1}\n```\n\n **This poll has ended.**"
                             await msg.edit(embed=addEmbed(ctx,None,embedDescription1, f"attachment://{ctx.attachments[0].filename}"),
                                     components=[])
@@ -1623,7 +1623,7 @@ async def on_message(ctx):
                     print(f"A poll was made in #{ctx.channel.name} by {ctx.author}.")
                     while sent == True:
                         try:
-                            res = await client.wait_for(event="button_click",check=lambda res: res.channel == ctx.channel, timeout=108000)
+                            res = await client.wait_for(event="button_click",check=lambda res: res.channel == ctx.channel, timeout=43200)
                             if res.user.id in reactedusers:
                                 await res.respond(
                                     type=InteractionType.ChannelMessageWithSource,
@@ -1641,7 +1641,7 @@ async def on_message(ctx):
                                     content=f'Successfully voted for {res.component.id}.'
                                 )
                                 reactedusers.append(res.user.id)
-                        except asyncio.TimeoutError and KeyError:
+                        except:
                             embedDescription1 = f"{ctx.content}\n\n```{reactionstotal1}\n```\n\n **This poll has ended.**"
                             try:
                                 await msg.edit(embed=addEmbed(ctx,None,embedDescription1 ),
@@ -1706,12 +1706,12 @@ async def on_message(ctx):
             "issued server command: /npc command add", "issued server command: /ic", "issued server command: /cmi ic"]
             for trigger in lptriggers:
                 messagestrip = await stripmessage(ctx.content, trigger)
-                if messagestrip:
+                if messagestrip and "/icanhasbukkit" not in messagestrip:
                     print(messagestrip)
                     guildchannels = ctx.guild.channels
                     for channel in guildchannels:
                         if "command-alerts" in channel.name:
-                            await channel.send(f'```{messagestrip}```')
+                            await channel.send(f'```{messagestrip}``` It originated from {ctx.channel.mention}!')
     if ctx.guild.id in ham_guilds:
         if "console-survival" in ctx.channel.name:
             messagestrip = await stripmessage(ctx.content, '[HamAlerts] Thank you')
