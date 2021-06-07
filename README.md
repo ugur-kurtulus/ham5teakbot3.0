@@ -26,6 +26,7 @@ This bot was designed to be used on multiple servers giving a full core bot expe
 1. Beastman9095
 2. SottaByte
 3. Jaymz
+4. JCCM
 
 > Copyright © 2021 Beastman9095 & Ham5teak 
 
