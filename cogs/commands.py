@@ -565,7 +565,7 @@ class CommandCog(commands.Cog):
 
         try:
             with contextlib.redirect_stdout(stdout):
-                exec(
+                exec( # nosec
                     f"async def func():\n{textwrap.indent(code, '    ')}", local_variables,
                 )
 

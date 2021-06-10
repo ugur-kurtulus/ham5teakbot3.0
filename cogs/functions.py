@@ -60,7 +60,7 @@ def createtable(sql,table_name , query):
 
 def deletequery(sql, table , where):
     sql.connect()
-    query = (f'DELETE FROM {database}.{table} WHERE {where}')
+    query = (f'DELETE FROM {database}.{table} WHERE {where}') # nosec
     try:
         with sql as sql:
             sql.connect()
