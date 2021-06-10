@@ -62,10 +62,12 @@ class CommandCog(commands.Cog):
                 except Exception as e:
                     print(e)
                     return
+            print("All cogs have successfully been reloaded!")
             await ctx.send(embed=addEmbed(ctx, "dark_teal", f"All cogs have successfully been reloaded!"), delete_after=7)
         try:
             self.bot.unload_extension(f"cogs.{cog}")
             self.bot.load_extension(f"cogs.{cog}")
+            print(f"`{cog}` has successfully been reloaded!")
             await ctx.send(embed=addEmbed(ctx, "dark_teal", f"`{cog}` has successfully been reloaded!"), delete_after=7)
         except Exception as e:
             print(e)
