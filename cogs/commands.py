@@ -64,6 +64,7 @@ class CommandCog(commands.Cog):
                     print(e)
                     return
             await ctx.send(embed=addEmbed(ctx, "dark_teal", f"All cogs have successfully been reloaded!"), delete_after=7)
+            return
         try:
             self.bot.unload_extension(f"cogs.{cog}")
             self.bot.load_extension(f"cogs.{cog}")
