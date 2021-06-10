@@ -9,7 +9,7 @@ class Slash(commands.Cog):
         self.bot = client
 
     @cog_ext.cog_slash(name="accept")
-    async def accept(ctx, messageid):
+    async def accept(self, ctx, messageid):
         moderatorcheck1 = await moderatorcheck(ctx.guild, ctx.author)
         if moderatorcheck1 == 0:
             await ctx.defer(hidden=True)
@@ -38,7 +38,7 @@ class Slash(commands.Cog):
                     return
 
     @cog_ext.cog_slash(name="ham5teak", description="View Ham5teak network status")
-    async def ham5teak(ctx):
+    async def ham5teak(self, ctx):
         server = MinecraftServer.lookup("play.ham5teak.xyz:25565")
         status = server.status()
         if status.latency >= 0.0001:
@@ -49,12 +49,12 @@ class Slash(commands.Cog):
         await ctx.send(embed=addEmbed(ctx,None,embedDescription ))  
 
     @cog_ext.cog_slash(name="help")
-    async def help(ctx):
+    async def help(self, ctx):
         await ctx.defer(hidden=True)
         await ctx.send("boo")
 
     @cog_ext.cog_slash(name="move", description="Move a channel to specified category.", )
-    async def move(ctx, category):
+    async def move(self, ctx, category):
         await ctx.defer(hidden=True)
         moderatorcheck1 = await moderatorcheck(ctx.guild, ctx.author)
         if moderatorcheck1 == 0:
@@ -72,7 +72,7 @@ class Slash(commands.Cog):
                 await ctx.send(embed=addEmbed(ctx,None,embedDescription ))
 
     @cog_ext.cog_slash(name="tag", description="A command used to leave a note to a channel")
-    async def tag(ctx, note, user:discord.User = None, channel:discord.TextChannel = None, role:discord.Role = None):
+    async def tag(self, ctx, note, user:discord.User = None, channel:discord.TextChannel = None, role:discord.Role = None):
         moderatorcheck1 = await moderatorcheck(ctx.guild, ctx.author)
         if moderatorcheck1 == 0:
             await ctx.defer(hidden=True)
@@ -98,7 +98,7 @@ class Slash(commands.Cog):
 
     @cog_ext.cog_slash(name="setchannel", description="Set channels for your server")
     @commands.has_permissions(manage_guild=True)
-    async def setchannel(ctx, value: discord.TextChannel, channel):
+    async def setchannel(self, ctx, value: discord.TextChannel, channel):
         await ctx.defer(hidden=True)
         administratorcheck1 = await administratorcheck(ctx.guild, ctx.author)
         if administratorcheck1 == 0:
@@ -123,7 +123,7 @@ class Slash(commands.Cog):
             
     @cog_ext.cog_slash(name="setmove")
     @commands.has_permissions(manage_guild=True)
-    async def setmove(ctx, categoryi: discord.CategoryChannel, alias):
+    async def setmove(self, ctx, categoryi: discord.CategoryChannel, alias):
         await ctx.defer(hidden=True)
         await administratorcheck(ctx.guild, ctx.author)
         administratorcheck1 = await administratorcheck(ctx.guild, ctx.author)
@@ -161,7 +161,7 @@ class Slash(commands.Cog):
 
     @cog_ext.cog_slash(name="setrole")
     @commands.has_permissions(manage_guild=True)
-    async def setrole(ctx, administrator:discord.Role, moderator: discord.Role):
+    async def setrole(self, ctx, administrator:discord.Role, moderator: discord.Role):
         await ctx.defer(hidden=True)
         administratorcheck1 = await administratorcheck(ctx.guild, ctx.author)
         if administratorcheck1 == 0:
@@ -183,7 +183,7 @@ class Slash(commands.Cog):
 
     @cog_ext.cog_slash(name="setup")
     @commands.has_permissions(manage_guild=True)
-    async def setup(ctx, password, administrator:discord.Role, moderator:discord.Role):
+    async def setup(self, ctx, password, administrator:discord.Role, moderator:discord.Role):
         await ctx.defer(hidden=True)
         async def invalidpass():
             embedDescription  = (f"Invalid password.")
@@ -232,7 +232,7 @@ class Slash(commands.Cog):
                 await ctx.send(embed=addEmbed(ctx,"red",embedDescription ))
 
     @commands.Cog.listener()
-    async def on_slash_command_error(ctx, error):
+    async def on_slash_command_error(self, ctx, error):
         print(error)
         if isinstance(error, discord.errors.NotFound):
             embedDescription  = (f"Please enter a valid ID. \n{error}")
