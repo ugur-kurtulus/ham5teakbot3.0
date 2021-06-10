@@ -24,7 +24,6 @@ class OnMessage(commands.Cog):
                     if channel in ctx.channel.name:
                         if not ctx.author.bot:
                             if ctx.content.startswith("-") or ctx.content.startswith("?") or ctx.content.startswith("!"):
-                                await client.process_commands(ctx)
                                 return
                             else:
                                 if ctx.attachments:
@@ -53,7 +52,6 @@ class OnMessage(commands.Cog):
                 if channel in ctx.channel.name:
                     if not ctx.author.bot:
                         if ctx.content.startswith("-") or ctx.content.startswith("?") or ctx.content.startswith("!"):
-                            await client.process_commands(ctx)
                             return
                         else:
                             if ctx.attachments:
@@ -73,7 +71,6 @@ class OnMessage(commands.Cog):
             if "suggestions" in ctx.channel.name:
                 if not ctx.author.bot:
                     if ctx.content.startswith("-") or ctx.content.startswith("?") or ctx.content.startswith("!"):
-                        await client.process_commands(ctx)
                         return
                     else:
                         if ctx.attachments:
@@ -93,7 +90,6 @@ class OnMessage(commands.Cog):
             if "polls" in ctx.channel.name or "poll" in ctx.channel.name:
                 if not ctx.author.bot:
                     if ctx.content.startswith("-") or ctx.content.startswith("?") or ctx.content.startswith("!"):
-                        await client.process_commands(ctx)
                         return
                     if ctx.webhook_id:
                         return
