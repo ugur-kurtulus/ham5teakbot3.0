@@ -237,7 +237,7 @@ class CommandCog(commands.Cog):
         embedobj = msg.embeds[0]
         if msg.author.id != client.user.id:
             await deletemessage(ctx)
-            webhook1 = await getwebhook(self, ctx, "Ham5teakBot3")
+            webhook1 = await getwebhook(ctx, "Ham5teakBot3")
             async with aiohttp.ClientSession() as session:
                 webh = discord.Webhook.from_url(webhook1.url, adapter=discord.AsyncWebhookAdapter(session=session))
                 await webh.edit_message(id, embeds=[addEmbed2(ctx, None, embedDescription, embedobj.image.url)])
@@ -483,7 +483,7 @@ class CommandCog(commands.Cog):
                     embedDescription  = (f"**{finalcount} Upvotes:** [Go To Suggestion]({msg.jump_url}) - {ctx.channel.mention}")
                     embed1 = addEmbed(ctx,"dark_teal",embedDescription)
                     embed2 = msg.embeds[0]
-                    await sendwebhook(self, ctx, "Demanded Suggestions", dsuggestionschannel, None, [embed1, embed2])
+                    await sendwebhook(ctx, "Demanded Suggestions", dsuggestionschannel, None, [embed1, embed2])
                     embedDescription  = (f"[Suggestion]({msg.jump_url}) successfully demanded!")
                     await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDescription ), delete_after=5)
                     return
@@ -512,7 +512,7 @@ class CommandCog(commands.Cog):
                     embedDescription  = (f"**{finalcount} Downvotes:** [Go To Suggestion]({msg.jump_url}) - {ctx.channel.mention}")
                     embed1 = addEmbed(ctx,"dark_teal",embedDescription)
                     embed2 = msg.embeds[0]
-                    await sendwebhook(self, ctx, "Rejected Suggestions", rsuggestionschannel, None, [embed1, embed2])
+                    await sendwebhook(ctx, "Rejected Suggestions", rsuggestionschannel, None, [embed1, embed2])
                     embedDescription  = (f"[Suggestion]({msg.jump_url}) successfully rejected!")
                     await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDescription ), delete_after=5)
                     return
