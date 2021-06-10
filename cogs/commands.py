@@ -54,7 +54,7 @@ class CommandCog(commands.Cog):
     async def reload(self, ctx, cog:str):
         await deletemessage(ctx)
         if cog == "all":
-            cogs = ["commands","functions","on_guild_channel_create","on_reaction_add","slashcommands","on_message"]
+            cogs = ["commands","on_guild_channel_create","on_reaction_add","slashcommands","on_message"]
             for cog1 in cogs:
                 try:
                     self.bot.unload_extension(f"cogs.{cog1}")
