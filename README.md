@@ -4,9 +4,14 @@ This bot was designed to be used on multiple servers giving a full core bot expe
 
 > My Discord: **Beastman#1937**
 > 
-> (**Ham5teak Discord**) : https://discord.gg/6mn49CtPfP
+> [**Ham5teak Discord**](https://discord.gg/6mn49CtPfP)
 > 
-> (**Ham5teak IP Address**) : play.ham5teak.xyz
+> **Ham5teak IP Address** : play.ham5teak.xyz
+
+
+![Anurag's GitHub stats](https://github-readme-stats.vercel.app/api?username=Beastman9095&show_icons=true&theme=dark)
+
+[![Top Langs](https://github-readme-stats.vercel.app/api/top-langs/?username=Beastman9095&layout=compact&show_icons=true&theme=dark)](https://github.com/anuraghazra/github-readme-stats)
 
 
 # Project Information
@@ -17,8 +22,12 @@ This bot was designed to be used on multiple servers giving a full core bot expe
 - [x] Custom channel moving handler.
 - [x] Music bot.
 - [x] Ticket assistant.
-- [x] Advanced suggestion and poll handler
-- [x] Custom error handler.
+- [x] Advanced suggestion handler.
+- [x] Advanced poll system with buttons.
+- [x] Webhook announcement types.
+- [x] Separation into cogs making the bot reloadable at all times.
+- [x] Improved alert channels for specific keywords.
+- [x] Proper error handlers.
 - [x] Embed image and attachment support without the need of an external library.
 
 
