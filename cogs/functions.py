@@ -14,6 +14,10 @@ import asyncio
 import emoji as e
 import mysql.connector
 
+"""
+Core Keys
+"""
+
 load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
 host = os.getenv("mariadb_host")
@@ -21,6 +25,10 @@ port = os.getenv("mariadb_port")
 database = os.getenv("mariadb_database")
 username = os.getenv("mariadb_username")
 password = os.getenv("mariadb_password")
+
+"""
+SQL Functions
+"""
 
 def sqlconnect(): 
     try:
@@ -35,8 +43,6 @@ def sqlconnect():
     except mysql.connector.Error as e:
         print(e)
         print('Failed to connect to MySQL')
-
-# ------- SQL FUNCTIONS -------
 
 def createtable(sql,table_name , query):
     tablecursor = sql.cursor()
@@ -188,6 +194,10 @@ createtable(sql,'categories', categories_query)
 createtable(sql,'restrict', restrict_query)
 createtable(sql,'passwords', passwords_query)
 
+"""
+Arrays and Dicts
+"""
+
 colors = {"green": 0x3aa45c, "red": 0xed4344, "blue": 0x5864f3, "aqua": 0x00FFFF,
  "dark_teal": 0x10816a, "teal": 0x1abc9c, "invis": 0x2f3037}
 premium_guilds = [selectqueryall(sql, 'guilds', 'guild_id', None)]
@@ -202,13 +212,20 @@ def getprefix(client, message):
     elif message.guild.id not in premium_guilds and message.guild.id not in prefixes:
         prefixes.update({f"{message.guild.id}": f"-"})
     return commands.when_mentioned_or(*prefixes[f"{message.guild.id}"])(client, message)
+
+"""
+Key definitions
+"""
+
 intents = discord.Intents.default()
 intents.members = True
-client = commands.Bot(command_prefix= (getprefix), intents=intents)  # Defines prefix and bot
+client = commands.Bot(command_prefix= (getprefix), intents=intents)  # Defines prefix and bot 
 DiscordComponents(client)
 slash = SlashCommand(client, sync_commands=False)  # Defines slash commands
 
-# ------- FUNCTIONS -------
+"""
+Functions
+"""
 
 async def deletemessage(ctx):
     try:
