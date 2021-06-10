@@ -143,9 +143,13 @@ class OnMessage(commands.Cog):
                                         )
                                         reactedusers[msg.id].append(res.user.id)
                                 except asyncio.TimeoutError:
+                                    reactedusers.pop(msg.id)
                                     embedDescription1 = f"{ctx.content}\n\n```{reactionstotal1}\n```\n\n **This poll has ended.**"
-                                    await msg.edit(embed=addEmbed(ctx,None,embedDescription1, f"attachment://{ctx.attachments[0].filename}"),
+                                    try:
+                                        await msg.edit(embed=addEmbed(ctx,None,embedDescription1, f"attachment://{ctx.attachments[0].filename}"),
                                             components=[])
+                                    except:
+                                        pass
                                     sent = False
                             os.remove(f"./{ctx.attachments[0].filename}")
                         if not ctx.attachments:
@@ -198,6 +202,7 @@ class OnMessage(commands.Cog):
                                         )
                                         reactedusers[msg.id].append(res.user.id)
                                 except asyncio.TimeoutError:
+                                    reactedusers.pop(msg.id)
                                     embedDescription1 = f"{ctx.content}\n\n```{reactionstotal1}\n```\n\n **This poll has ended.**"
                                     try:
                                         await msg.edit(embed=addEmbed(ctx,None,embedDescription1 ),
