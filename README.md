@@ -9,6 +9,11 @@ This bot was designed to be used on multiple servers giving a full core bot expe
 > **Ham5teak IP Address** : play.ham5teak.xyz
 
 
+![Anurag's GitHub stats](https://github-readme-stats.vercel.app/api?username=Beastman9095&show_icons=true&theme=dark)
+
+[![Top Langs](https://github-readme-stats.vercel.app/api/top-langs/?username=Beastman9095&layout=compact&show_icons=true&theme=dark)](https://github.com/anuraghazra/github-readme-stats)
+
+
 # Project Information
 **What is Achieved**:
 - [x] Announcement and suggestion embeds.
