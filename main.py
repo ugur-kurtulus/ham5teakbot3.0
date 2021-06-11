@@ -30,7 +30,8 @@ async def on_ready():
     channel = client.get_channel(841245744421273620)
     await channel.send(embed=addEmbed(None, "teal", embedDescription))
     #client.load_extension('cogs.music')
-    cogs = ["commands", "slashcommands", "on_message", "on_reaction_add", "on_guild_channel_create"]
+    cogs = ["commands", "slashcommands", "on_message", "on_reaction_add", 
+    "on_guild_channel_create", "setcommands"]
     for cog in cogs:
         client.load_extension(f"cogs.{cog}")
         print(f"{cog} has successfully been loaded!")

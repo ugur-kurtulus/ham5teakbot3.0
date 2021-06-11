@@ -46,12 +46,7 @@ class Slash(commands.Cog):
         else:
             ham5teak = "Offline ❌"
         embedDescription =(f"**Ham5teak Status:** {ham5teak} \n**Players:** {status.players.online - 20}")
-        await ctx.send(embed=addEmbed(ctx,None,embedDescription ))  
-
-    @cog_ext.cog_slash(name="help")
-    async def help(self, ctx):
-        await ctx.defer(hidden=True)
-        await ctx.send("boo")
+        await ctx.send(embed=addEmbed(ctx,None,embedDescription ))
 
     @cog_ext.cog_slash(name="move", description="Move a channel to specified category.", )
     async def move(self, ctx, category):

@@ -91,7 +91,7 @@ class OnMessage(commands.Cog):
                 if not ctx.author.bot:
                     if ctx.content.startswith("-") or ctx.content.startswith("?") or ctx.content.startswith("!"):
                         return
-                    if ctx.webhook_id:
+                    if ctx.webhook_id or "poll-results" in ctx.channel.name:
                         return
                     else:
                         if ctx.attachments:
