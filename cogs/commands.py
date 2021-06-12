@@ -319,7 +319,8 @@ class CommandCog(commands.Cog):
                     await ctx.author.add_roles(roles[f"{int(level1)}"])
                     await ctx.send(embed=addEmbed(ctx, None, f"You have successfully been given the role {roles[f'{int(level1)}'].mention}."), delete_after=5)
         else:
-            await nopermission(ctx)
+            await ctx.send(embed=await nopermission(ctx), delete_after=5)
+            return
     @commands.command(aliases=['ml'])
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def movelist(self, ctx):
