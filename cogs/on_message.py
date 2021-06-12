@@ -6,6 +6,7 @@ from discord_components import Button, ButtonStyle, InteractionType
 import asyncio
 import emoji as e
 import re
+import datetime
 from cogs.functions import *
 from cogs.functions import *
 
@@ -120,9 +121,19 @@ class OnMessage(commands.Cog):
                             except HTTPException:
                                 await ctx.channel.send("Please enter a message with emojis as options.", delete_after=3)
                             print(f"An image inclusive poll was made in #{ctx.channel.name} by {ctx.author}.")
+                            endTime = datetime.datetime.now() + datetime.timedelta(hours=12)
                             while sent == True:
-                                try:
-                                    res = await client.wait_for(event="button_click",check=lambda res: res.channel == ctx.channel, timeout=43200)
+                                if datetime.datetime.now() >= endTime:
+                                    reactedusers.pop(msg.id)
+                                    embedDescription1 = f"{ctx.content}\n\n```{reactionstotal1}\n```\n\n **This poll has ended.**"
+                                    try:
+                                        await msg.edit(embed=addEmbed(ctx,None,embedDescription1, f"attachment://{ctx.attachments[0].filename}"),
+                                            components=[])
+                                    except:
+                                        pass
+                                    sent = False
+                                else:
+                                    res = await client.wait_for(event="button_click",check=lambda res: res.channel == ctx.channel)
                                     if res.user.id in reactedusers:
                                         await res.respond(
                                             type=InteractionType.ChannelMessageWithSource,
@@ -142,15 +153,6 @@ class OnMessage(commands.Cog):
                                             content=f'Successfully voted for {res.component.id}.'
                                         )
                                         reactedusers[msg.id].append(res.user.id)
-                                except asyncio.TimeoutError:
-                                    reactedusers.pop(msg.id)
-                                    embedDescription1 = f"{ctx.content}\n\n```{reactionstotal1}\n```\n\n **This poll has ended.**"
-                                    try:
-                                        await msg.edit(embed=addEmbed(ctx,None,embedDescription1, f"attachment://{ctx.attachments[0].filename}"),
-                                            components=[])
-                                    except:
-                                        pass
-                                    sent = False
                             os.remove(f"./{ctx.attachments[0].filename}")
                         if not ctx.attachments:
                             sent = True
@@ -179,9 +181,19 @@ class OnMessage(commands.Cog):
                                 embedDescription  = (f"{ctx.content}\n\n```{reactionstotal1}\n```")
                                 msg = await ctx.channel.send(embed=addEmbed(ctx,None,embedDescription ), components=[])
                             print(f"A poll was made in #{ctx.channel.name} by {ctx.author}.")
+                            endTime = datetime.datetime.now() + datetime.timedelta(hours=12)
                             while sent == True:
-                                try:
-                                    res = await client.wait_for(event="button_click",check=lambda res: res.channel == ctx.channel, timeout=43200)
+                                if datetime.datetime.now() >= endTime:
+                                    reactedusers.pop(msg.id)
+                                    embedDescription1 = f"{ctx.content}\n\n```{reactionstotal1}\n```\n\n **This poll has ended.**"
+                                    try:
+                                        await msg.edit(embed=addEmbed(ctx,None,embedDescription1 ),
+                                                components=[])
+                                    except:
+                                        pass
+                                    sent = False
+                                else:
+                                    res = await client.wait_for(event="button_click",check=lambda res: res.channel == ctx.channel)
                                     if res.user.id in reactedusers[msg.id]:
                                         await res.respond(
                                             type=InteractionType.ChannelMessageWithSource,
@@ -201,15 +213,6 @@ class OnMessage(commands.Cog):
                                             content=f'Successfully voted for {res.component.id}.'
                                         )
                                         reactedusers[msg.id].append(res.user.id)
-                                except asyncio.TimeoutError:
-                                    reactedusers.pop(msg.id)
-                                    embedDescription1 = f"{ctx.content}\n\n```{reactionstotal1}\n```\n\n **This poll has ended.**"
-                                    try:
-                                        await msg.edit(embed=addEmbed(ctx,None,embedDescription1 ),
-                                                components=[])
-                                    except:
-                                        pass
-                                    sent = False
 
             if "console-" in ctx.channel.name:
                 messagestrip = await stripmessage(ctx.content, 'a server operator')

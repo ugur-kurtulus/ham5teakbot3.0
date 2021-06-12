@@ -206,6 +206,8 @@ ham_guilds = [380308776114454528, 841225582967783445, 820383461202329671, 789891
 82038346120232967, 650658756803428381, 571626209868382236, 631067371661950977]
 prefixes = {}
 def getprefix(client, message):
+    if not message.guild:
+        return "-"
     if message.guild.id in premium_guilds and message.guild.id not in prefixes:
         pref = selectquery(sql, "guilds", "prefix", f"guild_id={message.guild.id}")
         prefixes.update({f"{message.guild.id}": f"{pref}"})

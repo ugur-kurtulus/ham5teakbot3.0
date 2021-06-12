@@ -11,6 +11,7 @@ import string
 import discord
 from discord.ext import commands 
 from cogs.functions import *
+from mee6_py_api import API
 
 class CommandCog(commands.Cog):
     def __init__(self, client):
@@ -286,6 +287,39 @@ class CommandCog(commands.Cog):
             return
         await deletemessage(ctx)
 
+    @commands.command(aliases=['level', 'levelup', 'lvl', 'lvlup'])
+    @commands.cooldown(1, 120, commands.BucketType.user)
+    @commands.has_permissions(manage_messages=True)
+    async def rank(self, ctx):
+        mee6API = API(380308776114454528)
+        if ctx.guild.id != 380308776114454528:
+            return
+        await deletemessage(ctx)
+        await ctx.send(embed=addEmbed(ctx, None, f"This action may take a few seconds so please be patient."), delete_after=5)
+        nitrorole = ctx.guild.get_role(585709169521459212) # Nitro booster role
+        premiumrole = ctx.guild.get_role(803054503817248768) # Premium member role
+        if nitrorole in ctx.author.roles or premiumrole in ctx.author.roles:
+            level10role = ctx.guild.get_role(853371968601325630) # Level 10 role
+            level20role = ctx.guild.get_role(853371990790635550) # Level 20 role
+            level30role = ctx.guild.get_role(853372011216633876) # Level 30 role
+            level40role = ctx.guild.get_role(853372025303990292) # Level 40 role
+            level50role = ctx.guild.get_role(853372040690401321) # Level 50 role
+            level60role = ctx.guild.get_role(853372065717157902) # Level 60 role
+            roles = {"10": level10role, "20": level20role,"30": level30role,
+            "40": level40role,"50": level50role,"60": level60role}
+            userlevel = await mee6API.levels.get_user_level(ctx.author.id)
+            if userlevel >= 10 and userlevel < 20 and roles[f"10"] not in ctx.author.roles:
+                await ctx.author.add_roles(roles[f"10"])
+                await ctx.send(embed=addEmbed(ctx, None, f"You have successfully been given the role {roles[f'10']}."), delete_after=5)
+            levels = [20, 30, 40, 50, 60]
+            for level1 in levels:
+                if userlevel >= level1 and userlevel < int(level1 + 10) and roles[f"{int(level1)}"] not in ctx.author.roles:
+                    if roles[f"{int(level1 - 10)}"] in ctx.author.roles:
+                        await ctx.author.remove_roles(roles[f"{int(level1 - 10)}"])
+                    await ctx.author.add_roles(roles[f"{int(level1)}"])
+                    await ctx.send(embed=addEmbed(ctx, None, f"You have successfully been given the role {roles[f'{int(level1)}'].mention}."), delete_after=5)
+        else:
+            await nopermission(ctx)
     @commands.command(aliases=['ml'])
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def movelist(self, ctx):
@@ -395,6 +429,10 @@ class CommandCog(commands.Cog):
         await unknownerror(ctx, error)
         
     @generate.error
+    async def clear_error(self, ctx, error):
+        await unknownerror(ctx, error)
+        
+    @rank.error
     async def clear_error(self, ctx, error):
         await unknownerror(ctx, error)
 
