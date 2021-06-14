@@ -10,7 +10,7 @@ import random
 import string
 import discord
 from discord.ext import commands 
-from cogs.functions import *
+from utils.functions import *
 from mee6_py_api import API
 
 class CommandCog(commands.Cog):
@@ -28,8 +28,8 @@ class CommandCog(commands.Cog):
     async def reload(self, ctx, cog:str):
         await deletemessage(ctx)
         if cog == "all":
-            cogs = ["commands","on_guild_channel_create","on_reaction_add","slashcommands",
-            "on_message","setcommands"]
+            cogs = ["commands","on_guild_channel_create","on_raw_reaction_add","slashcommands",
+            "on_message","setcommands", "games.tictactoe", "games.calculator"]
             for cog1 in cogs:
                 try:
                     self.bot.unload_extension(f"cogs.{cog1}")
@@ -58,6 +58,17 @@ class CommandCog(commands.Cog):
             await ctx.send(embed=addEmbed(ctx, "dark_teal", f"`{cog}` has successfully been loaded!"), delete_after=7)
         except Exception as e:
             print(e)
+            
+    @commands.command()
+    @commands.check(is_owner)
+    async def unload(self, ctx, cog:str):
+        await deletemessage(ctx)
+        try:
+            self.bot.unload_extension(f"cogs.{cog}")
+            print(f"{cog} has successfully been unloaded!")
+            await ctx.send(embed=addEmbed(ctx, "dark_teal", f"`{cog}` has successfully been unloaded!"), delete_after=7)
+        except Exception as e:
+            print(e)
 
     @commands.command()
     @commands.has_permissions(manage_messages=True)
@@ -77,12 +88,12 @@ class CommandCog(commands.Cog):
     async def generate(self, ctx):
         if ctx.channel != client.get_channel(850260644322344960):
             return
-        password = ''
+        password = '' #nosec
         stringpunc = string.punctuation.replace("'", "").replace('"', '').replace('`', '')
         await deletemessage(ctx)
         for x in range (0,4):
-            Password = random.choice(string.digits)
-        for y in range(8):
+            Password = random.choice(string.digits) #nosec
+        for y in range(8): #nosec
             password = password + random.choice(string.digits)
         check = selectqueryall(sql, f'passwords', 'password', None)
         for pass1 in check:
@@ -288,17 +299,18 @@ class CommandCog(commands.Cog):
         await deletemessage(ctx)
 
     @commands.command(aliases=['level', 'levelup', 'lvl', 'lvlup'])
-    @commands.cooldown(1, 120, commands.BucketType.user)
+    @commands.cooldown(3, 90, commands.BucketType.guild)
     @commands.has_permissions(manage_messages=True)
     async def rank(self, ctx):
         mee6API = API(380308776114454528)
         if ctx.guild.id != 380308776114454528:
             return
+        moderatorcheck1 = await moderatorcheck(ctx.guild, ctx.author)
         await deletemessage(ctx)
         await ctx.send(embed=addEmbed(ctx, None, f"This action may take a few seconds so please be patient."), delete_after=5)
         nitrorole = ctx.guild.get_role(585709169521459212) # Nitro booster role
         premiumrole = ctx.guild.get_role(803054503817248768) # Premium member role
-        if nitrorole in ctx.author.roles or premiumrole in ctx.author.roles:
+        if nitrorole in ctx.author.roles or premiumrole in ctx.author.roles or moderatorcheck1 != 0:
             level10role = ctx.guild.get_role(853371968601325630) # Level 10 role
             level20role = ctx.guild.get_role(853371990790635550) # Level 20 role
             level30role = ctx.guild.get_role(853372011216633876) # Level 30 role
@@ -413,6 +425,14 @@ class CommandCog(commands.Cog):
         else:
             await unknownerror(ctx, error)
         
+    @unload.error
+    async def clear_error(self, ctx, error):
+        if isinstance(error, discord.ext.commands.errors.MissingRequiredArgument):
+            await deletemessage(ctx)
+            await ctx.send(embed=addEmbed2(ctx, "red", f'Please enter a valid cog name. `{getprefix2(ctx)}unload <cog>`'), delete_after=5)
+        else:
+            await unknownerror(ctx, error)
+        
     @movelist.error
     async def clear_error(self, ctx, error):
         await unknownerror(ctx, error)
@@ -435,7 +455,10 @@ class CommandCog(commands.Cog):
         
     @rank.error
     async def clear_error(self, ctx, error):
-        await unknownerror(ctx, error)
+        if isinstance(error, commands.CommandOnCooldown):
+            await ctx.send(embed=addEmbed(ctx, None, f"This command is on global cooldown for {error.retry_after:.2f} seconds."))
+        else:
+            await unknownerror(ctx, error)
 
     @edit.error
     async def clear_error(self, ctx, error):

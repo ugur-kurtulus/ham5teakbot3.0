@@ -7,8 +7,7 @@ import asyncio
 import emoji as e
 import re
 import datetime
-from cogs.functions import *
-from cogs.functions import *
+from utils.functions import *
 
 class OnMessage(commands.Cog):
     def __init__(self, client):
@@ -111,7 +110,7 @@ class OnMessage(commands.Cog):
                                         emoji1 = e.emojize(emoji)
                                         components1.append(Button(emoji=emoji1, id=emoji1))
                                         reactionstotal.update({emoji1: 0})
-                                    except: 
+                                    except:  #nosec
                                         pass
                                 reactionstotal1 = str(reactionstotal).replace("{", " ").replace("}", "").replace(",", f"\n").replace(":", "").replace("'", "")
                             embedDescription  = (f"{ctx.content}\n\n```{reactionstotal1}\n```")
@@ -129,7 +128,7 @@ class OnMessage(commands.Cog):
                                     try:
                                         await msg.edit(embed=addEmbed(ctx,None,embedDescription1, f"attachment://{ctx.attachments[0].filename}"),
                                             components=[])
-                                    except:
+                                    except: #nosec
                                         pass
                                     sent = False
                                 else:
@@ -168,7 +167,7 @@ class OnMessage(commands.Cog):
                                         emoji1 = e.emojize(emoji)
                                         components1.append(Button(emoji=emoji1, id=emoji1))
                                         reactionstotal.update({emoji1: 0})
-                                    except: 
+                                    except:  #nosec
                                         pass
                                 reactionstotal1 = str(reactionstotal).replace("{", " ").replace("}", "").replace(",", f"\n").replace(":", "").replace("'", "")
                                 embedDescription  = (f"{ctx.content}\n\n```{reactionstotal1}\n```")
@@ -189,7 +188,7 @@ class OnMessage(commands.Cog):
                                     try:
                                         await msg.edit(embed=addEmbed(ctx,None,embedDescription1 ),
                                                 components=[])
-                                    except:
+                                    except: #nosec
                                         pass
                                     sent = False
                                 else:
@@ -261,7 +260,7 @@ class OnMessage(commands.Cog):
                             lpalertschannel = client.get_channel(lpalertschannelcheck)
                             try:
                                 await lpalertschannel.send(f'```\n{messagestrip}\n```It originated from {ctx.channel.mention}!')
-                            except:
+                            except: #nosec
                                 pass
             if ctx.guild.id in ham_guilds:
                 if "console-" in ctx.channel.name:

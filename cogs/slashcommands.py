@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 from discord_slash import cog_ext
 from luhn import *
-from cogs.functions import *
+from utils.functions import *
 
 class Slash(commands.Cog):
     def __init__(self, client):

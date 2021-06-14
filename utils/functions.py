@@ -232,7 +232,7 @@ Functions
 async def deletemessage(ctx):
     try:
         await ctx.message.delete()
-    except:
+    except: #nosec
         pass
     return
 
@@ -290,7 +290,7 @@ async def moderatorcheck(guild, member):
             highstaff = guild.get_role(name="High Staff")
             if discordstaff in member.roles or highstaff in member.roles:
                 return 1
-    except:
+    except: #nosec
         pass
     moderatorrole = selectquery(sql, 'guilds', 'moderator_id', f'guild_id = {guild.id}')
     roleobject = guild.get_role(moderatorrole)
@@ -337,7 +337,7 @@ async def statuscheck():
             embed.set_footer(text="Ham5teak Bot 3.0 | play.ham5teak.xyz | Made by Beastman#1937, SottaByte#1543 and Jaymz#7815")
             embed.set_author(name="Ham5teak Network Status", icon_url="https://cdn.discordapp.com/icons/380308776114454528/a_be4514bb0a52a206d1bddbd5fbd2250f.png?size=4096")
             await channel.send(embed=embed)
-        except:
+        except: #nosec
             pass
     await asyncio.sleep(600)
     
@@ -404,6 +404,7 @@ def addEmbed(ctx , color, new, image = None):
             newEmbed.set_author(name=ctx.author, icon_url=ctx.author.avatar_url)
         elif ctx != None and color != None:
             newEmbed = discord.Embed(description=f"{new}", color=colors[color])
+            newEmbed.set_author(name=ctx.author, icon_url=ctx.author.avatar_url)
         elif ctx == None:
             newEmbed = discord.Embed(description=f"{new}", color=colors[color])
     newEmbed.set_footer(text="Ham5teak Bot 3.0 | play.ham5teak.xyz | Made by Beastman#1937, SottaByte#1543 and Jaymz#7815")

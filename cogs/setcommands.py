@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands 
 from luhn import *
-from cogs.functions import *
+from utils.functions import *
 
 class SetCommandCog(commands.Cog):
     def __init__(self, client):
