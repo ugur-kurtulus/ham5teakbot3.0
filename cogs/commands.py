@@ -28,16 +28,26 @@ class CommandCog(commands.Cog):
     async def reload(self, ctx, cog:str):
         await deletemessage(ctx)
         if cog == "all":
-            cogs = ["commands","on_guild_channel_create","on_raw_reaction_add","slashcommands",
-            "on_message","setcommands", "games.tictactoe", "games.calculator"]
-            for cog1 in cogs:
-                try:
-                    self.bot.unload_extension(f"cogs.{cog1}")
-                    self.bot.load_extension(f"cogs.{cog1}")
-                    print(f"{cog1} has successfully been reloaded!")
-                except Exception as e:
-                    print(e)
-                    return
+            for cog2 in os.listdir('./cogs'):
+                if cog2.endswith('.py'):
+                    cog1 = cog2[:-3]
+                    try:
+                        self.bot.unload_extension(f"cogs.{cog1}")
+                        self.bot.load_extension(f"cogs.{cog1}")
+                        print(f"{cog1} has successfully been reloaded!")
+                    except Exception as e:
+                        print(e)
+                        return
+            for cog2 in os.listdir('./cogs/games'):
+                if cog2.endswith('.py'):
+                    cog1 = cog2[:-3]
+                    try:
+                        self.bot.unload_extension(f"cogs.games.{cog1}")
+                        self.bot.load_extension(f"cogs.games.{cog1}")
+                        print(f"{cog1} has successfully been reloaded!")
+                    except Exception as e:
+                        print(e)
+                        return
             await ctx.send(embed=addEmbed(ctx, "dark_teal", f"All cogs have successfully been reloaded!"), delete_after=7)
             return
         try:

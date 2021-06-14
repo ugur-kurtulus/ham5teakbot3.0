@@ -29,12 +29,15 @@ async def on_ready():
     embedDescription  = (f"**__Guilds:__ **\n{message}")
     channel = client.get_channel(841245744421273620)
     await channel.send(embed=addEmbed(None, "teal", embedDescription))
-    #client.load_extension('cogs.music')
-    cogs = ["commands", "slashcommands", "on_message", "on_raw_reaction_add", 
-    "on_guild_channel_create", "setcommands", "games.tictactoe", "games.calculator"]
-    for cog in cogs:
-        client.load_extension(f"cogs.{cog}")
-        print(f"{cog} has successfully been loaded!")
+    for filename in os.listdir('./cogs'):
+        if filename.endswith('.py'):
+            client.load_extension(f'cogs.{filename[:-3]}')
+            print(f"{filename[:-3]} has successfully been loaded!")
+    for filename in os.listdir('./cogs/games'):
+        if filename.endswith('.py'):
+            client.load_extension(f'cogs.games.{filename[:-3]}')
+            print(f"{filename[:-3]} has successfully been loaded!")
+        
     client.remove_command('help')
     result = selectqueryall(sql, 'guilds', 'guild_id', 'betaannouncements = 1')
     for type in result:
