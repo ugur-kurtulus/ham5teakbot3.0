@@ -310,7 +310,6 @@ class CommandCog(commands.Cog):
 
     @commands.command(aliases=['level', 'levelup', 'lvl', 'lvlup'])
     @commands.cooldown(3, 90, commands.BucketType.guild)
-    @commands.has_permissions(manage_messages=True)
     async def rank(self, ctx):
         mee6API = API(380308776114454528)
         if ctx.guild.id != 380308776114454528:

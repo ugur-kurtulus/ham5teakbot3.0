@@ -117,7 +117,7 @@ def selectqueryall(sql, table , column, where):
             result = querycursor.fetchall()
             sql.commit()
             querycursor.close()
-            print(f'Select query executed successfully {result}!')
+            print(f'Select query executed successfully!')
             return result
     except mysql.connector.Error as e:
         print(e)
