@@ -106,7 +106,10 @@ the following choices by clicking the button describing your issue.
                     return
                 break
             except asyncio.TimeoutError:
-                await msg.edit(content=content1, embed=await embed1(embedDescription),components=[Button(style=ButtonStyle.green, label=f"Options have timedout.", disabled=True)]) 
+                try:
+                    await msg.edit(content=content1, embed=await embed1(embedDescription),components=[Button(style=ButtonStyle.green, label=f"Options have timedout.", disabled=True)]) 
+                except:
+                    pass
 
 def setup(client):
     client.add_cog(on_guild_channel_create(client))

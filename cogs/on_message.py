@@ -34,7 +34,10 @@ class OnMessage(commands.Cog):
                                     await attachmentAutoEmbed(ctx, 0, "announcement", "👍", "❤️", 1)
                                     return
                                 if not ctx.attachments:
-                                    await ctx.delete()
+                                    try:
+                                        await ctx.delete()
+                                    except:
+                                        pass
                                     embedDescription  = (f"{ctx.content}")
                                     embed = addEmbed2(ctx,None,embedDescription )
                                     sent = False
@@ -62,7 +65,10 @@ class OnMessage(commands.Cog):
                                     await attachmentAutoEmbed(ctx, 0, "announcement", "👍", "❤️")
                                     return
                             if not ctx.attachments:
-                                await ctx.delete()
+                                try:
+                                    await ctx.delete()
+                                except:
+                                    pass
                                 embedDescription  = (f"{ctx.content}")
                                 msg = await ctx.channel.send(embed=addEmbed(ctx,None,embedDescription ))
                                 await msg.add_reaction("👍")
@@ -81,7 +87,10 @@ class OnMessage(commands.Cog):
                             await attachmentAutoEmbed(ctx, 0, "suggestion", "✅", "❌")
                             return
                         if not ctx.attachments:
-                            await ctx.delete()
+                            try:
+                                await ctx.delete()
+                            except:
+                                pass
                             embedDescription  = (f"{ctx.content}")
                             msg = await ctx.channel.send(embed=addEmbed(ctx,None,embedDescription ))
                             await msg.add_reaction("✅")
@@ -98,7 +107,10 @@ class OnMessage(commands.Cog):
                             await ctx.attachments[0].save(f"./{ctx.attachments[0].filename}")
                             file = discord.File(ctx.attachments[0].filename)
                             sent = True
-                            await ctx.delete()
+                            try:
+                                await ctx.delete()
+                            except:
+                                pass
                             components1 = []
                             reactionstotal = {}
                             reactedusers = {}
@@ -155,7 +167,10 @@ class OnMessage(commands.Cog):
                             os.remove(f"./{ctx.attachments[0].filename}")
                         if not ctx.attachments:
                             sent = True
-                            await ctx.delete()
+                            try:
+                                await ctx.delete()
+                            except:
+                                pass
                             components1 = []
                             reactionstotal = {}
                             reactedusers = {}
