@@ -1,7 +1,6 @@
-from discord_components.select import Option
 import discord
 from discord.ext import commands 
-from discord_components import Button, ButtonStyle, InteractionType, Select
+from discord_components import Button, ButtonStyle, InteractionType, SelectOption, Select
 from discord.ext import commands 
 from utils.functions import *
 
@@ -95,16 +94,44 @@ the following choices by clicking the button describing your issue.
                 }
                 options1 = []
                 for server in serversandcats.keys():
-                    options1.append(Option(label=server, value=server))
+                    options1.append(SelectOption(label=server, value=server))
                 await res.respond(
                     type=InteractionType.ChannelMessageWithSource,
                     embed= await embed1(f"""{res.component.id} chosen."""),
-                    components=[])
+                    components=[Select(id=f"{res.component.id}-{res.user.name}",options=options1, placeholder="Choose A Server"
+                )])
                 if "ticket-" in channel.name:
                     await channel.edit(name=f"{res.component.id}-{res.user.name}")
                 if channel.guild.id not in ham_guilds:
                     return
-                break
+                serversent = True
+                while serversent == True:
+                    try:
+                        res1 = await client.wait_for("select_option", check=lambda res1: res1.__dict__["raw_data"]["d"]["data"]["custom_id"].replace(" ", "-").lower() == channel.name)
+                        res1todict = res1.__dict__
+                        for servername in serversandcats.keys():
+                            if res1todict["raw_data"]["d"]["data"]["values"][0] == servername:
+                                cat = client.get_channel(serversandcats[servername])
+                                await channel.edit(category=cat)
+                        embedDescription2 = f'{res1todict["raw_data"]["d"]["data"]["values"][0]} selected as ticket category.'
+                        await res1.respond(
+                            type=InteractionType.UpdateMessage,
+                            embed=await embed1(embedDescription2),
+                            components=[]
+                        )
+                        serversent = False
+                        break
+                    except asyncio.TimeoutError:
+                        try:
+                            embedDescription2 = f"Options have timed out."
+                            await res1.respond(
+                            type=InteractionType.UpdateMessage,
+                            embed=await embed1(embedDescription2),
+                            components=[]
+                        )
+                        except:
+                            pass
+                        break
             except asyncio.TimeoutError:
                 try:
                     await msg.edit(content=content1, embed=await embed1(embedDescription),components=[Button(style=ButtonStyle.green, label=f"Options have timedout.", disabled=True)]) 
