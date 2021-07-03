@@ -334,7 +334,7 @@ async def statuscheck():
             else:
                 ham5teak = "Offline ❌"
             embed = discord.Embed(description=f"**Ham5teak Status:** {ham5teak} \n**Players:** {status.players.online - 20}\n**IP:** play.ham5teak.xyz\n**Versions:** 1.13.x, 1.14.x, 1.15.x, 1.16.x, 1.17.x", color=discord.Color.teal())
-            embed.set_footer(text="Ham5teak Bot 3.0 | play.ham5teak.xyz | Made by Beastman#1937, SottaByte#1543 and Jaymz#7815")
+            embed.set_footer(text="Ham5teak Bot 3.0 | Made by Beastman#1937, SottaByte#1543 and Jaymz#7815")
             embed.set_author(name="Ham5teak Network Status", icon_url="https://cdn.discordapp.com/icons/380308776114454528/a_be4514bb0a52a206d1bddbd5fbd2250f.png?size=4096")
             await channel.send(embed=embed)
         except: #nosec
@@ -359,6 +359,7 @@ async def attachmentAutoEmbed(ctx, image:bool, type, emoji, emoji1, webhook:bool
         sent = False
         sent = await sendwebhook(ctx, ctx.author.name, ctx.channel, file, [embed])
         while sent == True:
+            await asyncio.sleep(2)
             msg = await ctx.channel.history(limit=1).flatten()
             msg = msg[0]
             await msg.add_reaction(emoji)
@@ -387,7 +388,7 @@ def addEmbed2(ctx , color, new, image = None):
             newEmbed = discord.Embed(description=f"{new}", color=colors[color])
         elif ctx == None:
             newEmbed = discord.Embed(description=f"{new}", color=colors[color])
-    newEmbed.set_footer(text="Ham5teak Bot 3.0 | play.ham5teak.xyz | Made by Beastman#1937, SottaByte#1543 and Jaymz#7815")
+    newEmbed.set_footer(text="Ham5teak Bot 3.0 | Made by Beastman#1937, SottaByte#1543 and Jaymz#7815")
     return newEmbed
 
 def addEmbed(ctx , color, new, image = None):
@@ -407,5 +408,5 @@ def addEmbed(ctx , color, new, image = None):
             newEmbed.set_author(name=ctx.author, icon_url=ctx.author.avatar_url)
         elif ctx == None:
             newEmbed = discord.Embed(description=f"{new}", color=colors[color])
-    newEmbed.set_footer(text="Ham5teak Bot 3.0 | play.ham5teak.xyz | Made by Beastman#1937, SottaByte#1543 and Jaymz#7815")
+    newEmbed.set_footer(text="Ham5teak Bot 3.0 | Made by Beastman#1937, SottaByte#1543 and Jaymz#7815")
     return newEmbed

@@ -18,7 +18,6 @@ class on_guild_channel_create(commands.Cog):
         embedDescription  = f"""Hello! The staff team will be assisting you shortly.
 In order to make this process easier for us staff, please choose from
 the following choices by clicking the button describing your issue.
-
 1. **Item Lost** 
 2. **Reporting an Issue/Bug**
 3. **Same IP Connection** 
@@ -33,7 +32,7 @@ the following choices by clicking the button describing your issue.
         async def embed1(embedDescription):
             embed1 = discord.Embed(description=f"{embedDescription}", color=discord.Color.dark_teal())
             embed1.set_author(name="Ham5teak Bot Ticket Assistant", icon_url="https://cdn.discordapp.com/icons/380308776114454528/a_be4514bb0a52a206d1bddbd5fbd2250f.png?size=4096")
-            embed1.set_footer(text="Ham5teak Bot 3.0 | play.ham5teak.xyz | Made by Beastman#1937, SottaByte#1543 and Jaymz#7815")
+            embed1.set_footer(text="Ham5teak Bot 3.0 | Made by Beastman#1937, SottaByte#1543 and Jaymz#7815")
             return embed1
         
         if channel.guild.id == 380308776114454528:
@@ -95,11 +94,14 @@ the following choices by clicking the button describing your issue.
                 options1 = []
                 for server in serversandcats.keys():
                     options1.append(SelectOption(label=server, value=server))
-                await res.respond(
-                    type=InteractionType.ChannelMessageWithSource,
-                    embed= await embed1(f"""{res.component.id} chosen."""),
-                    components=[Select(id=f"{res.component.id}-{res.user.name}",options=options1, placeholder="Choose A Server"
-                )])
+                try:
+                	await res.respond(
+                    	type=InteractionType.ChannelMessageWithSource,
+                    	embed= await embed1(f"""{res.component.id} chosen."""),
+                    	components=[Select(id=f"{res.component.id}-{res.user.name}",options=options1, placeholder="Choose A Server"
+                	)])
+                except:
+                    pass
                 if "ticket-" in channel.name:
                     await channel.edit(name=f"{res.component.id}-{res.user.name}")
                 if channel.guild.id not in ham_guilds:
@@ -112,7 +114,10 @@ the following choices by clicking the button describing your issue.
                         for servername in serversandcats.keys():
                             if res1todict["raw_data"]["d"]["data"]["values"][0] == servername:
                                 cat = client.get_channel(serversandcats[servername])
-                                await channel.edit(category=cat)
+                                try:
+                                    await channel.edit(category=cat)
+                                except: 
+                                    print("invalid guild")
                         embedDescription2 = f'{res1todict["raw_data"]["d"]["data"]["values"][0]} selected as ticket category.'
                         await res1.respond(
                             type=InteractionType.UpdateMessage,

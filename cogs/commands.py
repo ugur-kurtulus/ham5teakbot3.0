@@ -207,7 +207,7 @@ class CommandCog(commands.Cog):
                         ctx.guild.default_role: discord.PermissionOverwrite(view_channel=False)})
                         overwrites1.update({user: discord.PermissionOverwrite(view_channel=True)})
                         if tickettool is not None:
-                            overwrites1.update({tickettool: discord.PermissionOverwrite(view_channel=True)})
+                            overwrites1.update({tickettool: discord.PermissionOverwrite(view_channel=True, manage_channels=True, manage_permissions=True)})
                         await ctx.channel.edit(overwrites=overwrites1)
                         embedDescription  = (f"{ctxchannel.mention} has been restricted to {role.mention}")
                         await ctx.send(embed=addEmbed(ctx,None,embedDescription ), delete_after=5)
@@ -220,7 +220,7 @@ class CommandCog(commands.Cog):
                     ctx.guild.default_role: discord.PermissionOverwrite(view_channel=False)})
                     overwrites2.update({user: discord.PermissionOverwrite(view_channel=True)})
                     if tickettool is not None:
-                        overwrites2.update({tickettool: discord.PermissionOverwrite(view_channel=True)})
+                        overwrites2.update({tickettool: discord.PermissionOverwrite(view_channel=True, manage_channels=True, manage_permissions=True)})
                     await ctx.channel.edit(overwrites=overwrites2)
                     embedDescription  = (f"{ctxchannel.mention} has been restricted to {cat.mention} and {cat2.mention}")
                     await ctx.send(embed=addEmbed(ctx,None,embedDescription ), delete_after=5)
@@ -235,7 +235,7 @@ class CommandCog(commands.Cog):
                 cat3: discord.PermissionOverwrite(view_channel=True), ctx.guild.default_role: discord.PermissionOverwrite(view_channel=False)})
                 overwrites3.update({user: discord.PermissionOverwrite(view_channel=True)})
                 if tickettool is not None:
-                    overwrites3.update({tickettool: discord.PermissionOverwrite(view_channel=True)})
+                    overwrites3.update({tickettool: discord.PermissionOverwrite(view_channel=True, manage_channels=True, manage_permissions=True)})
                 await ctx.channel.edit(overwrites=overwrites3)
                 embedDescription  = (f"{ctxchannel.mention} has been restricted to {cat.mention}, {cat2.mention} and {cat3.mention}")
                 await ctx.send(embed=addEmbed(ctx,None,embedDescription ), delete_after=5)
