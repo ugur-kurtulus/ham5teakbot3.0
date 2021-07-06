@@ -18,6 +18,28 @@ class OnMessage(commands.Cog):
         if not ctx.guild:
             return
         try:
+            guilds = [814607392687390720, 380308776114454528, 841225582967783445]
+            if ctx.guild.id in guilds:
+                for channel in ctx.guild.channels:
+                    if "zap" in channel.name:
+                        zapchannel = channel.id
+                highstaff = discord.utils.get(ctx.guild.roles, name = "📢 Broadcaster")
+                zaprole = discord.utils.get(ctx.guild.roles, name = "zap")
+                if "youtube" in ctx.channel.name and ctx.channel.id != zapchannel:
+                    if f"<@&{zaprole.id}>" in ctx.content and highstaff in ctx.author.roles:
+                        channel = client.get_channel(zapchannel)
+                        embedDescription  = (f"{ctx.content}")
+                        embed = addEmbed2(ctx,None,embedDescription)
+                        await sendwebhook(ctx, ctx.author.name, channel, None, [embed])
+                elif ctx.webhook_id and ctx.channel.name in ["announcements", "updates", "competitions", "events"] and ctx.channel.id != zapchannel:
+                    if "Ham5teak Bot 3.0" not in ctx.embeds[0].footer.text:
+                        pass
+                    elif f"<@&{zaprole.id}>" in ctx.embeds[0].description and highstaff in ctx.author.roles:
+                        channel = client.get_channel(zapchannel)
+                        await sendwebhook(ctx, ctx.author.name, channel, None, ctx.embeds)
+        except Exception as e:
+            pass
+        try:
             if str(ctx.guild.id) in str(betaannouncementguilds):
                 channelnames = ["announcements", "updates", "competitions", "events"]
                 for channel in channelnames:
@@ -43,6 +65,7 @@ class OnMessage(commands.Cog):
                                     sent = False
                                     sent = await sendwebhook(ctx, ctx.author.name, ctx.channel, None, [embed])
                                     while sent == True:
+                                        await asyncio.sleep(2)
                                         msg = await ctx.channel.history(limit=1).flatten()
                                         msg = msg[0]
                                         await msg.add_reaction("👍")
