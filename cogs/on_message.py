@@ -1,4 +1,5 @@
 import os
+from discord.embeds import Embed
 from discord.errors import HTTPException
 import discord
 from discord.ext import commands 
@@ -13,32 +14,80 @@ class OnMessage(commands.Cog):
     def __init__(self, client):
         self.bot = client
 
+    async def mentionformat(self, arg, guild):
+        list1 = arg.split(" ")
+        for a in list1:
+            a = str(a)
+            a1 = a.replace('<', '').replace('>', '').replace('@', '').replace('!', '').replace('#', '').replace('&', '')
+            try:
+                a2 = int(a1)
+            except:
+                continue
+            a3 = a1
+            try:
+                a1 = guild.get_member(a2)
+                a3 = f"@{a1.name}#{a1.discriminator}"
+            except:
+                pass
+            try:
+                a1 = guild.get_role(a2)
+                a3 = f"@{a1.name}"
+            except:
+                pass
+            try:
+                a1 = guild.get_channel(a2)
+                a3 = f"#{a1.name}"
+            except:
+                pass
+            try:
+                for i in range(len(list1)):
+                    if list1[i] == a:
+                        try:
+                            list1[i] = a3
+                        except:
+                            list1[i] = a1
+                            pass
+                    else:
+                        pass
+                arg = ' '.join(list1)
+            except:
+                pass
+        return arg
+                
     @commands.Cog.listener()
     async def on_message(self, ctx):
         if not ctx.guild:
             return
         try:
-            guilds = [814607392687390720, 380308776114454528, 841225582967783445]
+            guilds = [814607392687390720, 380308776114454528, 841225582967783445, 380308776114454528]
             if ctx.guild.id in guilds:
                 for channel in ctx.guild.channels:
                     if "zap" in channel.name:
                         zapchannel = channel.id
-                highstaff = discord.utils.get(ctx.guild.roles, name = "📢 Broadcaster")
-                zaprole = discord.utils.get(ctx.guild.roles, name = "zap")
+                highstaff = discord.utils.get(ctx.guild.roles, name = "Media Manager")
+                zaprole = discord.utils.get(ctx.guild.roles, name = "Zap")
+                author = discord.utils.get(ctx.guild.members, name = ctx.author.name)
+                channelreq = False
+                for item in ["announcements", "updates", "competitions", "events"]:
+                    if item in ctx.channel.name:
+                        channelreq = True
+                        break
                 if "youtube" in ctx.channel.name and ctx.channel.id != zapchannel:
                     if f"<@&{zaprole.id}>" in ctx.content and highstaff in ctx.author.roles:
                         channel = client.get_channel(zapchannel)
-                        embedDescription  = (f"{ctx.content}")
+                        embedDescription  = (f"{await self.mentionformat(ctx.content, ctx.guild)}")
                         embed = addEmbed2(ctx,None,embedDescription)
                         await sendwebhook(ctx, ctx.author.name, channel, None, [embed])
-                elif ctx.webhook_id and ctx.channel.name in ["announcements", "updates", "competitions", "events"] and ctx.channel.id != zapchannel:
+                elif ctx.webhook_id and channelreq and ctx.channel.id != zapchannel:
                     if "Ham5teak Bot 3.0" not in ctx.embeds[0].footer.text:
                         pass
-                    elif f"<@&{zaprole.id}>" in ctx.embeds[0].description and highstaff in ctx.author.roles:
+                    elif f"<@&{zaprole.id}>" in ctx.embeds[0].description and highstaff in author.roles:
                         channel = client.get_channel(zapchannel)
-                        await sendwebhook(ctx, ctx.author.name, channel, None, ctx.embeds)
-        except Exception as e:
-            pass
+                        embed = ctx.embeds[0]
+                        embed.description = await self.mentionformat(ctx.embeds[0].description, ctx.guild)
+                        await sendwebhook(ctx, ctx.author.name, channel, None, [embed])
+        except Exception as e1:
+            print(e1)
         try:
             if str(ctx.guild.id) in str(betaannouncementguilds):
                 channelnames = ["announcements", "updates", "competitions", "events"]
@@ -69,6 +118,7 @@ class OnMessage(commands.Cog):
                                         msg = await ctx.channel.history(limit=1).flatten()
                                         msg = msg[0]
                                         await msg.add_reaction("👍")
+                                        await asyncio.sleep(0.2)
                                         await msg.add_reaction("❤️")
                                         sent = False
                                     print(f"An announcement was made in #{ctx.channel.name} by {ctx.author}.")
@@ -226,30 +276,33 @@ class OnMessage(commands.Cog):
                                     try:
                                         await msg.edit(embed=addEmbed(ctx,None,embedDescription1 ),
                                                 components=[])
-                                    except: #nosec
-                                        pass
+                                    except Exception as e11: #nosec
+                                        print(e11)
                                     sent = False
                                 else:
-                                    res = await client.wait_for(event="button_click",check=lambda res: res.channel == ctx.channel)
-                                    if res.user.id in reactedusers[msg.id]:
-                                        await res.respond(
-                                            type=InteractionType.ChannelMessageWithSource,
-                                            content=f'You have already voted for this poll.'
-                                        )
-                                    elif res.message.id != msg.id:
-                                        pass
-                                    else:
-                                        getdata = reactionstotal[res.component.id]
-                                        reactionstotal.update({res.component.id: getdata + 1})
-                                        reactionstotal1 = str(reactionstotal).replace("{", " ").replace("}", "").replace(",", f"\n").replace(":", "").replace("'", "")
-                                        embedDescription1 = f"{ctx.content}\n\n```{reactionstotal1}\n```"
-                                        await msg.edit(embed=addEmbed(ctx,None,embedDescription1 ),
-                                            components=[components1])
-                                        await res.respond(
-                                            type=InteractionType.ChannelMessageWithSource,
-                                            content=f'Successfully voted for {res.component.id}.'
-                                        )
-                                        reactedusers[msg.id].append(res.user.id)
+                                    try:
+                                        res = await client.wait_for(event="button_click",check=lambda res: res.channel == ctx.channel)
+                                        if res.user.id in reactedusers[msg.id]:
+                                            await res.respond(
+                                                type=InteractionType.ChannelMessageWithSource,
+                                                content=f'You have already voted for this poll.'
+                                            )
+                                        elif res.message.id != msg.id:
+                                            pass
+                                        else:
+                                            getdata = reactionstotal[res.component.id]
+                                            reactionstotal.update({res.component.id: getdata + 1})
+                                            reactionstotal1 = str(reactionstotal).replace("{", " ").replace("}", "").replace(",", f"\n").replace(":", "").replace("'", "")
+                                            embedDescription1 = f"{ctx.content}\n\n```{reactionstotal1}\n```"
+                                            await msg.edit(embed=addEmbed(ctx,None,embedDescription1 ),
+                                                components=[components1])
+                                            await res.respond(
+                                                type=InteractionType.ChannelMessageWithSource,
+                                                content=f'Successfully voted for {res.component.id}.'
+                                            )
+                                            reactedusers[msg.id].append(res.user.id)
+                                    except Exception as e12:
+                                        print(e12)
 
             if "console-" in ctx.channel.name:
                 messagestrip = await stripmessage(ctx.content, 'a server operator')
@@ -288,7 +341,7 @@ class OnMessage(commands.Cog):
                             await generalchannel.send(f'**WARNING!** {ctx.channel.mention} has just **hard crashed!** Check {crashalertschannel.mention} for more info.')
             if "console-" in ctx.channel.name:
                 lptriggers = ["now inherits permissions from", "no longer inherits permissions from",
-                "[LP] Set group.", "[LP] Web editor data was applied to user", "[LP] Web editor data was applied to group"]
+                "[LP] Set group.", "[LP] Web editor data was applied to user", "[LP] Web editor data was applied to group", "[LP] Promoting", "[LP] Demoting"]
                 for trigger in lptriggers:
                     messagestrip = await stripmessage(ctx.content, trigger)
                     if messagestrip:
