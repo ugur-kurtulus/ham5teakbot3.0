@@ -1,3 +1,4 @@
+from xml.dom import NotFoundErr
 import aiohttp
 import contextlib
 import io
@@ -399,7 +400,6 @@ class CommandCog(commands.Cog):
                 paginationList = pages
             current = 0
             mainMessage = await ctx.send(
-                "**Pagination!**",
                 embed = paginationList[current],
                 components = [
                     [
@@ -407,7 +407,6 @@ class CommandCog(commands.Cog):
                         Button(label = f"Page {int(paginationList.index(paginationList[current])) + 1}/{len(paginationList)}",id = "cur",style = ButtonStyle.grey,disabled = True),
                         Button(label = "Next",id = "front",style = ButtonStyle.green)
                     ]])
-            #Infinite loop
             while True:
                 try:
                     interaction = await client.wait_for(
@@ -415,24 +414,29 @@ class CommandCog(commands.Cog):
                         check = lambda i: i.component.id in ["back", "front"], #You can add more
                         timeout = 1200.0
                     )
-                    if interaction.component.id == "back":
-                        current -= 1
-                    elif interaction.component.id == "front":
-                        current += 1
-                    if current == len(paginationList):
-                        current = 0
-                    elif current < 0:
-                        current = len(paginationList) - 1
-
-                    await interaction.respond(
-                        type = InteractionType.UpdateMessage,
-                        embed = paginationList[current],
-                        components = [
-                            [
-                                Button(label = "Prev",id = "back",style = ButtonStyle.green),
-                                Button(label = f"Page {int(paginationList.index(paginationList[current])) + 1}/{len(paginationList)}",id = "cur",style = ButtonStyle.grey,disabled = True),
-                                Button(label = "Next",id = "front",style = ButtonStyle.green)
-                            ]])
+                    if interaction.message.id == mainMessage.id:
+                        pass
+                    else:
+                        if interaction.component.id == "back":
+                            current -= 1
+                        elif interaction.component.id == "front":
+                            current += 1
+                        if current == len(paginationList):
+                            current = 0
+                        elif current < 0:
+                            current = len(paginationList) - 1
+                        try:
+                            await interaction.respond(
+                                type = InteractionType.UpdateMessage,
+                                embed = paginationList[current],
+                                components = [
+                                    [
+                                        Button(label = "Prev",id = "back",style = ButtonStyle.green),
+                                        Button(label = f"Page {int(paginationList.index(paginationList[current])) + 1}/{len(paginationList)}",id = "cur",style = ButtonStyle.grey,disabled = True),
+                                        Button(label = "Next",id = "front",style = ButtonStyle.green)
+                                    ]])
+                        except NotFoundErr as e1:
+                            print(e1)
                 except asyncio.TimeoutError:
                     await mainMessage.edit(
                         components = [[

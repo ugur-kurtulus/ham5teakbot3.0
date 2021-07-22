@@ -59,7 +59,7 @@ class OnMessage(commands.Cog):
         if not ctx.guild:
             return
         try:
-            guilds = [814607392687390720, 380308776114454528, 841225582967783445, 380308776114454528]
+            guilds = [814607392687390720, 380308776114454528, 841225582967783445, 380308776114454528, 820383461202329671]
             if ctx.guild.id in guilds:
                 for channel in ctx.guild.channels:
                     if "zap" in channel.name:
@@ -76,6 +76,8 @@ class OnMessage(commands.Cog):
                     if f"<@&{zaprole.id}>" in ctx.content and highstaff in ctx.author.roles:
                         channel = client.get_channel(zapchannel)
                         embedDescription  = (f"{await self.mentionformat(ctx.content, ctx.guild)}")
+                        if ctx.attachments:
+                            embedDescription  = (f"{await self.mentionformat(ctx.content, ctx.guild)}\n\n{ctx.attachments[0].url}")
                         embed = addEmbed2(ctx,None,embedDescription)
                         await sendwebhook(ctx, ctx.author.name, channel, None, [embed])
                 elif ctx.webhook_id and channelreq and ctx.channel.id != zapchannel:
@@ -85,6 +87,9 @@ class OnMessage(commands.Cog):
                         channel = client.get_channel(zapchannel)
                         embed = ctx.embeds[0]
                         embed.description = await self.mentionformat(ctx.embeds[0].description, ctx.guild)
+                        embedDescription  = (f"{await self.mentionformat(ctx.content, ctx.guild)}")
+                        if ctx.attachments:
+                            embedDescription  = (f"{await self.mentionformat(ctx.content, ctx.guild)}\n\n{ctx.attachments[0].url}")
                         await sendwebhook(ctx, ctx.author.name, channel, None, [embed])
         except Exception as e1:
             print(e1)
