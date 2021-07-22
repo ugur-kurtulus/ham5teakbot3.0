@@ -75,9 +75,9 @@ class OnMessage(commands.Cog):
                 if "youtube" in ctx.channel.name and ctx.channel.id != zapchannel:
                     if f"<@&{zaprole.id}>" in ctx.content and highstaff in ctx.author.roles:
                         channel = client.get_channel(zapchannel)
-                        embedDescription  = (f"{await self.mentionformat(ctx.content, ctx.guild)}")
+                        embedDescription  = (f"#{ctx.channel.name}\n𝗔𝗻𝗻𝗼𝘂𝗻𝗰𝗲𝗺𝗲𝗻𝘁 𝗕𝘆: {ctx.author.name}#{ctx.author.discriminator}\n\n{await self.mentionformat(ctx.content, ctx.guild)}")
                         if ctx.attachments:
-                            embedDescription  = (f"{await self.mentionformat(ctx.content, ctx.guild)}\n\n{ctx.attachments[0].url}")
+                            embedDescription  = f"#{ctx.channel.name}\n𝗔𝗻𝗻𝗼𝘂𝗻𝗰𝗲𝗺𝗲𝗻𝘁 𝗕𝘆: {ctx.author.name}#{ctx.author.discriminator}\n\n{await self.mentionformat(ctx.content, ctx.guild)}\n\n{ctx.attachments[0].url}"
                         embed = addEmbed2(ctx,None,embedDescription)
                         await sendwebhook(ctx, ctx.author.name, channel, None, [embed])
                 elif ctx.webhook_id and channelreq and ctx.channel.id != zapchannel:
@@ -86,10 +86,10 @@ class OnMessage(commands.Cog):
                     elif f"<@&{zaprole.id}>" in ctx.embeds[0].description and highstaff in author.roles:
                         channel = client.get_channel(zapchannel)
                         embed = ctx.embeds[0]
-                        embed.description = await self.mentionformat(ctx.embeds[0].description, ctx.guild)
-                        embedDescription  = (f"{await self.mentionformat(ctx.content, ctx.guild)}")
-                        if ctx.attachments:
-                            embedDescription  = (f"{await self.mentionformat(ctx.content, ctx.guild)}\n\n{ctx.attachments[0].url}")
+                        embedDescription  = f"#{ctx.channel.name}\n𝗔𝗻𝗻𝗼𝘂𝗻𝗰𝗲𝗺𝗲𝗻𝘁 𝗕𝘆: {ctx.author.name}#{ctx.author.discriminator}\n\n{await self.mentionformat(embed.description, ctx.guild)}"
+                        if embed.image.url:
+                            embedDescription  = f"#{ctx.channel.name}\n𝗔𝗻𝗻𝗼𝘂𝗻𝗰𝗲𝗺𝗲𝗻𝘁 𝗕𝘆: {ctx.author.name}#{ctx.author.discriminator}\n\n{await self.mentionformat(embed.description, ctx.guild)}\n\n{embed.image.url}"
+                        embed.description = embedDescription
                         await sendwebhook(ctx, ctx.author.name, channel, None, [embed])
         except Exception as e1:
             print(e1)
