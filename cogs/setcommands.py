@@ -104,7 +104,7 @@ class SetCommandCog(commands.Cog):
             if alias == stralias[0]:
                 embedDescription  =(f"Restrict type `{alias}` already exists.")
                 await ctx.send(embed=addEmbed(ctx,"red",embedDescription ), delete_after=5)
-                return 1
+                return
         else:
             if role3 is None:
                 if role2 is None:
@@ -156,6 +156,31 @@ class SetCommandCog(commands.Cog):
 
     @commands.command()
     @commands.cooldown(1, 5, commands.BucketType.user)
+    async def setserver(self, ctx, serverip: str):
+        administratorcheck1 = await administratorcheck(ctx.guild, ctx.author)
+        if administratorcheck1 == 0:
+            await ctx.send(embed=await nopermission(ctx), delete_after=5)
+            return
+        await deletemessage(ctx)
+        try:
+            server = MinecraftServer.lookup(serverip)
+            status = server.status()
+        except:
+            embedDescription  = (f"Couldn't register {serverip} as server ip.")
+            await ctx.channel.send(embed=addEmbed(ctx,"red",embedDescription ), delete_after=5)
+            return
+        guild_id = str(ctx.guild.id)
+        where = (f"guild_id = {guild_id}")
+        result = (insertquery(sql, 'guilds', 'mcserver', f"'{serverip}'", where))
+        if (result == 0):
+            embedDescription  = (f"Successfully registered {serverip} as server ip.")
+            await ctx.channel.send(embed=addEmbed(ctx,"green",embedDescription ), delete_after=5)
+        else:
+            embedDescription  = (f"Couldn't register {serverip} as server ip.")
+            await ctx.channel.send(embed=addEmbed(ctx,"red",embedDescription ), delete_after=5)
+
+    @commands.command()
+    @commands.cooldown(1, 5, commands.BucketType.user)
     async def setchannel(self, ctx, command, channel: discord.TextChannel):
         administratorcheck1 = await administratorcheck(ctx.guild, ctx.author)
         if administratorcheck1 == 0:
@@ -178,6 +203,38 @@ class SetCommandCog(commands.Cog):
                 else:
                     embedDescription  = (f"Couldn't register {command} as {channelid}")
                     await ctx.channel.send(embed=addEmbed(ctx,"red",embedDescription ), delete_after=5)
+                return
+        commandsloop2 = ["announcement", "poll", "suggestion"]
+        for commanda in commandsloop2:
+            try:
+                if commanda == command:
+                    try:
+                        list11 = selectqueryall(sql, 'announcements', 'channel_id', f'guild_id = {ctx.guild.id}')
+                        for item in list11:
+                            if item == channel.id:
+                                embedDescription  = (f"{channelid} is already registered.")
+                                await ctx.channel.send(embed=addEmbed(ctx,"red",embedDescription ), delete_after=5)
+                                return
+                    except:
+                        pass
+                    column = '(guild_id  , channel_id , channel_type)'
+                    values = (guild_id , channelid , command)
+                    result = (insertquery(sql, 'announcements', column , values, None))
+                    if command == "announcement":
+                        announcementschannels[ctx.guild.id].append(channel.id)
+                    elif command == "suggestion":
+                        suggestionchannels[ctx.guild.id].append(channel.id)
+                    elif command == "poll":
+                        pollchannels[ctx.guild.id].append(channel.id)
+                    if (result == 0):
+                        embedDescription  = (f"Successfully registered {command} as `{channel.id}`")
+                        await ctx.channel.send(embed=addEmbed(ctx,"green",embedDescription ), delete_after=5)
+                    else:
+                        embedDescription  = (f"Couldn't register {command} as {channelid}")
+                        await ctx.channel.send(embed=addEmbed(ctx,"red",embedDescription ), delete_after=5)
+                    return
+            except Exception as e:
+                print(e)
 
     @commands.command()
     @commands.cooldown(1, 5, commands.BucketType.user)
@@ -204,7 +261,7 @@ class SetCommandCog(commands.Cog):
             if categoryname == stralias[0]:
                 embedDescription  =(f"Category `{categoryname}` already exists.")
                 await ctx.send(embed=addEmbed(ctx,"red",embedDescription ), delete_after=5)
-                return 1
+                return
         column = '(guild_id, category_name)'
         values = (guild_id, categoryname)
         where = None
@@ -237,10 +294,10 @@ class SetCommandCog(commands.Cog):
                 deletequery(sql, f'restrict', f"restrictrole_name = '{restrictname}'")
                 embedDescription  =(f"Restriction type `{restrictname}` has been removed.")
                 await ctx.send(embed=addEmbed(ctx,"red",embedDescription ), delete_after=5)
-                return 1
+                return
         embedDescription  =(f"Restriction type `{restrictname}` couldn't be removed.")
         await ctx.send(embed=addEmbed(ctx,"red",embedDescription ), delete_after=5)
-        return 1
+        return
 
     @commands.command()
     @commands.cooldown(1, 5, commands.BucketType.user)
@@ -258,10 +315,38 @@ class SetCommandCog(commands.Cog):
                 categoryn = deletequery(sql, 'categories', f"category_name = '{categoryname}'")
                 embedDescription  =(f"Category `{categoryname}` has been removed.")
                 await ctx.send(embed=addEmbed(ctx,"red",embedDescription ), delete_after=5)
-                return 1
+                return
         embedDescription  =(f"Category `{categoryname}` couldn't be removed.")
         await ctx.send(embed=addEmbed(ctx,"red",embedDescription ), delete_after=5)
-        return 1
+        return
+
+    @commands.command()
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    @commands.has_permissions(manage_guild=True)
+    async def removechannel(self, ctx, value: discord.TextChannel, channel):
+        administratorcheck1 = await administratorcheck(ctx.guild, ctx.author)
+        if administratorcheck1 == 0:
+            await ctx.send(embed=await nopermission(ctx), delete_after=5)
+            return
+        await deletemessage(ctx)
+        categoryname = channel
+        channelid = value.id
+        channels = selectqueryall(sql, 'announcements', 'channel_id', f'channel_type = "{channel}"')
+        for stralias in channels:
+            if channel == "announcement":
+                announcementschannels[ctx.guild.id].remove(value.id)
+            elif channel == "poll":
+                pollchannels[ctx.guild.id].remove(value.id)
+            elif channel == "suggestion":
+                suggestionchannels[ctx.guild.id].remove(value.id)
+            if channelid == stralias[0]:
+                deletequery(sql, 'announcements', f"channel_id = {value.id} AND channel_type = '{channel}'")
+                embedDescription  =(f"<#{value.id}> has been removed from `{categoryname}`.")
+                await ctx.send(embed=addEmbed(ctx,"red",embedDescription ), delete_after=5)
+                return
+        embedDescription  =(f"<#{value.id}> couldn't be removed from `{categoryname}`.")
+        await ctx.send(embed=addEmbed(ctx,"red",embedDescription ), delete_after=5)
+        return
             
     @commands.command(aliases=['ba'])
     @commands.cooldown(1, 5, commands.BucketType.user)

@@ -25,6 +25,21 @@ async def on_ready():
     print("Presence has been set!")
     message = ""
     for guild in client.guilds:
+        result1 = selectqueryall(sql, 'announcements', 'channel_id', f'channel_type = "announcement" AND guild_id = {guild.id}')
+        announcementschannels[guild.id] = []
+        for type in result1:
+            type1 = type[0]
+            announcementschannels[guild.id].append(type1)
+        result2 = selectqueryall(sql, 'announcements', 'channel_id', f'channel_type = "suggestion" AND guild_id = {guild.id}')
+        suggestionchannels[guild.id] = []
+        for type in result2:
+            type1 = type[0]
+            suggestionchannels[guild.id].append(type1)
+        result3 = selectqueryall(sql, 'announcements', 'channel_id', f'channel_type = "poll" AND guild_id = {guild.id}')
+        pollchannels[guild.id] = []
+        for typepoll in result3:
+            typepoll1 = typepoll[0]
+            pollchannels[guild.id].append(typepoll1)
         message += f"{guild.name}\n"
     embedDescription  = (f"**__Guilds:__ **\n{message}")
     channel = client.get_channel(841245744421273620)
@@ -37,7 +52,6 @@ async def on_ready():
         if filename.endswith('.py'):
             client.load_extension(f'cogs.games.{filename[:-3]}')
             print(f"{filename[:-3]} has successfully been loaded!")
-        
     client.remove_command('help')
     result = selectqueryall(sql, 'guilds', 'guild_id', 'betaannouncements = 1')
     for type in result:

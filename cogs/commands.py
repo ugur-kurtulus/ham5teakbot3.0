@@ -131,10 +131,18 @@ class CommandCog(commands.Cog):
             webhook1 = await getwebhook(ctx, "Ham5teakBot3")
             async with aiohttp.ClientSession() as session:
                 webh = discord.Webhook.from_url(webhook1.url, adapter=discord.AsyncWebhookAdapter(session=session))
-                await webh.edit_message(id, embeds=[addEmbed2(ctx, None, embedDescription, embedobj.image.url)])
+                try:
+                    imageurl = (embedobj.image.url).split("/")[6]
+                    await webh.edit_message(id, embeds=[addEmbed2(ctx, None, embedDescription, f"attachment://{imageurl}")])
+                except:
+                    await webh.edit_message(id, embeds=[addEmbed2(ctx, None, embedDescription, None)])
             return
         await deletemessage(ctx)
-        await ctx.channel.get_partial_message(id).edit(embed = addEmbed(ctx, None, embedDescription, embedobj.image.url))
+        try:
+            imageurl = (embedobj.image.url).split("/")[6]
+            await ctx.channel.get_partial_message(id).edit(embed = addEmbed(ctx, None, embedDescription, f"attachment://{imageurl}"))
+        except:
+            await ctx.channel.get_partial_message(id).edit(embed = addEmbed(ctx, None, embedDescription, None))
 
     @commands.command()
     @commands.guild_only()
@@ -343,6 +351,7 @@ class CommandCog(commands.Cog):
         else:
             await ctx.send(embed=await nopermission(ctx), delete_after=5)
             return
+            
     @commands.command(aliases=['ml'])
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def movelist(self, ctx):
@@ -359,12 +368,56 @@ class CommandCog(commands.Cog):
             newcat = str(category).replace('(', '').replace(')', '').replace('(', '').replace("'", '').replace("[", '').replace("]", '').replace(',', '').replace(' ', f'\n')
             embedDescription  = (f"__**Categories you can move channels to:**__\n{newcat}")
             await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDescription ), delete_after=10)   
+            
+    @commands.command(aliases=['cl'])
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    async def channellist(self, ctx):
+        moderatorcheck1 = await moderatorcheck(ctx.guild, ctx.author)
+        if moderatorcheck1 == 0:
+            await ctx.send(embed=await nopermission(ctx), delete_after=5) 
+            return
+        await deletemessage(ctx)
+        message = "**Announcement Channels:**"
+        try:
+            achannels = selectqueryall(sql, 'announcements', 'channel_id', f'guild_id = {ctx.guild.id} AND channel_type = "announcement"')
+            if achannels == 0:
+                await ctx.send(embed=await nopermission(ctx), delete_after=5)
+                return
+            for achannel in achannels:
+                message += f" - <#{achannel[0]}>"
+        except:
+            message += "\n-\n"
+        message += "\n\n"
+        message += "**Suggestion Channels:**"
+        try:
+            schannels = selectqueryall(sql, 'announcements', 'channel_id', f'guild_id = {ctx.guild.id} AND channel_type = "suggestion"')
+            if schannels == 0:
+                await ctx.send(embed=await nopermission(ctx), delete_after=5)
+                return
+            for schannel in schannels:
+                message += f" - <#{schannel[0]}>"
+        except:
+            message += "\n-\n"
+        message += "\n\n"
+        message += "**Poll Channels:**"
+        try:
+            pchannels = selectqueryall(sql, 'announcements', 'channel_id', f'guild_id = {ctx.guild.id} AND channel_type = "poll"')
+            if pchannels == 0:
+                await ctx.send(embed=await nopermission(ctx), delete_after=5)
+                return
+            for pchannel in pchannels:
+                message += f" - <#{pchannel[0]}>"
+        except:
+            message += "\n-\n"
+        await ctx.send(embed=addEmbed(ctx,"dark_teal",message ), delete_after=20)
 
     @commands.command(aliases=['eval', 'e'])
     @commands.check(is_owner)
     async def evaluate(self, ctx, *, code):
         if code is None:
             return
+        pages = []
+        paginationList = []
         code = clean_code(code)
         local_variables = {
             "discord": discord,
@@ -411,32 +464,29 @@ class CommandCog(commands.Cog):
                 try:
                     interaction = await client.wait_for(
                         "button_click",
-                        check = lambda i: i.component.id in ["back", "front"], #You can add more
+                        check = lambda i: i.component.id in ["back", "front"] and i.message.id == mainMessage.id, #You can add more
                         timeout = 1200.0
                     )
-                    if interaction.message.id == mainMessage.id:
-                        pass
-                    else:
-                        if interaction.component.id == "back":
-                            current -= 1
-                        elif interaction.component.id == "front":
-                            current += 1
-                        if current == len(paginationList):
-                            current = 0
-                        elif current < 0:
-                            current = len(paginationList) - 1
-                        try:
-                            await interaction.respond(
-                                type = InteractionType.UpdateMessage,
-                                embed = paginationList[current],
-                                components = [
-                                    [
-                                        Button(label = "Prev",id = "back",style = ButtonStyle.green),
-                                        Button(label = f"Page {int(paginationList.index(paginationList[current])) + 1}/{len(paginationList)}",id = "cur",style = ButtonStyle.grey,disabled = True),
-                                        Button(label = "Next",id = "front",style = ButtonStyle.green)
-                                    ]])
-                        except NotFoundErr as e1:
-                            print(e1)
+                    if interaction.component.id == "back":
+                        current -= 1
+                    elif interaction.component.id == "front":
+                        current += 1
+                    if current == len(paginationList):
+                        current = 0
+                    elif current < 0:
+                        current = len(paginationList) - 1
+                    try:
+                        await interaction.respond(
+                            type = InteractionType.UpdateMessage,
+                            embed = paginationList[current],
+                            components = [
+                                [
+                                    Button(label = "Prev",id = "back",style = ButtonStyle.green),
+                                    Button(label = f"Page {int(paginationList.index(paginationList[current])) + 1}/{len(paginationList)}",id = "cur",style = ButtonStyle.grey,disabled = True),
+                                    Button(label = "Next",id = "front",style = ButtonStyle.green)
+                                ]])
+                    except NotFoundErr as e1:
+                        print(e1)
                 except asyncio.TimeoutError:
                     await mainMessage.edit(
                         components = [[

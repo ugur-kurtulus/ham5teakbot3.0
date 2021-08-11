@@ -1,3 +1,4 @@
+from ast import Return
 import os
 from discord.embeds import Embed
 from discord.errors import HTTPException
@@ -95,9 +96,8 @@ class OnMessage(commands.Cog):
             print(e1)
         try:
             if str(ctx.guild.id) in str(betaannouncementguilds):
-                channelnames = ["announcements", "updates", "competitions", "events"]
-                for channel in channelnames:
-                    if channel in ctx.channel.name:
+                if ctx.guild.id in premium_guilds:
+                    if ctx.channel.id in announcementschannels[ctx.guild.id]:
                         if not ctx.author.bot:
                             if ctx.content.startswith("-") or ctx.content.startswith("?") or ctx.content.startswith("!"):
                                 return
@@ -122,15 +122,54 @@ class OnMessage(commands.Cog):
                                         await asyncio.sleep(2)
                                         msg = await ctx.channel.history(limit=1).flatten()
                                         msg = msg[0]
-                                        await msg.add_reaction("👍")
-                                        await asyncio.sleep(0.2)
-                                        await msg.add_reaction("❤️")
+                                        try:
+                                            await msg.add_reaction("👍")
+                                            await asyncio.sleep(0.2)
+                                            await msg.add_reaction("❤️")
+                                        except:
+                                            pass
                                         sent = False
                                     print(f"An announcement was made in #{ctx.channel.name} by {ctx.author}.")
                             return
-            channelnames = ["announcements", "updates", "competitions", "events"]
-            for channel in channelnames:
-                if channel in ctx.channel.name:
+                else:
+                    channelnames = ["announcements", "updates", "competitions", "events"]
+                    for channel in channelnames:
+                        if channel in ctx.channel.name:
+                            if not ctx.author.bot:
+                                if ctx.content.startswith("-") or ctx.content.startswith("?") or ctx.content.startswith("!"):
+                                    return
+                                else:
+                                    if ctx.attachments:
+                                        for imageextensions in [".jpg", ".jpeg", ".png", ".gif"]:
+                                            if imageextensions in ctx.attachments[0].filename:
+                                                await attachmentAutoEmbed(ctx, 1, "announcement", "👍", "❤️", 1)
+                                                return
+                                        await attachmentAutoEmbed(ctx, 0, "announcement", "👍", "❤️", 1)
+                                        return
+                                    if not ctx.attachments:
+                                        try:
+                                            await ctx.delete()
+                                        except:
+                                            pass
+                                        embedDescription  = (f"{ctx.content}")
+                                        embed = addEmbed2(ctx,None,embedDescription )
+                                        sent = False
+                                        sent = await sendwebhook(ctx, ctx.author.name, ctx.channel, None, [embed])
+                                        while sent == True:
+                                            await asyncio.sleep(2)
+                                            msg = await ctx.channel.history(limit=1).flatten()
+                                            msg = msg[0]
+                                            try:
+                                                await msg.add_reaction("👍")
+                                                await asyncio.sleep(0.2)
+                                                await msg.add_reaction("❤️")
+                                            except:
+                                                pass
+                                            sent = False
+                                        print(f"An announcement was made in #{ctx.channel.name} by {ctx.author}.")
+                                return
+            if ctx.guild.id in premium_guilds:
+                if ctx.channel.id in announcementschannels[ctx.guild.id]:
                     if not ctx.author.bot:
                         if ctx.content.startswith("-") or ctx.content.startswith("?") or ctx.content.startswith("!"):
                             return
@@ -149,11 +188,44 @@ class OnMessage(commands.Cog):
                                     pass
                                 embedDescription  = (f"{ctx.content}")
                                 msg = await ctx.channel.send(embed=addEmbed(ctx,None,embedDescription ))
-                                await msg.add_reaction("👍")
-                                await msg.add_reaction("❤️")
+                                try:
+                                    await msg.add_reaction("👍")
+                                    await msg.add_reaction("❤️")
+                                except:
+                                    pass
                                 print(f"An announcement was made in #{ctx.channel.name} by {ctx.author}.")
-            if "suggestions" in ctx.channel.name:
-                if not ctx.author.bot:
+                            return
+            else:
+                channelnames = ["announcements", "updates", "competitions", "events"]
+                for channel in channelnames:
+                    if channel in ctx.channel.name:
+                        if not ctx.author.bot:
+                            if ctx.content.startswith("-") or ctx.content.startswith("?") or ctx.content.startswith("!"):
+                                return
+                            else:
+                                if ctx.attachments:
+                                        for imageextensions in [".jpg", ".jpeg", ".png", ".gif"]:
+                                            if imageextensions in ctx.attachments[0].filename:
+                                                await attachmentAutoEmbed(ctx, 1, "announcement", "👍", "❤️")
+                                                return
+                                        await attachmentAutoEmbed(ctx, 0, "announcement", "👍", "❤️")
+                                        return
+                                if not ctx.attachments:
+                                    try:
+                                        await ctx.delete()
+                                    except:
+                                        pass
+                                    embedDescription  = (f"{ctx.content}")
+                                    msg = await ctx.channel.send(embed=addEmbed(ctx,None,embedDescription ))
+                                    try:
+                                        await msg.add_reaction("👍")
+                                        await msg.add_reaction("❤️")
+                                    except:
+                                        pass
+                                    print(f"An announcement was made in #{ctx.channel.name} by {ctx.author}.")
+                                return
+            if ctx.guild.id in premium_guilds:
+                if ctx.channel.id in suggestionchannels[ctx.guild.id] and not ctx.author.bot:
                     if ctx.content.startswith("-") or ctx.content.startswith("?") or ctx.content.startswith("!"):
                         return
                     else:
@@ -171,14 +243,133 @@ class OnMessage(commands.Cog):
                                 pass
                             embedDescription  = (f"{ctx.content}")
                             msg = await ctx.channel.send(embed=addEmbed(ctx,None,embedDescription ))
-                            await msg.add_reaction("✅")
-                            await msg.add_reaction("❌")
+                            try:
+                                await msg.add_reaction("✅")
+                                await msg.add_reaction("❌")
+                            except:
+                                pass
                             print(f"A suggestion was made in #{ctx.channel.name} by {ctx.author}.")
-            if "polls" in ctx.channel.name or "poll" in ctx.channel.name:
-                if not ctx.author.bot:
+            else:
+                if "suggestions" not in ctx.channel.name:
+                    pass
+                elif not ctx.author.bot:
+                    if ctx.content.startswith("-") or ctx.content.startswith("?") or ctx.content.startswith("!"):
+                        return
+                    else:
+                        if ctx.attachments:
+                            for imageextensions in [".jpg", ".jpeg", ".png", ".gif"]:
+                                if imageextensions in ctx.attachments[0].filename:
+                                    await attachmentAutoEmbed(ctx, 1, "suggestion", "✅", "❌")
+                                    return
+                            await attachmentAutoEmbed(ctx, 0, "suggestion", "✅", "❌")
+                            return
+                        if not ctx.attachments:
+                            try:
+                                await ctx.delete()
+                            except:
+                                pass
+                            embedDescription  = (f"{ctx.content}")
+                            msg = await ctx.channel.send(embed=addEmbed(ctx,None,embedDescription ))
+                            try:
+                                await msg.add_reaction("✅")
+                                await msg.add_reaction("❌")
+                            except:
+                                pass
+                            print(f"A suggestion was made in #{ctx.channel.name} by {ctx.author}.")
+            if ctx.guild.id in premium_guilds:
+                if ctx.channel.id in pollchannels[ctx.guild.id] and not ctx.author.bot:
                     if ctx.content.startswith("-") or ctx.content.startswith("?") or ctx.content.startswith("!"):
                         return
                     if ctx.webhook_id or "poll-results" in ctx.channel.name:
+                        return
+                    else:
+                        if not ctx.attachments:
+                            sent = True
+                            try:
+                                await ctx.delete()
+                            except:
+                                pass
+                            components1 = []
+                            reactionstotal = {}
+                            reactedusers = {}
+                            content = ctx.content.replace(":", '')
+                            content = e.demojize(content)
+                            messageemojis = []
+                            regionalindicators = ['\U0001f1e6', '\U0001f1e7', '\U0001f1e8', '\U0001f1e9', '\U0001f1ea', '\U0001f1eb', '\U0001f1ec',
+                             '\U0001f1ed', '\U0001f1ee', '\U0001f1ef', '\U0001f1f0', '\U0001f1f1', '\U0001f1f2', '\U0001f1f3', '\U0001f1f4', '\U0001f1f5',
+                              '\U0001f1f6', '\U0001f1f7', '\U0001f1f8', '\U0001f1f9', '\U0001f1fa', '\U0001f1fc', '\U0001f1fd', '\U0001f1fe', '\U0001f1ff']
+                            for word in content.split(" "):
+                                for em in re.findall(r'(:[^:]*:)', word):
+                                    messageemojis.append(em)
+                                for reg in regionalindicators:
+                                    for emm in re.findall(rf'{reg}', word):
+                                        messageemojis.append(emm)
+                            if messageemojis is not None:
+                                for emoji in messageemojis:
+                                    try:
+                                        emoji1 = e.emojize(emoji)
+                                        components1.append(Button(emoji=emoji1, id=emoji1))
+                                        reactionstotal.update({emoji1: 0})
+                                    except:  #nosec
+                                        pass
+                                reactionstotal1 = str(reactionstotal).replace("{", " ").replace("}", "").replace(",", f"\n").replace(":", "").replace("'", "")
+                                embedDescription  = (f"{ctx.content}\n\n```{reactionstotal1}\n```")
+                                try:
+                                    msg = await ctx.channel.send(embed=addEmbed(ctx,None,embedDescription ), components=[components1])
+                                    reactedusers.update({msg.id: []})
+                                except HTTPException:
+                                    await ctx.channel.send("Please enter a message with emojis as options.", delete_after=3)
+                                    return
+                            else:
+                                reactionstotal1 = str(reactionstotal).replace("{", " ").replace("}", "").replace(",", f"\n").replace(":", "").replace("'", "")
+                                embedDescription  = (f"{ctx.content}\n\n```{reactionstotal1}\n```")
+                                msg = await ctx.channel.send(embed=addEmbed(ctx,None,embedDescription ), components=[])
+                            print(f"A poll was made in #{ctx.channel.name} by {ctx.author}.")
+                            endTime = datetime.datetime.now() + datetime.timedelta(hours=12)
+                            while sent == True:
+                                if datetime.datetime.now() >= endTime:
+                                    reactedusers.pop(msg.id)
+                                    embedDescription1 = f"{ctx.content}\n\n```{reactionstotal1}\n```\n\n **This poll has ended.**"
+                                    try:
+                                        try:
+                                            for item in components1:
+                                                item.disabled = True
+                                        except Exception as e2:
+                                            print(e2)
+                                        await msg.edit(embed=addEmbed(ctx,None,embedDescription1 ),
+                                                components=[components1])
+                                    except Exception as e11: #nosec
+                                        print(e11)
+                                    sent = False
+                                else:
+                                    try:
+                                        res = await client.wait_for(event="button_click",check=lambda res: res.channel == ctx.channel)
+                                        if res.user.id in reactedusers[res.message.id]:
+                                            await res.respond(
+                                                type=InteractionType.ChannelMessageWithSource,
+                                                content=f'You have already voted for this poll.'
+                                            )
+                                        elif res.message.id != msg.id:
+                                            pass
+                                        elif res.user.id not in reactedusers[res.message.id]:
+                                            getdata = reactionstotal[res.component.id]
+                                            reactionstotal.update({res.component.id: getdata + 1})
+                                            reactionstotal1 = str(reactionstotal).replace("{", " ").replace("}", "").replace(",", f"\n").replace(":", "").replace("'", "")
+                                            embedDescription1 = f"{ctx.content}\n\n```{reactionstotal1}\n```"
+                                            await msg.edit(embed=addEmbed(ctx,None,embedDescription1 ),
+                                                components=[components1])
+                                            await res.respond(
+                                                type=InteractionType.ChannelMessageWithSource,
+                                                content=f'Successfully voted for {res.component.id}.'
+                                            )
+                                            reactedusers[res.message.id].append(res.user.id)
+                                    except Exception as e00:
+                                        print(e00)
+            else:
+                if not ctx.author.bot:
+                    if ("polls" not in ctx.channel.name or "poll" not in ctx.channel.name or ctx.webhook_id or 
+                    "poll-results" in ctx.channel.name or ctx.content.startswith("-") or 
+                    ctx.content.startswith("?") or ctx.content.startswith("!")):
                         return
                     else:
                         if ctx.attachments:
@@ -322,17 +513,6 @@ class OnMessage(commands.Cog):
                         if generalchannelcheck != 0:
                             generalchannel = client.get_channel(generalchannelcheck)
                             await generalchannel.send(content=f'**WARNING!** `/op` or `/deop` was used. Check {alertschannel.mention} for more info.', delete_after=600)
-                        verified = False
-                        while verified == False:
-                            res = await client.wait_for("button_click")
-                            if res.component.id == messagestrip:
-                                await msg.edit(content=f'```\n{messagestrip}\n```It originated from {ctx.channel.mention}!',
-                                components=[Button(style=ButtonStyle.green, disabled=True ,label=f"OP Verified By {res.user}")])
-                                await res.respond(
-                                    type=InteractionType.ChannelMessageWithSource,
-                                    content=f'Op successfully verified.'
-                                )
-                                verified = True
                 messagestrip = await stripmessage(ctx.content, 'Main thread terminated by WatchDog due to hard crash')
                 if messagestrip:
                     print(messagestrip)

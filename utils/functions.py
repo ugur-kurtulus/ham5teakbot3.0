@@ -74,7 +74,6 @@ def deletequery(sql, table , where):
             querycursor.execute(query)
             sql.commit()
             querycursor.close()
-            print(f'Delete query executed successfully!')
             return 1
     except mysql.connector.Error as e:
         print(e)
@@ -117,7 +116,6 @@ def selectqueryall(sql, table , column, where):
             result = querycursor.fetchall()
             sql.commit()
             querycursor.close()
-            print(f'Select query executed successfully!')
             return result
     except mysql.connector.Error as e:
         print(e)
@@ -139,7 +137,6 @@ def insertquery(sql, table , column , values , where):
             querycursor.execute(query , values)
             sql.commit()
             querycursor.close()
-            print(f'Insert query executed successfully!')
             return 0
     except mysql.connector.Error as e:
         print(e)
@@ -187,12 +184,19 @@ passwords_query = (f'''
             password VARCHAR(255),
             used TINYINT
             )''')
+announcements_query = (f'''
+        CREATE TABLE {database}.announcements 
+            (guild_id BIGINT DEFAULT NULL,
+            channel_id BIGINT,
+            channel_type VARCHAR(255)
+            )''')
 
 sql = sqlconnect()      
 createtable(sql,'guilds', quilds_query)
 createtable(sql,'categories', categories_query)
 createtable(sql,'restrict', restrict_query)
 createtable(sql,'passwords', passwords_query)
+createtable(sql, 'announcements', announcements_query)
 
 """
 Arrays and Dicts
@@ -201,6 +205,9 @@ Arrays and Dicts
 colors = {"green": 0x3aa45c, "red": 0xed4344, "blue": 0x5864f3, "aqua": 0x00FFFF,
  "dark_teal": 0x10816a, "teal": 0x1abc9c, "invis": 0x2f3037}
 premium_guilds = [selectqueryall(sql, 'guilds', 'guild_id', None)]
+announcementschannels = {}
+suggestionchannels = {}
+pollchannels = {}
 betaannouncementguilds = []
 ham_guilds = [380308776114454528, 841225582967783445, 820383461202329671, 789891385293537280,
 82038346120232967, 650658756803428381, 571626209868382236, 631067371661950977]
@@ -262,10 +269,15 @@ async def sendwebhook(ctx, webhookname, channel, file, embeds):
     await webhook.send(username=webhookname, avatar_url=image, embeds=embeds, file=file)
     return True
 
-async def getwebhook(ctx, webhookname):
-    for w in await ctx.guild.webhooks():
-        if webhookname == w.name and w.channel == ctx.channel:
-            return w
+async def getwebhook(ctx, webhookname, channel = None):
+    if channel == None:
+        for w in await ctx.guild.webhooks():
+            if webhookname == w.name and w.channel == ctx.channel:
+                return w
+    else:
+        for w in await channel.guild.webhooks():
+            if webhookname == w.name and w.channel == channel:
+                return w
         
 async def nopermission(ctx):
     embedDescription  = (f"You don't have permission to do this.")
@@ -313,31 +325,52 @@ async def administratorcheck(guild, member):
 
 async def statuscheck():
     for guild in client.guilds:
-        sql.connect()
-        mycursor = sql.cursor()
-        guildid = int(guild.id)
-        guildname = str(f"{guild.name}")
         try:
-            statuschannel = selectquery(sql, 'guilds', 'statuschannel', f'guild_id = {guildid}')
-        except mysql.connector.Error as e:
-            print(e)
-            print(f'Failed to call statuschannel for {guildid}')
-            return
-        mycursor.close()
-        try:
-            channel = client.get_channel(statuschannel)
-            await channel.purge(limit=10)
-            server = MinecraftServer.lookup("play.ham5teak.xyz:25565")
-            status = server.status()
-            if status.latency > 0:
-                ham5teak = "Online ✅"
+            if guild.id in premium_guilds:
+                serverip = selectquery(sql, 'guilds', 'mcserver', f'guild_id = {guild.id}')
+                servername = guild.name
             else:
-                ham5teak = "Offline ❌"
-            embed = discord.Embed(description=f"**Ham5teak Status:** {ham5teak} \n**Players:** {status.players.online - 20}\n**IP:** play.ham5teak.xyz\n**Versions:** 1.13.x, 1.14.x, 1.15.x, 1.16.x, 1.17.x", color=discord.Color.teal())
-            embed.set_footer(text="Ham5teak Bot 3.0 | Made by Beastman#1937, SottaByte#1543 and Jaymz#7815")
-            embed.set_author(name="Ham5teak Network Status", icon_url="https://cdn.discordapp.com/icons/380308776114454528/a_be4514bb0a52a206d1bddbd5fbd2250f.png?size=4096")
-            await channel.send(embed=embed)
-        except: #nosec
+                serverip = "play.ham5teak.xyz:25565"
+                servername = "Ham5teak"
+            try:
+                statuschannel = selectquery(sql, 'guilds', 'statuschannel', f'guild_id = {guild.id}')
+            except mysql.connector.Error as e:
+                print(e)
+                print(f'Failed to call statuschannel for {guild.id}')
+            channel = client.get_channel(statuschannel)
+            if channel is not None:
+                await channel.purge(limit=10)
+            if serverip is None:
+                continue
+            try:
+                server = MinecraftServer.lookup(serverip)
+                status = server.status()
+                if status.latency > 0:
+                    server = "Online ✅"
+                else:
+                    server = "Offline ❌"
+                playercount = status.players.online - 20
+                playercount1 = status.players.online
+            except:
+                server = "Offline ❌"
+                playercount = 20
+                playercount1 = 0
+            a = await client.http.request(
+                discord.http.Route(
+                "GET", f"/guilds/{guild.id}")
+                )
+            icon = a["icon"]
+            if serverip == "play.ham5teak.xyz:25565" or serverip == "play.ham5teak.xyz":
+                embed = discord.Embed(description=f"**Ham5teak Status:** {server} \n**Players:** {playercount}\n**IP:** play.ham5teak.xyz\n**Versions:** 1.8.9, 1.10.x, 1.11.x, 1.12.x, 1.13.x, 1.14.x, 1.15.x, 1.16.x, 1.17.x", color=discord.Color.teal())
+                embed.set_footer(text="Ham5teak Bot 3.0 | Made by Beastman#1937, SottaByte#1543 and Jaymz#7815")
+                embed.set_author(name="Ham5teak Network Status", icon_url="https://cdn.discordapp.com/icons/380308776114454528/a_be4514bb0a52a206d1bddbd5fbd2250f.png?size=4096")
+                await channel.send(embed=embed)
+            else:
+                embed = discord.Embed(description=f"**Status:** {server} \n**Players:** {playercount1}\n**IP:** {serverip}", color=discord.Color.teal())
+                embed.set_footer(text="Ham5teak Bot 3.0 | Made by Beastman#1937, SottaByte#1543 and Jaymz#7815")
+                embed.set_author(name=f"{serverip.split('.', 2)[1].title()} Network Status", icon_url=f"https://cdn.discordapp.com/icons/{guild.id}/{icon}.png?size=4096")
+                await channel.send(embed=embed)
+        except Exception as e:
             pass
     await asyncio.sleep(600)
     
@@ -379,15 +412,24 @@ def addEmbed2(ctx , color, new, image = None):
         newEmbed = discord.Embed(description=f"{new}", color=ctx.author.color)
         newEmbed.set_image(url=image)
     elif image != None and ctx == None:
-        newEmbed = discord.Embed(description=f"{new}", color=colors[color])
+        if str(color) in colors.keys():
+            newEmbed = discord.Embed(description=f"{new}", color=colors[color])
+        else:
+            newEmbed = discord.Embed(description=f"{new}", color=color)
         newEmbed.set_image(url=image)
     else:
         if ctx != None and color == None:
             newEmbed = discord.Embed(description=f"{new}", color=ctx.author.color)
         elif ctx != None and color != None:
-            newEmbed = discord.Embed(description=f"{new}", color=colors[color])
+            if str(color) in colors.keys():
+                newEmbed = discord.Embed(description=f"{new}", color=colors[color])
+            else:
+                newEmbed = discord.Embed(description=f"{new}", color=color)
         elif ctx == None:
-            newEmbed = discord.Embed(description=f"{new}", color=colors[color])
+            if str(color) in colors.keys():
+                newEmbed = discord.Embed(description=f"{new}", color=colors[color])
+            else:
+                newEmbed = discord.Embed(description=f"{new}", color=color)
     newEmbed.set_footer(text="Ham5teak Bot 3.0 | Made by Beastman#1937, SottaByte#1543 and Jaymz#7815")
     return newEmbed
 
@@ -397,16 +439,25 @@ def addEmbed(ctx , color, new, image = None):
         newEmbed.set_author(name=ctx.author, icon_url=ctx.author.avatar_url)
         newEmbed.set_image(url=image)
     elif image != None and ctx == None:
-        newEmbed = discord.Embed(description=f"{new}", color=colors[color])
+        if str(color) in colors.keys():
+            newEmbed = discord.Embed(description=f"{new}", color=colors[color])
+        else:
+            newEmbed = discord.Embed(description=f"{new}", color=color)
         newEmbed.set_image(url=image)
     else:
         if ctx != None and color == None:
             newEmbed = discord.Embed(description=f"{new}", color=ctx.author.color)
             newEmbed.set_author(name=ctx.author, icon_url=ctx.author.avatar_url)
         elif ctx != None and color != None:
-            newEmbed = discord.Embed(description=f"{new}", color=colors[color])
+            if str(color) in colors.keys():
+                newEmbed = discord.Embed(description=f"{new}", color=colors[color])
+            else:
+                newEmbed = discord.Embed(description=f"{new}", color=color)
             newEmbed.set_author(name=ctx.author, icon_url=ctx.author.avatar_url)
         elif ctx == None:
-            newEmbed = discord.Embed(description=f"{new}", color=colors[color])
+            if str(color) in colors.keys():
+                newEmbed = discord.Embed(description=f"{new}", color=colors[color])
+            else:
+                newEmbed = discord.Embed(description=f"{new}", color=color)
     newEmbed.set_footer(text="Ham5teak Bot 3.0 | Made by Beastman#1937, SottaByte#1543 and Jaymz#7815")
     return newEmbed

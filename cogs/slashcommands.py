@@ -13,7 +13,7 @@ class Slash(commands.Cog):
         moderatorcheck1 = await moderatorcheck(ctx.guild, ctx.author)
         if moderatorcheck1 == 0:
             await ctx.defer(hidden=True)
-            await ctx.send(embed=await nopermission(ctx), delete_after=5)
+            await ctx.send(embed=await nopermission(ctx))
             return
         result = selectquery(sql, 'guilds', 'acceptedsuggestions', f'guild_id = {ctx.guild.id}')
         if result == 0:
@@ -37,23 +37,37 @@ class Slash(commands.Cog):
                     await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDescription ))
                     return
 
-    @cog_ext.cog_slash(name="ham5teak", description="View Ham5teak network status")
-    async def ham5teak(self, ctx):
-        server = MinecraftServer.lookup("play.ham5teak.xyz:25565")
-        status = server.status()
-        if status.latency >= 0.0001:
-            ham5teak = "Online ✅"
+    @cog_ext.cog_slash(name="status", description="View minecraft network status")
+    async def status(self, ctx):
+        if ctx.guild.id in premium_guilds:
+            serverip = selectquery(sql, 'guilds', 'mcserver', f'guild_id = {ctx.guild.id}')
+            if serverip is None:
+                await ctx.send(embed=addEmbed(ctx, "red", "This server does not have a minecraft server set", None))
+                return
+            servername = ctx.guild.name
         else:
-            ham5teak = "Offline ❌"
-        embedDescription =(f"**Ham5teak Status:** {ham5teak} \n**Players:** {status.players.online - 20}")
+            serverip = "play.ham5teak.xyz:25565"
+            servername = "Ham5teak"
+        server = MinecraftServer.lookup(serverip)
+        status = server.status()
+        if serverip == "play.ham5teak.xyz:25565":
+            playercount = status.players.online - 20
+        else:
+            playercount = status.players.online
+        if status.latency >= 0.0001:
+            server = "Online ✅"
+        else:
+            server = "Offline ❌"
+        embedDescription =(f"**{serverip.split('.', 2)[1].title()} Status:** {server} \n**Players:** {playercount}\n**IP:** {serverip}")
         await ctx.send(embed=addEmbed(ctx,None,embedDescription ))
+        return
 
     @cog_ext.cog_slash(name="move", description="Move a channel to specified category.", )
     async def move(self, ctx, category):
         await ctx.defer(hidden=True)
         moderatorcheck1 = await moderatorcheck(ctx.guild, ctx.author)
         if moderatorcheck1 == 0:
-            await ctx.send(embed=await nopermission(ctx), delete_after=5)
+            await ctx.send(embed=await nopermission(ctx))
             return
         alias = category
         aliaslist = selectqueryall(sql, "categories", "category_name", f"guild_id = {ctx.guild.id}")
@@ -71,7 +85,7 @@ class Slash(commands.Cog):
         moderatorcheck1 = await moderatorcheck(ctx.guild, ctx.author)
         if moderatorcheck1 == 0:
             await ctx.defer(hidden=True)
-            await ctx.send(embed=await nopermission(ctx), delete_after=5)
+            await ctx.send(embed=await nopermission(ctx))
             return
         await ctx.defer(hidden=False)
         finalmentions = []
@@ -93,11 +107,11 @@ class Slash(commands.Cog):
 
     @cog_ext.cog_slash(name="setchannel", description="Set channels for your server")
     @commands.has_permissions(manage_guild=True)
-    async def setchannel(self, ctx, value: discord.TextChannel, channel):
+    async def setchannel(self, ctx, value: discord.TextChannel, channel: str):
         await ctx.defer(hidden=True)
         administratorcheck1 = await administratorcheck(ctx.guild, ctx.author)
         if administratorcheck1 == 0:
-            await ctx.send(embed=await nopermission(ctx), delete_after=5)
+            await ctx.send(embed=await nopermission(ctx))
             return
         guild_id = ctx.guild.id
         channelid = str(value.id)
@@ -114,7 +128,40 @@ class Slash(commands.Cog):
                     await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDescription ))
                 else:
                     embedDescription  = (f"{channel} couldn't be registered as {channelid}")
-                    await ctx.send(embed=addEmbed(ctx,"red",embedDescription ))  
+                    await ctx.send(embed=addEmbed(ctx,"red",embedDescription ))
+                return
+        commandsloop2 = ["announcement", "poll", "suggestion"]
+        for commanda in commandsloop2:
+            if commanda == channel:
+                try:
+                    list11 = selectqueryall(sql, 'announcements', 'channel_id', f'guild_id = {ctx.guild.id}')
+                    for item in list11:
+                        if item[0] == value.id:
+                            embedDescription  = (f"{channelid} is already registered.")
+                            await ctx.send(embed=addEmbed(ctx,"red",embedDescription ))
+                            return
+                except:
+                    pass
+                column = '(guild_id  , channel_id , channel_type)'
+                values = (guild_id , channelid , channel)
+                result = (insertquery(sql, 'announcements', column , values, None))
+                if channel == "announcement":
+                    announcementschannels[ctx.guild.id].append(value.id)
+                    channel1 = "an announcement"
+                elif channel == "suggestion":
+                    suggestionchannels[ctx.guild.id].append(value.id)
+                    channel1 = "a suggestion"
+                elif channel == "poll":
+                    pollchannels[ctx.guild.id].append(value.id)
+                    channel1 = "a poll"
+                if (result == 0):
+                    embedDescription  = (f"Successfully registered <#{channelid}> as {channel1} channel.")
+                    await ctx.send(embed=addEmbed(ctx,"green",embedDescription ))
+                else:
+                    embedDescription  = (f"Couldn't register <#{channelid}> as {channel1} channel.")
+                    await ctx.send(embed=addEmbed(ctx,"red",embedDescription ))
+                return
+
             
     @cog_ext.cog_slash(name="setmove")
     @commands.has_permissions(manage_guild=True)
@@ -123,11 +170,11 @@ class Slash(commands.Cog):
         await administratorcheck(ctx.guild, ctx.author)
         administratorcheck1 = await administratorcheck(ctx.guild, ctx.author)
         if administratorcheck1 == 0:
-            await ctx.send(embed=await nopermission(ctx), delete_after=5)
+            await ctx.send(embed=await nopermission(ctx))
             return
         movecheck = selectquery(sql, 'guilds', 'custommovecount', f'guild_id = {ctx.guild.id}')
         if movecheck >= 45:
-            await ctx.send(embed=addEmbed(ctx, None, f"Guild has {movecheck} custommoves set which is over the limit."), delete_after=5)
+            await ctx.send(embed=addEmbed(ctx, None, f"Guild has {movecheck} custommoves set which is over the limit."))
             return
         guild_id = ctx.guild.id
         categoryid = str(categoryi.id)
@@ -160,7 +207,7 @@ class Slash(commands.Cog):
         await ctx.defer(hidden=True)
         administratorcheck1 = await administratorcheck(ctx.guild, ctx.author)
         if administratorcheck1 == 0:
-            await ctx.send(embed=await nopermission(ctx), delete_after=5)
+            await ctx.send(embed=await nopermission(ctx))
             return
         result = selectquery(sql, 'guilds', 'moderator_id', f'guild_id = {ctx.guild.id}')
         if result is None:
@@ -175,6 +222,30 @@ class Slash(commands.Cog):
             else:
                 embedDescription  = (f"Couldn't register {administrator.mention} {moderator.mention} as administrator and moderator.")
                 await ctx.send(embed=addEmbed(ctx,"red",embedDescription ))
+
+    @cog_ext.cog_slash(name="setserver")
+    async def setserver(self, ctx, serverip: str):
+        await ctx.defer(hidden=True)
+        administratorcheck1 = await administratorcheck(ctx.guild, ctx.author)
+        if administratorcheck1 == 0:
+            await ctx.send(embed=await nopermission(ctx))
+            return
+        try:
+            server = MinecraftServer.lookup(serverip)
+            status = server.status()
+        except:
+            embedDescription  = (f"Couldn't register {serverip} as server ip.")
+            await ctx.send(embed=addEmbed(ctx,"red",embedDescription ))
+            return
+        guild_id = str(ctx.guild.id)
+        where = (f"guild_id = {guild_id}")
+        result = (insertquery(sql, 'guilds', 'mcserver', f"'{serverip}'", where))
+        if (result == 0):
+            embedDescription  = (f"Successfully registered {serverip} as server ip.")
+            await ctx.send(embed=addEmbed(ctx,"green",embedDescription ))
+        else:
+            embedDescription  = (f"Couldn't register {serverip} as server ip.")
+            await ctx.send(embed=addEmbed(ctx,"red",embedDescription ))
 
     @cog_ext.cog_slash(name="setup")
     @commands.has_permissions(manage_guild=True)
@@ -230,8 +301,11 @@ class Slash(commands.Cog):
     async def on_slash_command_error(self, ctx, error):
         print(error)
         if isinstance(error, discord.errors.NotFound):
-            embedDescription  = (f"Please enter a valid ID. \n{error}")
-            await ctx.send(embed=addEmbed(ctx,"teal",embedDescription ), hidden=True)
+            try:
+                embedDescription  = (f"Please enter a valid ID. \n{error}")
+                await ctx.send(embed=addEmbed(ctx,"teal",embedDescription ), hidden=True)
+            except:
+                return
         if isinstance(error, commands.MissingPermissions):
             await ctx.defer(hidden=True)
             embedDescription  = (f"Please make sure you have entered all values correctly.\n{error}")
