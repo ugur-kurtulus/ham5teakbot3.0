@@ -145,6 +145,8 @@ class Slash(commands.Cog):
                 column = '(guild_id  , channel_id , channel_type)'
                 values = (guild_id , channelid , channel)
                 result = (insertquery(sql, 'announcements', column , values, None))
+                if ctx.guild.id not in announcementschannels.keys() or ctx.guild.id not in suggestionchannels.keys() or ctx.guild.id not in pollchannels.keys():
+                       announcementschannels[ctx.guild.id] = []
                 if channel == "announcement":
                     announcementschannels[ctx.guild.id].append(value.id)
                     channel1 = "an announcement"

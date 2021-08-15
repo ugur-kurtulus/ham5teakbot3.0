@@ -147,7 +147,7 @@ class TicTacToe(Cog):
                     listid = res.component.id
                     firstpart, secondpart = listid.split(' ')
                     board[int(firstpart)][int(secondpart)] = Button(
-                        style=ButtonStyle.green, label="X", id="1 0", disabled=True)
+                        style=ButtonStyle.green, label="X", disabled=True)
                     selections[int(firstpart)][int(secondpart)] = "green"
                     if haswon('green'):
                         await winner('green', board)
@@ -172,7 +172,7 @@ class TicTacToe(Cog):
                     await res.respond(type=6)
                     listid = res.component.id
                     firstpart, secondpart = listid.split(' ')
-                    board[int(firstpart)][int(secondpart)] = Button(style=ButtonStyle.red, label="O", id="1 0",
+                    board[int(firstpart)][int(secondpart)] = Button(style=ButtonStyle.red, label="O",
                                                                     disabled=True)
                     selections[int(firstpart)][int(secondpart)] = "red"
                     if haswon('red'):

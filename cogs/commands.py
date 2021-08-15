@@ -21,7 +21,7 @@ class CommandCog(commands.Cog):
     @commands.command()
     async def ping(self, ctx):
         await deletemessage(ctx)
-        latency = int(client.latency * 1000)
+        latency = int(client.get_shard(calcshard(ctx.guild.id)).latency * 1000)
         await ctx.send(embed=addEmbed(ctx, "dark_teal", f"Bot Latency: `{latency}ms`"), delete_after=5)
 
     @commands.command()

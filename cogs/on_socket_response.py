@@ -68,8 +68,11 @@ class on_socket_response(commands.Cog):
             except Exception as e:
                 print(e)
         elif msg != None and buttonlabel != None:
-            if not "Ham5teak Bot Ticket Assistant" in msg.embeds[0].author.name:
-                return
+            try:
+                if not "Ham5teak Bot Ticket Assistant" in msg.embeds[0].author.name:
+                    return
+            except:
+                pass
             try:
                 if res.data.custom_id == "Item Lost":
                     embedDescription1 = f"1. **Item Lost Due To Server Lag/Crash** \n\n\`\`\`\nIn-game Name:\nServer:\nItems you lost:  \n\`\`\`\n\nIf they are enchanted tools, please mention the enchantments if possible."

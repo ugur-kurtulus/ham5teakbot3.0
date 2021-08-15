@@ -220,6 +220,8 @@ class SetCommandCog(commands.Cog):
                     column = '(guild_id  , channel_id , channel_type)'
                     values = (guild_id , channelid , command)
                     result = (insertquery(sql, 'announcements', column , values, None))
+                    if ctx.guild.id not in announcementschannels.keys() or ctx.guild.id not in suggestionchannels.keys() or ctx.guild.id not in pollchannels.keys():
+                        announcementschannels[ctx.guild.id] = []
                     if command == "announcement":
                         announcementschannels[ctx.guild.id].append(channel.id)
                     elif command == "suggestion":
@@ -333,13 +335,13 @@ class SetCommandCog(commands.Cog):
         channelid = value.id
         channels = selectqueryall(sql, 'announcements', 'channel_id', f'channel_type = "{channel}"')
         for stralias in channels:
-            if channel == "announcement":
-                announcementschannels[ctx.guild.id].remove(value.id)
-            elif channel == "poll":
-                pollchannels[ctx.guild.id].remove(value.id)
-            elif channel == "suggestion":
-                suggestionchannels[ctx.guild.id].remove(value.id)
             if channelid == stralias[0]:
+                if channel == "announcement":
+                    announcementschannels[ctx.guild.id].remove(value.id)
+                elif channel == "poll":
+                    pollchannels[ctx.guild.id].remove(value.id)
+                elif channel == "suggestion":
+                    suggestionchannels[ctx.guild.id].remove(value.id)
                 deletequery(sql, 'announcements', f"channel_id = {value.id} AND channel_type = '{channel}'")
                 embedDescription  =(f"<#{value.id}> has been removed from `{categoryname}`.")
                 await ctx.send(embed=addEmbed(ctx,"red",embedDescription ), delete_after=5)

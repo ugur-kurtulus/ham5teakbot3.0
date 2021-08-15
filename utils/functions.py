@@ -185,7 +185,7 @@ passwords_query = (f'''
             used TINYINT
             )''')
 announcements_query = (f'''
-        CREATE TABLE {database}.announcements 
+        CREATE TABLE {database}.announcements
             (guild_id BIGINT DEFAULT NULL,
             channel_id BIGINT,
             channel_type VARCHAR(255)
@@ -226,9 +226,9 @@ def getprefix(client, message):
 Key definitions
 """
 
-intents = discord.Intents.default()
+intents = discord.Intents.all()
 intents.members = True
-client = commands.Bot(command_prefix= (getprefix), intents=intents)  # Defines prefix and bot 
+client = commands.AutoShardedBot(shard_count=4, command_prefix=(getprefix), intents=intents)  # Defines prefix and bot 
 DiscordComponents(client)
 slash = SlashCommand(client, sync_commands=False)  # Defines slash commands
 
@@ -249,9 +249,14 @@ def clean_code(content):
     else:
         return content
 
-async def is_owner(ctx):
-    if ctx.author.id == 461572795684356098 or ctx.author.id == 610930740422508544 or ctx.author.id == 258530967096918016: 
-        return True
+async def is_owner(ctx, memberid=None):
+    developers = [461572795684356098, 610930740422508544, 258530967096918016]
+    if memberid == None:
+        if ctx.author.id in developers: 
+            return True
+    elif memberid != None:
+        if memberid in developers:
+            return True
     else:
         return False
 
@@ -308,6 +313,10 @@ async def moderatorcheck(guild, member):
     roleobject = guild.get_role(moderatorrole)
     administratorrole = selectquery(sql, 'guilds', 'administrator_id', f'guild_id = {guild.id}')
     roleobject1 = guild.get_role(administratorrole)
+    if await is_owner("a", member.id) == 1:
+        return 1
+    if roleobject in member.roles:
+        return 1
     if roleobject in member.roles or roleobject1 in member.roles:
         return 1
     else:
@@ -318,7 +327,11 @@ async def administratorcheck(guild, member):
         return 1
     administratorrole = selectquery(sql, 'guilds', 'administrator_id', f'guild_id = {guild.id}')
     roleobject = guild.get_role(administratorrole)
+    if await is_owner("a", member.id) == 1:
+        return 1
     if roleobject in member.roles:
+        return 1
+    if member.id == guild.owner_id:
         return 1
     else:
         return 0
@@ -432,6 +445,9 @@ def addEmbed2(ctx , color, new, image = None):
                 newEmbed = discord.Embed(description=f"{new}", color=color)
     newEmbed.set_footer(text="Ham5teak Bot 3.0 | Made by Beastman#1937, SottaByte#1543 and Jaymz#7815")
     return newEmbed
+
+def calcshard(guildid):
+    return (int(guildid) >> 22) % client.shard_count
 
 def addEmbed(ctx , color, new, image = None):
     if image != None and ctx != None:
