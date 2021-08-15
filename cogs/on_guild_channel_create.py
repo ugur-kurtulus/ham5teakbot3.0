@@ -1,6 +1,5 @@
 import discord
-from discord.ext import commands 
-from discord_components import Button, ButtonStyle, InteractionType, SelectOption, Select
+from discord.ext import commands
 from discord.ext import commands 
 from utils.functions import *
 
@@ -39,6 +38,7 @@ the following choices by clicking the button describing your issue.
             content1 = "<@&832198461495443506>"
         else:
             content1 = None
+<<<<<<< Updated upstream
         msg = await channel.send(content=content1, embed=await embed1(embedDescription),components=[
                     # Row 1
                     [Button(style=ButtonStyle.green, label=f"1", id="Item Lost"),
@@ -142,6 +142,25 @@ the following choices by clicking the button describing your issue.
                     await msg.edit(content=content1, embed=await embed1(embedDescription),components=[Button(style=ButtonStyle.green, label=f"Options have timedout.", disabled=True)]) 
                 except:
                     pass
+=======
+        #msg = await channel.send(content=content1, embed=await embed1(embedDescription),components=[
+        #            # Row 1
+        #            [Button(style=ButtonStyle.green, label=f"1", id="Item Lost"),
+        #            Button(style=ButtonStyle.green, label=f"2", id="Issue or Bug Report"),
+        #            Button(style=ButtonStyle.green, label=f"3", id="Same IP Connection"),
+        #            Button(style=ButtonStyle.green, label=f"4", id="Connection Problems"),
+        #            Button(style=ButtonStyle.green, label=f"5", id="Discord Issue")],
+        #            # Row 2
+        #            [Button(style=ButtonStyle.green, label=f"6", id="Forgot Password"),
+        #            Button(style=ButtonStyle.green, label=f"7", id="Ban or Mute Appeal"),
+        #            Button(style=ButtonStyle.green, label=f"8", id="Queries"),
+        #            Button(style=ButtonStyle.green, label=f"9", id="In-Game Rank Parity"),
+        #            Button(style=ButtonStyle.green, label=f"10", id="Role Application"),],
+        #            # Row 3
+        #            [Button(style=ButtonStyle.URL, label=f"Visit Store", url="http://shop.ham5teak.xyz/"),
+        #            Button(style=ButtonStyle.URL, label=f"Visit Forums", url="https://ham5teak.xyz/")],
+        #            ])
+>>>>>>> Stashed changes
 
 def setup(client):
     client.add_cog(on_guild_channel_create(client))

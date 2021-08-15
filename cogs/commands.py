@@ -4,7 +4,6 @@ import contextlib
 import io
 import textwrap
 from traceback import format_exception
-from discord_components import Button, ButtonStyle, InteractionType
 from luhn import *
 from cardvalidator import luhn
 import random
@@ -21,7 +20,7 @@ class CommandCog(commands.Cog):
     @commands.command()
     async def ping(self, ctx):
         await deletemessage(ctx)
-        latency = int(client.latency * 1000)
+        latency = int(client.get_shard(calcshard(ctx.guild.id)).latency * 1000)
         await ctx.send(embed=addEmbed(ctx, "dark_teal", f"Bot Latency: `{latency}ms`"), delete_after=5)
 
     @commands.command()
@@ -400,13 +399,7 @@ class CommandCog(commands.Cog):
                 paginationList = pages
             current = 0
             mainMessage = await ctx.send(
-                embed = paginationList[current],
-                components = [
-                    [
-                        Button(label = "Prev",id = "back",style = ButtonStyle.green),
-                        Button(label = f"Page {int(paginationList.index(paginationList[current])) + 1}/{len(paginationList)}",id = "cur",style = ButtonStyle.grey,disabled = True),
-                        Button(label = "Next",id = "front",style = ButtonStyle.green)
-                    ]])
+                embed = paginationList[current])
             while True:
                 try:
                     interaction = await client.wait_for(
@@ -414,6 +407,7 @@ class CommandCog(commands.Cog):
                         check = lambda i: i.component.id in ["back", "front"], #You can add more
                         timeout = 1200.0
                     )
+<<<<<<< Updated upstream
                     if interaction.message.id == mainMessage.id:
                         pass
                     else:
@@ -444,6 +438,17 @@ class CommandCog(commands.Cog):
                                     Button(label = f"Page {int(paginationList.index(paginationList[current])) + 1}/{len(paginationList)}",id = "cur",style = ButtonStyle.grey,disabled = True),
                                     Button(label = "Next",id = "front",style = ButtonStyle.green,disabled = True)
                                     ]])
+=======
+                    if interaction.component.id == "back":
+                        current -= 1
+                    elif interaction.component.id == "front":
+                        current += 1
+                    if current == len(paginationList):
+                        current = 0
+                    elif current < 0:
+                        current = len(paginationList) - 1
+                except:
+>>>>>>> Stashed changes
                     break
         else:
             await ctx.send(embed=addEmbed(ctx, "invis", f"```py\n{result}\n```"))

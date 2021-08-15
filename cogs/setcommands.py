@@ -178,6 +178,43 @@ class SetCommandCog(commands.Cog):
                 else:
                     embedDescription  = (f"Couldn't register {command} as {channelid}")
                     await ctx.channel.send(embed=addEmbed(ctx,"red",embedDescription ), delete_after=5)
+<<<<<<< Updated upstream
+=======
+                return
+        commandsloop2 = ["announcement", "poll", "suggestion"]
+        for commanda in commandsloop2:
+            try:
+                if commanda == command:
+                    try:
+                        list11 = selectqueryall(sql, 'announcements', 'channel_id', f'guild_id = {ctx.guild.id}')
+                        for item in list11:
+                            if item == channel.id:
+                                embedDescription  = (f"{channelid} is already registered.")
+                                await ctx.channel.send(embed=addEmbed(ctx,"red",embedDescription ), delete_after=5)
+                                return
+                    except:
+                        pass
+                    column = '(guild_id  , channel_id , channel_type)'
+                    values = (guild_id , channelid , command)
+                    result = (insertquery(sql, 'announcements', column , values, None))
+                    if ctx.guild.id not in announcementschannels.keys() or ctx.guild.id not in suggestionchannels.keys() or ctx.guild.id not in pollchannels.keys():
+                        announcementschannels[ctx.guild.id] = []
+                    if command == "announcement":
+                        announcementschannels[ctx.guild.id].append(channel.id)
+                    elif command == "suggestion":
+                        suggestionchannels[ctx.guild.id].append(channel.id)
+                    elif command == "poll":
+                        pollchannels[ctx.guild.id].append(channel.id)
+                    if (result == 0):
+                        embedDescription  = (f"Successfully registered {command} as `{channel.id}`")
+                        await ctx.channel.send(embed=addEmbed(ctx,"green",embedDescription ), delete_after=5)
+                    else:
+                        embedDescription  = (f"Couldn't register {command} as {channelid}")
+                        await ctx.channel.send(embed=addEmbed(ctx,"red",embedDescription ), delete_after=5)
+                    return
+            except Exception as e:
+                print(e)
+>>>>>>> Stashed changes
 
     @commands.command()
     @commands.cooldown(1, 5, commands.BucketType.user)
@@ -261,7 +298,39 @@ class SetCommandCog(commands.Cog):
                 return 1
         embedDescription  =(f"Category `{categoryname}` couldn't be removed.")
         await ctx.send(embed=addEmbed(ctx,"red",embedDescription ), delete_after=5)
+<<<<<<< Updated upstream
         return 1
+=======
+        return
+
+    @commands.command()
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    @commands.has_permissions(manage_guild=True)
+    async def removechannel(self, ctx, value: discord.TextChannel, channel):
+        administratorcheck1 = await administratorcheck(ctx.guild, ctx.author)
+        if administratorcheck1 == 0:
+            await ctx.send(embed=await nopermission(ctx), delete_after=5)
+            return
+        await deletemessage(ctx)
+        categoryname = channel
+        channelid = value.id
+        channels = selectqueryall(sql, 'announcements', 'channel_id', f'channel_type = "{channel}"')
+        for stralias in channels:
+            if channelid == stralias[0]:
+                if channel == "announcement":
+                    announcementschannels[ctx.guild.id].remove(value.id)
+                elif channel == "poll":
+                    pollchannels[ctx.guild.id].remove(value.id)
+                elif channel == "suggestion":
+                    suggestionchannels[ctx.guild.id].remove(value.id)
+                deletequery(sql, 'announcements', f"channel_id = {value.id} AND channel_type = '{channel}'")
+                embedDescription  =(f"<#{value.id}> has been removed from `{categoryname}`.")
+                await ctx.send(embed=addEmbed(ctx,"red",embedDescription ), delete_after=5)
+                return
+        embedDescription  =(f"<#{value.id}> couldn't be removed from `{categoryname}`.")
+        await ctx.send(embed=addEmbed(ctx,"red",embedDescription ), delete_after=5)
+        return
+>>>>>>> Stashed changes
             
     @commands.command(aliases=['ba'])
     @commands.cooldown(1, 5, commands.BucketType.user)

@@ -114,7 +114,46 @@ class Slash(commands.Cog):
                     await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDescription ))
                 else:
                     embedDescription  = (f"{channel} couldn't be registered as {channelid}")
+<<<<<<< Updated upstream:cogs/slashcommands.py
                     await ctx.send(embed=addEmbed(ctx,"red",embedDescription ))  
+=======
+                    await ctx.send(embed=addEmbed(ctx,"red",embedDescription ))
+                return
+        commandsloop2 = ["announcement", "poll", "suggestion"]
+        for commanda in commandsloop2:
+            if commanda == channel:
+                try:
+                    list11 = selectqueryall(sql, 'announcements', 'channel_id', f'guild_id = {ctx.guild.id}')
+                    for item in list11:
+                        if item[0] == value.id:
+                            embedDescription  = (f"{channelid} is already registered.")
+                            await ctx.send(embed=addEmbed(ctx,"red",embedDescription ))
+                            return
+                except:
+                    pass
+                column = '(guild_id  , channel_id , channel_type)'
+                values = (guild_id , channelid , channel)
+                result = (insertquery(sql, 'announcements', column , values, None))
+                if ctx.guild.id not in announcementschannels.keys() or ctx.guild.id not in suggestionchannels.keys() or ctx.guild.id not in pollchannels.keys():
+                       announcementschannels[ctx.guild.id] = []
+                if channel == "announcement":
+                    announcementschannels[ctx.guild.id].append(value.id)
+                    channel1 = "an announcement"
+                elif channel == "suggestion":
+                    suggestionchannels[ctx.guild.id].append(value.id)
+                    channel1 = "a suggestion"
+                elif channel == "poll":
+                    pollchannels[ctx.guild.id].append(value.id)
+                    channel1 = "a poll"
+                if (result == 0):
+                    embedDescription  = (f"Successfully registered <#{channelid}> as {channel1} channel.")
+                    await ctx.send(embed=addEmbed(ctx,"green",embedDescription ))
+                else:
+                    embedDescription  = (f"Couldn't register <#{channelid}> as {channel1} channel.")
+                    await ctx.send(embed=addEmbed(ctx,"red",embedDescription ))
+                return
+
+>>>>>>> Stashed changes:cogs/slashcommands.py.old
             
     @cog_ext.cog_slash(name="setmove")
     @commands.has_permissions(manage_guild=True)
