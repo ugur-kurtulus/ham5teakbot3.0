@@ -4,13 +4,13 @@ import contextlib
 import io
 import textwrap
 from traceback import format_exception
-from discord_components import Button, ButtonStyle, InteractionType
 from luhn import *
 from cardvalidator import luhn
 import random
 import string
 import discord
 from discord.ext import commands 
+from dinteractions_Paginator import Paginator
 from utils.functions import *
 from mee6_py_api import API
 
@@ -445,56 +445,11 @@ class CommandCog(commands.Cog):
                     result = f"{stdout.getvalue()}\n"
         except Exception as e:
             result = "".join(format_exception(e, e, e.__traceback__))
-        pages1 = [result[i:i+2000] for i in range(0, len(result), 2000)]
-        if len(pages1) > 1:
-            pages = []
-            for page in pages1:
-                pages.append(addEmbed(ctx, "invis", f"```py\n{page}\n```"))
-                paginationList = pages
-            current = 0
-            mainMessage = await ctx.send(
-                embed = paginationList[current],
-                components = [
-                    [
-                        Button(label = "Prev",id = "back",style = ButtonStyle.green),
-                        Button(label = f"Page {int(paginationList.index(paginationList[current])) + 1}/{len(paginationList)}",id = "cur",style = ButtonStyle.grey,disabled = True),
-                        Button(label = "Next",id = "front",style = ButtonStyle.green)
-                    ]])
-            while True:
-                try:
-                    interaction = await client.wait_for(
-                        "button_click",
-                        check = lambda i: i.component.id in ["back", "front"] and i.message.id == mainMessage.id, #You can add more
-                        timeout = 1200.0
-                    )
-                    if interaction.component.id == "back":
-                        current -= 1
-                    elif interaction.component.id == "front":
-                        current += 1
-                    if current == len(paginationList):
-                        current = 0
-                    elif current < 0:
-                        current = len(paginationList) - 1
-                    try:
-                        await interaction.respond(
-                            type = InteractionType.UpdateMessage,
-                            embed = paginationList[current],
-                            components = [
-                                [
-                                    Button(label = "Prev",id = "back",style = ButtonStyle.green),
-                                    Button(label = f"Page {int(paginationList.index(paginationList[current])) + 1}/{len(paginationList)}",id = "cur",style = ButtonStyle.grey,disabled = True),
-                                    Button(label = "Next",id = "front",style = ButtonStyle.green)
-                                ]])
-                    except NotFoundErr as e1:
-                        print(e1)
-                except asyncio.TimeoutError:
-                    await mainMessage.edit(
-                        components = [[
-                                    Button(label = "Prev",id = "back",style = ButtonStyle.green,disabled = True),
-                                    Button(label = f"Page {int(paginationList.index(paginationList[current])) + 1}/{len(paginationList)}",id = "cur",style = ButtonStyle.grey,disabled = True),
-                                    Button(label = "Next",id = "front",style = ButtonStyle.green,disabled = True)
-                                    ]])
-                    break
+        pages1 = [result[i:i+4080] for i in range(0, len(result), 4080)]
+        embedpages = list(map(lambda x: addEmbed(ctx, None, f"```py\n{x}\n```"), pages1))
+        embedpages = list(map(lambda x: settitle(x, f"Page: {embedpages.index(x) + 1}"), embedpages))
+        if len(embedpages) > 1:
+            await Paginator(bot=client, ctx=ctx, pages=embedpages, useButtons=False)
         else:
             await ctx.send(embed=addEmbed(ctx, "invis", f"```py\n{result}\n```"))
 

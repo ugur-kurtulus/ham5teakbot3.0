@@ -1,7 +1,7 @@
 import discord
-from discord.ext import commands 
-from discord_components import Button, ButtonStyle, InteractionType, SelectOption, Select
-from discord.ext import commands 
+from discord.ext import commands
+from discord_slash.utils.manage_components import create_button, create_actionrow
+from discord_slash.model import ButtonStyle
 from utils.functions import *
 
 class on_guild_channel_create(commands.Cog):
@@ -41,20 +41,20 @@ the following choices by clicking the button describing your issue.
             content1 = None
         msg = await channel.send(content=content1, embed=await embed1(embedDescription),components=[
                     # Row 1
-                    [Button(style=ButtonStyle.green, label=f"1", id="Item Lost"),
-                    Button(style=ButtonStyle.green, label=f"2", id="Issue or Bug Report"),
-                    Button(style=ButtonStyle.green, label=f"3", id="Same IP Connection"),
-                    Button(style=ButtonStyle.green, label=f"4", id="Connection Problems"),
-                    Button(style=ButtonStyle.green, label=f"5", id="Discord Issue")],
+                    create_actionrow(create_button(style=ButtonStyle.green, label=f"1", custom_id="Item Lost"),
+                    create_button(style=ButtonStyle.green, label=f"2", custom_id="Issue or Bug Report"),
+                    create_button(style=ButtonStyle.green, label=f"3", custom_id="Same IP Connection"),
+                    create_button(style=ButtonStyle.green, label=f"4", custom_id="Connection Problems"),
+                    create_button(style=ButtonStyle.green, label=f"5", custom_id="Discord Issue")),
                     # Row 2
-                    [Button(style=ButtonStyle.green, label=f"6", id="Forgot Password"),
-                    Button(style=ButtonStyle.green, label=f"7", id="Ban or Mute Appeal"),
-                    Button(style=ButtonStyle.green, label=f"8", id="Queries"),
-                    Button(style=ButtonStyle.green, label=f"9", id="In-Game Rank Parity"),
-                    Button(style=ButtonStyle.green, label=f"10", id="Role Application"),],
+                    create_actionrow(create_button(style=ButtonStyle.green, label=f"6", custom_id="Forgot Password"),
+                    create_button(style=ButtonStyle.green, label=f"7", custom_id="Ban or Mute Appeal"),
+                    create_button(style=ButtonStyle.green, label=f"8", custom_id="Queries"),
+                    create_button(style=ButtonStyle.green, label=f"9", custom_id="In-Game Rank Parity"),
+                    create_button(style=ButtonStyle.green, label=f"10", custom_id="Role Application"),),
                     # Row 3
-                    [Button(style=ButtonStyle.URL, label=f"Visit Store", url="http://shop.ham5teak.xyz/"),
-                    Button(style=ButtonStyle.URL, label=f"Visit Forums", url="https://ham5teak.xyz/")],
+                    create_actionrow(create_button(style=ButtonStyle.URL, label=f"Visit Store", url="http://shop.ham5teak.xyz/"),
+                    create_button(style=ButtonStyle.URL, label=f"Visit Forums", url="https://ham5teak.xyz/")),
                     ])
 
 def setup(client):

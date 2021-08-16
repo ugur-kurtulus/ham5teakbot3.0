@@ -1,5 +1,6 @@
 import discord
 from utils.functions import *
+import discordpylogger
 
 # ------- STARTUP EVENT -------
 

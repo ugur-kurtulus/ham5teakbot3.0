@@ -4,7 +4,8 @@ from discord.embeds import Embed
 from discord.errors import HTTPException
 import discord
 from discord.ext import commands 
-from discord_components import Button, ButtonStyle, InteractionType
+from discord_slash.utils.manage_components import create_button, create_actionrow
+from discord_slash.model import ButtonStyle
 import asyncio
 import emoji as e
 import re
@@ -509,7 +510,7 @@ class OnMessage(commands.Cog):
                     if alertschannelcheck != 0:
                         alertschannel = client.get_channel(alertschannelcheck)
                         msg = await alertschannel.send(content=f'```\n{messagestrip}\n```It originated from {ctx.channel.mention}!',
-                        components=[Button(style=ButtonStyle.red, label="Verify", id=messagestrip)])
+                        components=[create_actionrow(create_button(style=ButtonStyle.red, label="Verify"))])
                         if generalchannelcheck != 0:
                             generalchannel = client.get_channel(generalchannelcheck)
                             await generalchannel.send(content=f'**WARNING!** `/op` or `/deop` was used. Check {alertschannel.mention} for more info.', delete_after=600)

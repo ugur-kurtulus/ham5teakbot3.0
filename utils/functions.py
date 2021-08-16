@@ -8,7 +8,6 @@ from dotenv import load_dotenv
 import discord
 from discord.ext import commands 
 from discord_slash import SlashCommand
-from discord_components import DiscordComponents
 from mcstatus import MinecraftServer
 import asyncio
 import emoji as e
@@ -228,13 +227,16 @@ Key definitions
 
 intents = discord.Intents.all()
 intents.members = True
-client = commands.AutoShardedBot(shard_count=4, command_prefix=(getprefix), intents=intents)  # Defines prefix and bot 
-DiscordComponents(client)
+client = commands.AutoShardedBot(shard_count=1, command_prefix=(getprefix), intents=intents)  # Defines prefix and bot
 slash = SlashCommand(client, sync_commands=False)  # Defines slash commands
 
 """
 Functions
 """
+
+def settitle(embed, titlestr):
+    embed.title = titlestr
+    return embed
 
 async def deletemessage(ctx):
     try:
