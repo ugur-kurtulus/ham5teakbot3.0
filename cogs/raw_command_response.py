@@ -1,7 +1,6 @@
 from multiprocessing.connection import Client
 import discord
 from discord.ext import commands 
-from discord_components import Button, ButtonStyle, InteractionType, SelectOption, Select
 from discord.ext import commands 
 from utils.functions import *
 from discord.http import Route

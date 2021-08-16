@@ -107,6 +107,8 @@ class OnComponent(commands.Cog):
                             return
             except Exception as e:
                 print(e)
+        except KeyError:
+            pass
           
 def setup(client):
     client.add_cog(OnComponent(client))

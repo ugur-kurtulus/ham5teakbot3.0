@@ -1,16 +1,21 @@
 from ast import Return
+from logging import exception
 import os
 from discord.embeds import Embed
 from discord.errors import HTTPException
 import discord
 from discord.ext import commands 
-from discord_slash.utils.manage_components import create_button, create_actionrow
+from discord_slash.utils.manage_components import create_button, create_actionrow, wait_for_component
 from discord_slash.model import ButtonStyle
 import asyncio
 import emoji as e
 import re
 import datetime
 from utils.functions import *
+
+
+def disablebutton(button):
+    button["disabled"] = True
 
 class OnMessage(commands.Cog):
     def __init__(self, client):
@@ -277,229 +282,89 @@ class OnMessage(commands.Cog):
                             except:
                                 pass
                             print(f"A suggestion was made in #{ctx.channel.name} by {ctx.author}.")
-            if ctx.guild.id in premium_guilds:
-                if ctx.channel.id in pollchannels[ctx.guild.id] and not ctx.author.bot:
-                    if ctx.content.startswith("-") or ctx.content.startswith("?") or ctx.content.startswith("!"):
-                        return
-                    if ctx.webhook_id or "poll-results" in ctx.channel.name:
-                        return
+            if (ctx.guild.id in premium_guilds and ctx.channel.id in pollchannels[ctx.guild.id] and not ctx.author.bot) or (ctx.guild.id not in premium_guilds and "poll" in ctx.channel.name or "polls" in ctx.channel.name):
+                if ctx.content.startswith("-") or ctx.content.startswith("?") or ctx.content.startswith("!"):
+                    return
+                if ctx.webhook_id or "poll-results" in ctx.channel.name:
+                    return
+                sent = True
+                try:
+                    await ctx.delete()
+                except:
+                    pass
+                components1 = []
+                actionrows = []
+                reactionstotal = {}
+                reactedusers = {}
+                content = ctx.content.replace(":", '')
+                content = e.demojize(content)
+                messageemojis = []
+                regionalindicators = ['\U0001f1e6', '\U0001f1e7', '\U0001f1e8', '\U0001f1e9', '\U0001f1ea', '\U0001f1eb', '\U0001f1ec',
+                 '\U0001f1ed', '\U0001f1ee', '\U0001f1ef', '\U0001f1f0', '\U0001f1f1', '\U0001f1f2', '\U0001f1f3', '\U0001f1f4', '\U0001f1f5',
+                  '\U0001f1f6', '\U0001f1f7', '\U0001f1f8', '\U0001f1f9', '\U0001f1fa', '\U0001f1fc', '\U0001f1fd', '\U0001f1fe', '\U0001f1ff']
+                for word in content.split(" "):
+                    for em in re.findall(r'(:[^:]*:)', word):
+                        messageemojis.append(em)
+                    for reg in regionalindicators:
+                        for emm in re.findall(rf'{reg}', word):
+                            messageemojis.append(emm)
+                for emoji in messageemojis:
+                    try:
+                        emoji1 = e.emojize(emoji)
+                        components1.append(create_button(label="", style=ButtonStyle.gray, custom_id=emoji1, emoji=emoji1))
+                        reactionstotal.update({emoji1: 0})
+                    except:  #nosec
+                        pass
+                components2 = [components1[n:n+5] for n in range(0, len(components1), 5)]
+                [actionrows.append(create_actionrow(*row)) for row in components2]
+                reactionstotal1 = str(reactionstotal).replace("{", "").replace("}", "").replace(", ", f"\n").replace(":", "").replace("'", "")
+                embedDescription  = (f"{ctx.content}\n\n```\n{reactionstotal1}\n```")
+                try:
+                    if ctx.attachments:
+                        await ctx.attachments[0].save(f"./{ctx.attachments[0].filename}")
+                        file = discord.File(ctx.attachments[0].filename)
+                        msg = await ctx.channel.send(embed=addEmbed(ctx,None,embedDescription, image=f"attachment://{ctx.attachments[0].filename}"), components=[*actionrows], file=file)
                     else:
-                        if not ctx.attachments:
-                            sent = True
+                        msg = await ctx.channel.send(embed=addEmbed(ctx,None,embedDescription), components=[*actionrows])
+                    reactedusers.update({msg.id: []})
+                except:
+                    reactionstotal1 = str(reactionstotal).replace("{", "").replace("}", "").replace(", ", f"\n").replace(":", "").replace("'", "")
+                    embedDescription  = (f"{ctx.content}\n\n```\n{reactionstotal1}\n```")
+                    msg = await ctx.channel.send(embed=addEmbed(ctx,None,embedDescription), components=[])
+                print(f"A poll was made in #{ctx.channel.name} by {ctx.author}.")
+                endTime = datetime.datetime.now() + datetime.timedelta(hours=12)
+                while sent == True:
+                    if datetime.datetime.now() >= endTime:
+                        reactedusers.pop(msg.id)
+                        embedDescription1 = f"{ctx.content}\n\n```\n{reactionstotal1}\n```\n\n **This poll has ended.**"
+                        try:
                             try:
-                                await ctx.delete()
+                                components1 = [[disablebutton(item) for item in row['components']] for row in [*actionrows]]
                             except:
                                 pass
-                            components1 = []
-                            reactionstotal = {}
-                            reactedusers = {}
-                            content = ctx.content.replace(":", '')
-                            content = e.demojize(content)
-                            messageemojis = []
-                            regionalindicators = ['\U0001f1e6', '\U0001f1e7', '\U0001f1e8', '\U0001f1e9', '\U0001f1ea', '\U0001f1eb', '\U0001f1ec',
-                             '\U0001f1ed', '\U0001f1ee', '\U0001f1ef', '\U0001f1f0', '\U0001f1f1', '\U0001f1f2', '\U0001f1f3', '\U0001f1f4', '\U0001f1f5',
-                              '\U0001f1f6', '\U0001f1f7', '\U0001f1f8', '\U0001f1f9', '\U0001f1fa', '\U0001f1fc', '\U0001f1fd', '\U0001f1fe', '\U0001f1ff']
-                            for word in content.split(" "):
-                                for em in re.findall(r'(:[^:]*:)', word):
-                                    messageemojis.append(em)
-                                for reg in regionalindicators:
-                                    for emm in re.findall(rf'{reg}', word):
-                                        messageemojis.append(emm)
-                            if messageemojis is not None:
-                                for emoji in messageemojis:
-                                    try:
-                                        emoji1 = e.emojize(emoji)
-                                        components1.append(Button(emoji=emoji1, id=emoji1))
-                                        reactionstotal.update({emoji1: 0})
-                                    except:  #nosec
-                                        pass
-                                reactionstotal1 = str(reactionstotal).replace("{", " ").replace("}", "").replace(",", f"\n").replace(":", "").replace("'", "")
-                                embedDescription  = (f"{ctx.content}\n\n```{reactionstotal1}\n```")
-                                try:
-                                    msg = await ctx.channel.send(embed=addEmbed(ctx,None,embedDescription ), components=[components1])
-                                    reactedusers.update({msg.id: []})
-                                except HTTPException:
-                                    await ctx.channel.send("Please enter a message with emojis as options.", delete_after=3)
-                                    return
+                            if ctx.attachments:
+                                await msg.edit(embed=addEmbed(ctx,None,embedDescription1, image=f"attachment://{ctx.attachments[0].filename}"), components=[*actionrows])
+                                os.remove(f"./{ctx.attachments[0].filename}")
                             else:
-                                reactionstotal1 = str(reactionstotal).replace("{", " ").replace("}", "").replace(",", f"\n").replace(":", "").replace("'", "")
-                                embedDescription  = (f"{ctx.content}\n\n```{reactionstotal1}\n```")
-                                msg = await ctx.channel.send(embed=addEmbed(ctx,None,embedDescription ), components=[])
-                            print(f"A poll was made in #{ctx.channel.name} by {ctx.author}.")
-                            endTime = datetime.datetime.now() + datetime.timedelta(hours=12)
-                            while sent == True:
-                                if datetime.datetime.now() >= endTime:
-                                    reactedusers.pop(msg.id)
-                                    embedDescription1 = f"{ctx.content}\n\n```{reactionstotal1}\n```\n\n **This poll has ended.**"
-                                    try:
-                                        try:
-                                            for item in components1:
-                                                item.disabled = True
-                                        except Exception as e2:
-                                            print(e2)
-                                        await msg.edit(embed=addEmbed(ctx,None,embedDescription1 ),
-                                                components=[components1])
-                                    except Exception as e11: #nosec
-                                        print(e11)
-                                    sent = False
-                                else:
-                                    try:
-                                        res = await client.wait_for(event="button_click",check=lambda res: res.channel == ctx.channel)
-                                        if res.user.id in reactedusers[res.message.id]:
-                                            await res.respond(
-                                                type=InteractionType.ChannelMessageWithSource,
-                                                content=f'You have already voted for this poll.'
-                                            )
-                                        elif res.message.id != msg.id:
-                                            pass
-                                        elif res.user.id not in reactedusers[res.message.id]:
-                                            getdata = reactionstotal[res.component.id]
-                                            reactionstotal.update({res.component.id: getdata + 1})
-                                            reactionstotal1 = str(reactionstotal).replace("{", " ").replace("}", "").replace(",", f"\n").replace(":", "").replace("'", "")
-                                            embedDescription1 = f"{ctx.content}\n\n```{reactionstotal1}\n```"
-                                            await msg.edit(embed=addEmbed(ctx,None,embedDescription1 ),
-                                                components=[components1])
-                                            await res.respond(
-                                                type=InteractionType.ChannelMessageWithSource,
-                                                content=f'Successfully voted for {res.component.id}.'
-                                            )
-                                            reactedusers[res.message.id].append(res.user.id)
-                                    except Exception as e00:
-                                        print(e00)
-            else:
-                if not ctx.author.bot:
-                    if ("polls" not in ctx.channel.name or "poll" not in ctx.channel.name or ctx.webhook_id or 
-                    "poll-results" in ctx.channel.name or ctx.content.startswith("-") or 
-                    ctx.content.startswith("?") or ctx.content.startswith("!")):
-                        return
+                                await msg.edit(embed=addEmbed(ctx,None,embedDescription1, image=None), components=[*actionrows])
+                        except:
+                            pass
+                        sent = False
                     else:
-                        if ctx.attachments:
-                            await ctx.attachments[0].save(f"./{ctx.attachments[0].filename}")
-                            file = discord.File(ctx.attachments[0].filename)
-                            sent = True
-                            try:
-                                await ctx.delete()
-                            except:
-                                pass
-                            components1 = []
-                            reactionstotal = {}
-                            reactedusers = {}
-                            content = e.demojize(ctx.content)
-                            messageemojis = re.findall(r'(:[^:]*:)', content)
-                            if messageemojis is not None:
-                                for emoji in messageemojis:
-                                    try:
-                                        emoji1 = e.emojize(emoji)
-                                        components1.append(Button(emoji=emoji1, id=emoji1))
-                                        reactionstotal.update({emoji1: 0})
-                                    except:  #nosec
-                                        pass
-                                reactionstotal1 = str(reactionstotal).replace("{", " ").replace("}", "").replace(",", f"\n").replace(":", "").replace("'", "")
-                            embedDescription  = (f"{ctx.content}\n\n```{reactionstotal1}\n```")
-                            try:
-                                msg = await ctx.channel.send(embed=addEmbed(ctx,None,embedDescription, f"attachment://{ctx.attachments[0].filename}"), components=[components1], file=file)
-                                reactedusers.update({msg.id: []})
-                            except HTTPException:
-                                await ctx.channel.send("Please enter a message with emojis as options.", delete_after=3)
-                            print(f"An image inclusive poll was made in #{ctx.channel.name} by {ctx.author}.")
-                            endTime = datetime.datetime.now() + datetime.timedelta(hours=12)
-                            while sent == True:
-                                if datetime.datetime.now() >= endTime:
-                                    reactedusers.pop(msg.id)
-                                    embedDescription1 = f"{ctx.content}\n\n```{reactionstotal1}\n```\n\n **This poll has ended.**"
-                                    try:
-                                        await msg.edit(embed=addEmbed(ctx,None,embedDescription1, f"attachment://{ctx.attachments[0].filename}"),
-                                            components=[])
-                                    except: #nosec
-                                        pass
-                                    sent = False
-                                else:
-                                    res = await client.wait_for(event="button_click",check=lambda res: res.channel == ctx.channel)
-                                    if res.user.id in reactedusers:
-                                        await res.respond(
-                                            type=InteractionType.ChannelMessageWithSource,
-                                            content=f'You have already voted for this poll.'
-                                        )
-                                    elif res.message.id != msg.id:
-                                        pass
-                                    else:
-                                        getdata = reactionstotal[res.component.id]
-                                        reactionstotal.update({res.component.id: getdata + 1})
-                                        reactionstotal1 = str(reactionstotal).replace("{", " ").replace("}", "").replace(",", f"\n").replace(":", "").replace("'", "")
-                                        embedDescription1 = f"{ctx.content}\n\n```{reactionstotal1}\n```"
-                                        await msg.edit(embed=addEmbed(ctx,None,embedDescription1, f"attachment://{ctx.attachments[0].filename}"),
-                                            components=[components1])
-                                        await res.respond(
-                                            type=InteractionType.ChannelMessageWithSource,
-                                            content=f'Successfully voted for {res.component.id}.'
-                                        )
-                                        reactedusers[msg.id].append(res.user.id)
-                            os.remove(f"./{ctx.attachments[0].filename}")
-                        if not ctx.attachments:
-                            sent = True
-                            try:
-                                await ctx.delete()
-                            except:
-                                pass
-                            components1 = []
-                            reactionstotal = {}
-                            reactedusers = {}
-                            content = e.demojize(ctx.content)
-                            messageemojis = re.findall(r'(:[^:]*:)', content)
-                            if messageemojis is not None:
-                                for emoji in messageemojis:
-                                    try:
-                                        emoji1 = e.emojize(emoji)
-                                        components1.append(Button(emoji=emoji1, id=emoji1))
-                                        reactionstotal.update({emoji1: 0})
-                                    except:  #nosec
-                                        pass
-                                reactionstotal1 = str(reactionstotal).replace("{", " ").replace("}", "").replace(",", f"\n").replace(":", "").replace("'", "")
-                                embedDescription  = (f"{ctx.content}\n\n```{reactionstotal1}\n```")
-                                try:
-                                    msg = await ctx.channel.send(embed=addEmbed(ctx,None,embedDescription ), components=[components1])
-                                    reactedusers.update({msg.id: []})
-                                except HTTPException:
-                                    await ctx.channel.send("Please enter a message with emojis as options.", delete_after=3)
+                        res = await wait_for_component(client, messages=msg)
+                        if res.author.id in reactedusers[msg.id]:
+                            await res.send(content="You have already voted for this poll.", hidden=True)
+                        elif res.author_id not in reactedusers[msg.id]:
+                            getdata = reactionstotal[res.custom_id]
+                            reactionstotal.update({res.custom_id: getdata + 1})
+                            reactionstotal1 = str(reactionstotal).replace("{", "").replace("}", "").replace(", ", f"\n").replace(":", "").replace("'", "")
+                            embedDescription1 = f"{ctx.content}\n\n```\n{reactionstotal1}\n```"
+                            if ctx.attachments:
+                                await res.edit_origin(embed=addEmbed(ctx,None,embedDescription1, image=f"attachment://{ctx.attachments[0].filename}"))
                             else:
-                                embedDescription  = (f"{ctx.content}\n\n```{reactionstotal1}\n```")
-                                msg = await ctx.channel.send(embed=addEmbed(ctx,None,embedDescription ), components=[])
-                            print(f"A poll was made in #{ctx.channel.name} by {ctx.author}.")
-                            endTime = datetime.datetime.now() + datetime.timedelta(hours=12)
-                            while sent == True:
-                                if datetime.datetime.now() >= endTime:
-                                    reactedusers.pop(msg.id)
-                                    embedDescription1 = f"{ctx.content}\n\n```{reactionstotal1}\n```\n\n **This poll has ended.**"
-                                    try:
-                                        await msg.edit(embed=addEmbed(ctx,None,embedDescription1 ),
-                                                components=[])
-                                    except Exception as e11: #nosec
-                                        print(e11)
-                                    sent = False
-                                else:
-                                    try:
-                                        res = await client.wait_for(event="button_click",check=lambda res: res.channel == ctx.channel)
-                                        if res.user.id in reactedusers[msg.id]:
-                                            await res.respond(
-                                                type=InteractionType.ChannelMessageWithSource,
-                                                content=f'You have already voted for this poll.'
-                                            )
-                                        elif res.message.id != msg.id:
-                                            pass
-                                        else:
-                                            getdata = reactionstotal[res.component.id]
-                                            reactionstotal.update({res.component.id: getdata + 1})
-                                            reactionstotal1 = str(reactionstotal).replace("{", " ").replace("}", "").replace(",", f"\n").replace(":", "").replace("'", "")
-                                            embedDescription1 = f"{ctx.content}\n\n```{reactionstotal1}\n```"
-                                            await msg.edit(embed=addEmbed(ctx,None,embedDescription1 ),
-                                                components=[components1])
-                                            await res.respond(
-                                                type=InteractionType.ChannelMessageWithSource,
-                                                content=f'Successfully voted for {res.component.id}.'
-                                            )
-                                            reactedusers[msg.id].append(res.user.id)
-                                    except Exception as e12:
-                                        print(e12)
+                                await res.edit_origin(embed=addEmbed(ctx,None,embedDescription1))
+                            await res.send(f'Successfully voted for {res.custom_id}.', hidden=True)
+                            reactedusers[msg.id].append(res.author_id)
 
             if "console-" in ctx.channel.name:
                 messagestrip = await stripmessage(ctx.content, 'a server operator')
