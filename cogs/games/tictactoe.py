@@ -158,8 +158,7 @@ class TicTacToe(Cog):
                 except asyncio.TimeoutError:
                     for row in board:
                         for button in row['components']:
-                            if button["custom_id"] == res.custom_id:
-                                button['disabled'] = True
+                            button['disabled'] = True
                     await m.edit(
                         embed=addEmbed2(ctx, "invis", "Timedout!"),components=board)
                     return
@@ -190,8 +189,7 @@ class TicTacToe(Cog):
                 except asyncio.TimeoutError:
                     for row in board:
                         for button in row['components']:
-                            if button["custom_id"] == res.custom_id:
-                                button['disabled'] = True
+                            button['disabled'] = True
                     await m.edit(
                         embed=addEmbed2(ctx, "invis", "This game has timedout."),
                         components=board)
