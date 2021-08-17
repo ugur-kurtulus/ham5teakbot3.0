@@ -457,7 +457,6 @@ class CommandCog(commands.Cog):
     async def on_command_error(self, ctx, error):
         if isinstance(error, commands.CommandOnCooldown) or isinstance(error, commands.errors.CommandNotFound):
             return
-        print(error)
 
     @evaluate.error
     async def clear_error(self, ctx, error):

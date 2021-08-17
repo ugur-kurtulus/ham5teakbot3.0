@@ -1,5 +1,7 @@
 import discord
-from discord.ext.commands import command, Cogü
+from discord_slash.utils.manage_components import create_button, create_actionrow, create_select_option, create_select, wait_for_component
+from discord_slash.model import ButtonStyle
+from discord.ext.commands import command, Cog
 import asyncio
 from utils.functions import *
 
@@ -29,38 +31,34 @@ class TicTacToe(Cog):
             return
         if ctx.author == member:
             return await ctx.send("You can't play against yourself!")
-        embed = addEmbed(
-            ctx, "invis", f"{ctx.author} has invited you to a tic-tac-toe game.")
-        acceptdenycomps = [
-            [Button(style=ButtonStyle.green, label="Accept"),
-             Button(style=ButtonStyle.red, label="Decline")]]
+        embed = addEmbed(None, "invis", f"{ctx.author.mention} has invited you to a tic-tac-toe game.")
+        acceptdenycomps = create_actionrow(
+            create_button(style=ButtonStyle.green, label="Accept"),
+            create_button(style=ButtonStyle.red, label="Decline"))
         board = [
-            [Button(style=ButtonStyle.grey, label="⠀", id="0 0"),
-             Button(style=ButtonStyle.grey, label="⠀", id="0 1"),
-             Button(style=ButtonStyle.grey, label="⠀", id="0 2")
-             ],
-            [Button(style=ButtonStyle.grey, label="⠀", id="1 0"),
-             Button(style=ButtonStyle.grey, label="⠀", id="1 1"),
-             Button(style=ButtonStyle.grey, label="⠀", id="1 2")
-             ],
-            [Button(style=ButtonStyle.grey, label="⠀", id="2 0"),
-             Button(style=ButtonStyle.grey, label="⠀", id="2 1"),
-             Button(style=ButtonStyle.grey, label="⠀", id="2 2")
-             ]]
+            create_actionrow(create_button(style=ButtonStyle.grey, label="⠀", custom_id="0 0"),
+             create_button(style=ButtonStyle.grey, label="⠀", custom_id="0 1"),
+             create_button(style=ButtonStyle.grey, label="⠀", custom_id="0 2")
+             ),
+            create_actionrow(create_button(style=ButtonStyle.grey, label="⠀", custom_id="1 0"),
+             create_button(style=ButtonStyle.grey, label="⠀", custom_id="1 1"),
+             create_button(style=ButtonStyle.grey, label="⠀", custom_id="1 2")
+             ),
+            create_actionrow(create_button(style=ButtonStyle.grey, label="⠀", custom_id="2 0"),
+             create_button(style=ButtonStyle.grey, label="⠀", custom_id="2 1"),
+             create_button(style=ButtonStyle.grey, label="⠀", custom_id="2 2")
+            )]
         selections = [
             ["unchosen",
              "unchosen",
-             "unchosen"
-             ],
+             "unchosen"],
             ["unchosen",
              "unchosen",
-             "unchosen"
-             ],
+             "unchosen"],
             ["unchosen",
              "unchosen",
-             "unchosen"
-             ]]
-        m = await ctx.send(embed=embed, components=acceptdenycomps, content=member.mention)
+             "unchosen"]]
+        m = await ctx.send(embed=embed, components=[acceptdenycomps])
 
         def haswon(team):
             if selections[0][0] == team and selections[0][1] == team and selections[0][2] == team:
@@ -92,24 +90,21 @@ class TicTacToe(Cog):
                 return False
 
         def confirmcheck(res):
-            return res.user.id == member.id and res.channel.id == ctx.channel.id and str(res.message.id) == str(m.id)
+            return res.author.id == member.id and res.channel.id == ctx.channel.id and str(res.origin_message.id) == str(m.id)
 
         try:
-            res = await self.bot.wait_for("button_click", check=confirmcheck, timeout=50)
+            res = await wait_for_component(client, messages=m, check=confirmcheck, timeout=300)
         except asyncio.TimeoutError:
             await m.edit(
-                embed=addEmbed(ctx, "invis", "This game has timedout."),
-                components=[Button(style=ButtonStyle.red, label="This game has timedout!", disabled=True)])
+                embed=addEmbed(None, "invis", "This game has timedout."),
+                components=[create_actionrow(create_button(style=ButtonStyle.red, label="This game has timedout!", disabled=True))])
             return
-        await res.respond(type=6)
-        if res.component.label == "Accept":
+        await res.defer(edit_origin=True)
+        if res.component.get('label') == "Accept":
             accept = True
-            await m.edit(embed=addEmbed(ctx, "invis", f"{member} has accepted the game."), components=[])
-            await asyncio.sleep(1)
-
         else:
             accept = False
-            await m.edit(embed=addEmbed(ctx, "invis", f"{member} has declined the game."), components=[])
+            await m.edit(embed=addEmbed(None, "invis", f"{member.mention} has declined the game."), components=[])
             return
 
         async def winner(team, board):
@@ -117,43 +112,45 @@ class TicTacToe(Cog):
                 user = member
             if team == "green":
                 user = ctx.author
-            for item in board:
-                for button in item:
-                    button.disabled = True
-            await m.edit(embed=addEmbed(ctx, "invis", f"{user} has won the game!"), components=board)
+            try:
+                for row in board:
+                    for button in row['components']:
+                        button['disabled'] = True
+            except:
+                pass
+            await m.edit(embed=addEmbed(None, "invis", f"{user.mention} has won the game!"), components=board)
             return
 
-        greensturnembed = discord.Embed(
-            color=0x2f3037, description=f"{ctx.author}'s turn")
-        redsturnembed = discord.Embed(
-            color=0x2f3037, description=f"{member}'s turn")
-        redsturnembed.set_author(name=member, icon_url=member.avatar_url)
-        greensturnembed.set_author(
-            name=ctx.author, icon_url=ctx.author.avatar_url)
+        greensturnembed = discord.Embed(color=0x2f3037, description=f"{ctx.author.mention}'s turn")
+        redsturnembed = discord.Embed(color=0x2f3037, description=f"{member.mention}'s turn")
         greenstatus = True
 
         def greensturncheck(res):
-            return res.user.id == ctx.author.id and res.channel.id == ctx.channel.id and res.message.id == m.id
+            return res.author.id == ctx.author.id and res.channel.id == ctx.channel.id and res.origin_message.id == m.id
 
         def redsturncheck(res):
-            return res.user.id == member.id and res.channel.id == ctx.channel.id and res.message.id == m.id
+            return res.author.id == member.id and res.channel.id == ctx.channel.id and res.origin_message.id == m.id
         while accept:
             if greenstatus:
                 await m.edit(embed=greensturnembed, components=board)
                 try:
-                    res = await self.bot.wait_for("button_click", check=greensturncheck, timeout=50)
-                    await res.respond(type=6)
-                    listid = res.component.id
+                    res = await wait_for_component(client, messages=m, check=greensturncheck, timeout=30)
+                    await res.defer(edit_origin=True)
+                    listid = res.custom_id
                     firstpart, secondpart = listid.split(' ')
-                    board[int(firstpart)][int(secondpart)] = Button(
-                        style=ButtonStyle.green, label="X", disabled=True)
+                    for row in board:
+                        for button in row['components']:
+                            if button["custom_id"] == res.custom_id:
+                                button['disabled'] = True
+                                button['label'] = "X"
+                                button['style'] = ButtonStyle.green
                     selections[int(firstpart)][int(secondpart)] = "green"
                     if haswon('green'):
                         await winner('green', board)
                         accept = False
                         return
                     if istie('green'):
-                        await m.edit(embed=addEmbed(ctx, "invis", "It is a tie!"), components=board)
+                        await m.edit(embed=addEmbed(None, "invis", "It is a tie!"), components=board)
                         accept = False
                         return
                     greenstatus = False
@@ -161,25 +158,29 @@ class TicTacToe(Cog):
 
                 except asyncio.TimeoutError:
                     await m.edit(
-                        embed=addEmbed(ctx, "invis", "Timedout!"),
-                        components=[Button(style=ButtonStyle.red, label="This game has timedout!", disabled=True)])
+                        embed=addEmbed(None, "invis", "Timedout!"),
+                        components=[create_actionrow(create_button(style=ButtonStyle.red, label="This game has timedout!", disabled=True))])
                     return
             if not greenstatus:
                 await m.edit(embed=redsturnembed, components=board)
                 try:
-                    res = await self.bot.wait_for("button_click", check=redsturncheck, timeout=50)
-                    await res.respond(type=6)
-                    listid = res.component.id
+                    res = await wait_for_component(client, messages=m, check=redsturncheck, timeout=30)
+                    await res.defer(edit_origin=True)
+                    listid = res.custom_id
                     firstpart, secondpart = listid.split(' ')
-                    board[int(firstpart)][int(secondpart)] = Button(style=ButtonStyle.red, label="O",
-                                                                    disabled=True)
+                    for row in board:
+                        for button in row['components']:
+                            if button["custom_id"] == res.custom_id:
+                                button['disabled'] = True
+                                button['label'] = "O"
+                                button['style'] = ButtonStyle.red
                     selections[int(firstpart)][int(secondpart)] = "red"
                     if haswon('red'):
                         await winner('red', board)
                         accept = False
                         return
                     if istie('red'):
-                        await m.edit(embed=addEmbed(ctx, "invis", "It is a tie!"))
+                        await m.edit(embed=addEmbed(None, "invis", "It is a tie!"))
                         accept = False
                         return
 
@@ -189,7 +190,7 @@ class TicTacToe(Cog):
                     await m.edit(
                         embed=addEmbed(
                             ctx, "invis", "This game has timedout."),
-                        components=[Button(style=ButtonStyle.red, label="This game has timedout!", disabled=True)])
+                        components=[create_actionrow(create_button(style=ButtonStyle.red, label="This game has timedout!", disabled=True))])
                     return
 
     @tictactoe.error
@@ -202,5 +203,4 @@ class TicTacToe(Cog):
 
 
 def setup(client):
-    DiscordComponents(client)
     client.add_cog(TicTacToe(client))

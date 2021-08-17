@@ -23,8 +23,8 @@ class raw_command_response(commands.Cog):
         guild = get(client.guilds, id=int(ctx.guild_id))
         resmember = ctx.target_author
         memberid = ctx.target_author.id
-        resmemberobj = ctx.target_author
         chan = guild.get_channel(int(ctx.channel_id))
+        resmemberobj = get(chan.guild.members, id=int(memberid))
         color = get(chan.guild.members, id=int(memberid)).color
         rolelist = []
         for role in resmember.roles:

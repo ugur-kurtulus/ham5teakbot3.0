@@ -13,10 +13,8 @@ import emoji as e
 import re
 import datetime
 from utils.functions import *
-
-
-def disablebutton(button):
-    button["disabled"] = True
+import json
+import requests
 
 def channelcheck(channelname, array):
     for item in array:
@@ -71,6 +69,50 @@ class OnMessage(commands.Cog):
     async def on_message(self, ctx):
         if not ctx.guild:
             return
+        try:
+            urllist = re.findall(r'(https?://[^\s]+)', ctx.content)
+            positive_sites = []
+            safe = False
+            with open('utils/urls.json') as f:
+                data = json.load(f)
+            if urllist != []:
+                for url in urllist:
+                    for url1 in data["urls"]:
+                        if url1 in ctx.content:
+                            await ctx.delete()
+                            return
+                    for url1 in data["safeurls"]:
+                        if url1 in ctx.content:
+                            safe = True
+                    if safe != True:
+                        try:
+                            params = {'apikey': '678e6935abfdd6df1776511b1024faaec5bd0636dd166b0276a398039dca6b79', 'url': url}
+                            response = requests.post('https://www.virustotal.com/vtapi/v2/url/scan', data=params)
+                            scan_id = response.json()['scan_id']
+                            report_params = {'apikey': '678e6935abfdd6df1776511b1024faaec5bd0636dd166b0276a398039dca6b79', 'resource': scan_id}
+                            report_response = requests.get('https://www.virustotal.com/vtapi/v2/url/report', params=report_params)
+                            scans = report_response.json()['scans']
+                            positive_sites = []
+                            for key, value in scans.items():
+                                if value['detected'] == True:
+                                    positive_sites.append(key)
+                        except:
+                            pass
+                        if positive_sites != []:
+                            data["urls"].append(url)
+                            with open('utils/urls.json', 'w') as json_file:
+                                json.dump(data, json_file)
+                            try:
+                                await ctx.delete()
+                                return
+                            except:
+                                pass
+                        else:
+                            data["safeurls"].append(url.split(url.split("/")[3])[0])
+                            with open('utils/urls.json', 'w') as json_file:
+                                json.dump(data, json_file)
+        except:
+            pass
         try:
             guilds = [814607392687390720, 380308776114454528, 841225582967783445, 380308776114454528, 820383461202329671, 789891385293537280]
             if ctx.guild.id in guilds:
@@ -157,7 +199,7 @@ class OnMessage(commands.Cog):
                                     pass
                             print(f"An announcement was made in #{ctx.channel.name} by {ctx.author}.")
                     return
-            if ((ctx.guild.id in premium_guilds and ctx.channel.id in suggestionchannels[ctx.guild.id]) or ("suggestions" in ctx.channel.name)) and (not ctx.author.bot):
+            if ((ctx.guild.id in premium_guilds and ctx.channel.id in suggestionchannels[ctx.guild.id]) or ("suggestions" in ctx.channel.name)) and (not ctx.author.bot or not ctx.content.startswith("-") or not ctx.content.startswith("?") or not ctx.content.startswith("!")):
                     if not ctx.content.startswith("-") or not ctx.content.startswith("?") or not ctx.content.startswith("!"):
                         if ctx.attachments:
                             for imageextensions in [".jpg", ".jpeg", ".png", ".gif"]:

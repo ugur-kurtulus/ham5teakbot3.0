@@ -43,6 +43,7 @@ class Logger(object):
             for mes in content:
                 webhook = DiscordWebhook(url=self.webhook_url, content=mes, username=f"Ham5teak Bot 3.0 | Run {date}")
                 webhook.execute()
+                time.sleep(1)
 
     def flush(self):
         self.terminal.flush()

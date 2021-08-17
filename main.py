@@ -24,7 +24,8 @@ async def on_ready():
     activity = discord.Game(name="play.ham5teak.xyz")
     await client.change_presence(status=discord.Status.online, activity=activity)
     print("Presence has been set!")
-    message = ""
+    guilds = []
+    embeds = []
     for guild in client.guilds:
         result1 = selectqueryall(sql, 'announcements', 'channel_id', f'channel_type = "announcement" AND guild_id = {guild.id}')
         announcementschannels[guild.id] = []
@@ -41,18 +42,32 @@ async def on_ready():
         for typepoll in result3:
             typepoll1 = typepoll[0]
             pollchannels[guild.id].append(typepoll1)
-        message += f"{guild.name}\n"
-    embedDescription  = (f"**__Guilds:__ **\n{message}")
+        guilds.append(guild)
+    for i in range(len(guilds)):
+        if i == 0:
+            embed1 = addEmbed(None, "teal", "**__Guilds:__**")
+            embeds.append(embed1)
+        if guilds[i] in guilds[::25] and i != 0:
+            newembed = addEmbed(None, "teal", "")
+            embeds.append(newembed)
+        embeds[-1].add_field(name=guilds[i].name, value=f"ID: `{guilds[i].id}`, Shard: `{calcshard(guilds[i].id)}`", inline=False)
     channel = client.get_channel(841245744421273620)
-    await channel.send(embed=addEmbed(None, "teal", embedDescription))
+    for embed in embeds:
+        await channel.send(embed=embed)
     for filename in os.listdir('./cogs'):
         if filename.endswith('.py'):
-            client.load_extension(f'cogs.{filename[:-3]}')
-            print(f"{filename[:-3]} has successfully been loaded!")
+            try:
+                client.load_extension(f'cogs.{filename[:-3]}')
+                print(f"{filename[:-3]} has successfully been loaded!")
+            except discord.ext.commands.errors.ExtensionAlreadyLoaded:
+                print(f"{filename[:-3]} is already loaded.")
     for filename in os.listdir('./cogs/games'):
         if filename.endswith('.py'):
-            client.load_extension(f'cogs.games.{filename[:-3]}')
-            print(f"{filename[:-3]} has successfully been loaded!")
+            try:
+                client.load_extension(f'cogs.games.{filename[:-3]}')
+                print(f"{filename[:-3]} has successfully been loaded!")
+            except discord.ext.commands.errors.ExtensionAlreadyLoaded:
+                print(f"{filename[:-3]} is already loaded.")
     client.remove_command('help')
     result = selectqueryall(sql, 'guilds', 'guild_id', 'betaannouncements = 1')
     for type in result:

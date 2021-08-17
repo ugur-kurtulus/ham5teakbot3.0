@@ -300,6 +300,14 @@ async def stripmessage(string, targetstring):
                 if targetstring in stringa:
                     return stringa
 
+def disablebutton(button):
+    button["disabled"] = True
+
+def editbutton(button, style, label, disabled: bool):
+    button['disabled'] = disabled
+    button['label'] = label
+    button['style'] = style
+
 async def moderatorcheck(guild, member):
     if not guild:
         return 1

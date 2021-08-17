@@ -31,7 +31,7 @@ class RPS(Cog):
             return
         if ctx.author == member:
             return await ctx.send("You can't play against yourself!")
-        embed=addEmbed(None, "invis", f"{ctx.author} has invited you to a rock paper scissors game.")
+        embed=addEmbed(None, "invis", f"{ctx.author.mention} has invited you to a rock paper scissors game.")
         acceptdenycomps = create_actionrow(
             create_button(style=ButtonStyle.green, label="Accept"),
             create_button(style=ButtonStyle.red, label="Decline"))
@@ -74,12 +74,9 @@ class RPS(Cog):
         await res.defer(edit_origin=True)
         if res.component.get('label') == "Accept":
             accept = True
-            await m.edit(embed=addEmbed(None, "invis", f"{member} has accepted the game."), components=[])
-            await asyncio.sleep(1)
-
         else:
             accept = False
-            await m.edit(embed=addEmbed(None, "invis", f"{member} has declined the game."), components=[])
+            await m.edit(embed=addEmbed(None, "invis", f"{member.mention} has declined the game."), components=[])
             return
         
         async def winner(team, board):
@@ -87,13 +84,11 @@ class RPS(Cog):
                 user = member
             if team == "green":
                 user = ctx.author
-            await m.edit(embed=addEmbed(None, "invis", f"{user} has won the game!"), components=board)
+            await m.edit(embed=addEmbed(None, "invis", f"{user.mention} has won the game!"), components=board)
             return
         
-        greensturnembed = discord.Embed(color=0x2f3037, description=f"{ctx.author}'s turn")
-        redsturnembed = discord.Embed(color=0x2f3037, description=f"{member}'s turn")
-        redsturnembed.set_author(name=member, icon_url=member.avatar_url)
-        greensturnembed.set_author(name=ctx.author, icon_url=ctx.author.avatar_url)
+        greensturnembed = discord.Embed(color=0x2f3037, description=f"{ctx.author.mention}'s turn")
+        redsturnembed = discord.Embed(color=0x2f3037, description=f"{member.mention}'s turn")
         greenstatus = True
         def greensturncheck(res):
             return res.author.id == ctx.author.id and res.channel.id == ctx.channel.id and res.origin_message.id == m.id
@@ -126,7 +121,7 @@ class RPS(Cog):
                         return
                     else:
                         winner = haswon(ctx.author, res.author)
-                        await m.edit(embed=addEmbed(None, "invis", f"{winner} won the match!"), components=[*board])
+                        await m.edit(embed=addEmbed(None, "invis", f"{winner.mention} won the match!"), components=[*board])
                         accept = False
                         return
                 except asyncio.TimeoutError:
