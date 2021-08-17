@@ -38,8 +38,11 @@ class Logger(object):
         self.log.flush()
 
         if self.webhook and str(message) != "\n":
-          webhook = DiscordWebhook(url=self.webhook_url, content=str(message), username=f"Ham5teak Bot 3.0 | Run {date}")
-          webhook.execute()
+            message = str(message)
+            content = [message[i:i+2000] for i in range(0, len(message), 2000)]
+            for mes in content:
+                webhook = DiscordWebhook(url=self.webhook_url, content=mes, username=f"Ham5teak Bot 3.0 | Run {date}")
+                webhook.execute()
 
     def flush(self):
         self.terminal.flush()
