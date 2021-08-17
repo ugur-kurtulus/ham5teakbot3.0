@@ -20,7 +20,7 @@ In order to make this process easier for us staff, please choose from
 the following choices by clicking the button describing your issue.
 1. **Item Lost** 
 2. **Reporting an Issue/Bug**
-3. **Same IP Connection** 
+3. **Player Report**
 4. **Connection Problems**
 5. **Discord Issue**
 6. **Forgot Password**
@@ -43,7 +43,7 @@ the following choices by clicking the button describing your issue.
                     # Row 1
                     create_actionrow(create_button(style=ButtonStyle.green, label=f"1", custom_id="Item Lost"),
                     create_button(style=ButtonStyle.green, label=f"2", custom_id="Issue or Bug Report"),
-                    create_button(style=ButtonStyle.green, label=f"3", custom_id="Same IP Connection"),
+                    create_button(style=ButtonStyle.green, label=f"3", custom_id="Player Report"),
                     create_button(style=ButtonStyle.green, label=f"4", custom_id="Connection Problems"),
                     create_button(style=ButtonStyle.green, label=f"5", custom_id="Discord Issue")),
                     # Row 2

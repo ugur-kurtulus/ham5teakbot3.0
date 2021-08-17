@@ -3,6 +3,7 @@ import time
 import os
 import datetime
 import asyncio
+from discord_webhook import DiscordWebhook
 
 now = datetime.datetime.now()
 date = f"{now.year}-{now.month}-{now.day}_{now.hour}-{now.minute}-{now.second}"
@@ -19,10 +20,10 @@ def errorlogs():
         os.mkdir("errors")
     return open(errorspath, "w")
 
-webhook = False # Sends webhooks
-printwebhook = '' # Where do you want console prints to be sent to in discord (webhook url)
+webhook = True # Sends webhooks
+printwebhook = 'https://discord.com/api/webhooks/876882825461256233/IV8KxMCVloYK6PlEmfZGUxh45JYCNC5AYgFWGdbgINKTWCPybSh8zEilkkGRqEn_e40R' # Where do you want console prints to be sent to in discord (webhook url)
 errorwebhook = '' # Where do you want error prints to be sent in discord (webhook url) | If you wantthe same webhook set errorwebhook = printwebhook
-printwebhook_url = None
+printwebhook_url = 'https://discord.com/api/webhooks/876882825461256233/IV8KxMCVloYK6PlEmfZGUxh45JYCNC5AYgFWGdbgINKTWCPybSh8zEilkkGRqEn_e40R'
 
 class Logger(object):
     def __init__(self):
@@ -36,10 +37,9 @@ class Logger(object):
         self.log.write(message)  
         self.log.flush()
 
-        #if self.webhook and str(message) != "\n":
-        #  sleep(1)
-        #  webhook = DiscordWebhook(url=self.webhook_url, content=str(message))
-        #  webhook.execute()
+        if self.webhook and str(message) != "\n":
+          webhook = DiscordWebhook(url=self.webhook_url, content=str(message), username=f"Ham5teak Bot 3.0 | Run {date}")
+          webhook.execute()
 
     def flush(self):
         self.terminal.flush()
@@ -67,12 +67,12 @@ class ErrorLogger(object):
         self.log.write(message)  
         self.log.flush()
 
-        if self.webhook and str(message) != "\n":
-          asyncio.sleep(1)
-          now = datetime.datetime.now()
-          message = f"**Error in Console** \n```py\n{message}```"
-          #webhook = DiscordWebhook(url=self.webhook_url, content=str(message))
-          #webhook.execute()
+        #if self.webhook and str(message) != "\n":
+        #  asyncio.sleep(1)
+        #  now = datetime.datetime.now()
+        #  message = f"**Error in Console** \n```py\n{message}```"
+        #  webhook = DiscordWebhook(url=self.webhook_url, content=str(message))
+        #  webhook.execute()
 
     def flush(self):
         self.terminal.flush()

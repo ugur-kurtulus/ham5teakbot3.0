@@ -42,8 +42,8 @@ class OnComponent(commands.Cog):
                         embedDescription1 = f"1. **Item Lost Due To Server Lag/Crash** \n\n\`\`\`\nIn-game Name:\nServer:\nItems you lost:  \n\`\`\`\n\nIf they are enchanted tools, please mention the enchantments if possible."
                     elif ctx.data["custom_id"] == "Issue or Bug Report":
                         embedDescription1 = f"2. **Issue/Bug Report** \n\n\`\`\`\nIn-Game Name : \nServer: \nIssue/Bug :\n\`\`\`"
-                    elif ctx.data["custom_id"] == "Same IP Connection":
-                        embedDescription1 = f"3. **Same IP Connection** \n\n\`\`\`\nIn-Game Name of Same IP Connection : \n- \n- \n\nIP Address : (Format should be xxx.xxx.xxx.xxx)\n\`\`\`"
+                    elif ctx.data["custom_id"] == "Player Report":
+                        embedDescription1 = f"3. **Player Report** \n\n\`\`\`\nReported Player: \nReason For The Report: \n\`\`\`"
                     elif ctx.data["custom_id"] == "Connection Problems":
                         embedDescription1 = f"4. **Connection Problems** \n\n\`\`\`\nIn-game Name:\nWhat connection problem are you facing? Please explain briefly:\n\`\`\`\n\n"
                     elif ctx.data["custom_id"] == "Discord Issue":
