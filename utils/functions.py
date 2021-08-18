@@ -233,7 +233,7 @@ Key definitions
 
 intents = discord.Intents.all()
 intents.members = True
-client = commands.AutoShardedBot(shard_count=1, command_prefix=(getprefix), intents=intents)  # Defines prefix and bot
+client = commands.Bot(command_prefix=(getprefix), intents=intents)  # Defines prefix and bot
 slash = SlashCommand(client, sync_commands=False)  # Defines slash commands
 
 """

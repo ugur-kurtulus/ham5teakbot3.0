@@ -19,9 +19,21 @@ class CommandCog(commands.Cog):
         self.bot = client
 
     @commands.command()
+    async def rtfm(self, ctx, query: str, branch="stable"):
+        params = {"query": query, "location": f'https://discordpy.readthedocs.io/en/{branch}'}
+        async with aiohttp.ClientSession() as session:
+            response = await session.get(f'https://idevision.net/api/public/rtfm', params=params)
+            data = await response.json()
+            nodes = data["nodes"]
+            if nodes == {}:
+                await ctx.send(embed=addEmbed(ctx, None, '**No Results**'))
+                return
+            await ctx.send(embed=addEmbed(ctx, None, '\n'.join([f'__[{key}]({value})__' for key,value in nodes.items()])))
+
+    @commands.command()
     async def ping(self, ctx):
         await deletemessage(ctx)
-        latency = int(client.get_shard(calcshard(ctx.guild.id)).latency * 1000)
+        latency = int(client.latency * 1000)
         await ctx.send(embed=addEmbed(ctx, "dark_teal", f"Bot Latency: `{latency}ms`"), delete_after=5)
 
     @commands.command()
@@ -189,7 +201,7 @@ class CommandCog(commands.Cog):
 
     @commands.command()
     @commands.cooldown(1, 5, commands.BucketType.user)
-    async def restrict(self, ctx, alias, user:discord.User):
+    async def restrict(self, ctx, alias):
         moderatorcheck1 = await moderatorcheck(ctx.guild, ctx.author)
         if moderatorcheck1 == 0:
             await ctx.send(embed=await nopermission(ctx), delete_after=5)
@@ -199,7 +211,6 @@ class CommandCog(commands.Cog):
             await ctx.channel.set_permissions(ctx.guild.default_role, view_channel=True)
             embedDescription  = (f"{ctx.channel.mention} has been opened to public.")
             await ctx.send(embed=addEmbed(ctx,None,embedDescription ), delete_after=5)
-        tickettool = ctx.guild.get_member(557628352828014614)
         aliaslist = selectqueryall(sql, f"restrict", "restrictrole_name", f"guild_id = {ctx.guild.id}")
         for stralias in aliaslist:
             if alias == stralias[0]:
@@ -214,9 +225,9 @@ class CommandCog(commands.Cog):
                         overwrites1= {}
                         overwrites1.update({role: discord.PermissionOverwrite(view_channel=True),
                         ctx.guild.default_role: discord.PermissionOverwrite(view_channel=False)})
-                        overwrites1.update({user: discord.PermissionOverwrite(view_channel=True)})
-                        if tickettool is not None:
-                            overwrites1.update({tickettool: discord.PermissionOverwrite(view_channel=True, manage_channels=True, manage_permissions=True)})
+                        for key in ctx.channel.overwrites.keys():
+                            if isinstance(key, discord.Member):
+                                overwrites1.update({key: ctx.channel.overwrites[key]})
                         await ctx.channel.edit(overwrites=overwrites1)
                         embedDescription  = (f"{ctxchannel.mention} has been restricted to {role.mention}")
                         await ctx.send(embed=addEmbed(ctx,None,embedDescription ), delete_after=5)
@@ -227,9 +238,9 @@ class CommandCog(commands.Cog):
                     overwrites2 = {}
                     overwrites2.update({cat: discord.PermissionOverwrite(view_channel=True), cat2: discord.PermissionOverwrite(view_channel=True),
                     ctx.guild.default_role: discord.PermissionOverwrite(view_channel=False)})
-                    overwrites2.update({user: discord.PermissionOverwrite(view_channel=True)})
-                    if tickettool is not None:
-                        overwrites2.update({tickettool: discord.PermissionOverwrite(view_channel=True, manage_channels=True, manage_permissions=True)})
+                    for key in ctx.channel.overwrites.keys():
+                        if isinstance(key, discord.Member):
+                            overwrites2.update({key: ctx.channel.overwrites[key]})
                     await ctx.channel.edit(overwrites=overwrites2)
                     embedDescription  = (f"{ctxchannel.mention} has been restricted to {cat.mention} and {cat2.mention}")
                     await ctx.send(embed=addEmbed(ctx,None,embedDescription ), delete_after=5)
@@ -242,9 +253,9 @@ class CommandCog(commands.Cog):
                 overwrites3 = {}
                 overwrites3.update({cat: discord.PermissionOverwrite(view_channel=True), cat2: discord.PermissionOverwrite(view_channel=True),
                 cat3: discord.PermissionOverwrite(view_channel=True), ctx.guild.default_role: discord.PermissionOverwrite(view_channel=False)})
-                overwrites3.update({user: discord.PermissionOverwrite(view_channel=True)})
-                if tickettool is not None:
-                    overwrites3.update({tickettool: discord.PermissionOverwrite(view_channel=True, manage_channels=True, manage_permissions=True)})
+                for key in ctx.channel.overwrites.keys():
+                    if isinstance(key, discord.Member):
+                        overwrites3.update({key: ctx.channel.overwrites[key]})
                 await ctx.channel.edit(overwrites=overwrites3)
                 embedDescription  = (f"{ctxchannel.mention} has been restricted to {cat.mention}, {cat2.mention} and {cat3.mention}")
                 await ctx.send(embed=addEmbed(ctx,None,embedDescription ), delete_after=5)
@@ -457,6 +468,8 @@ class CommandCog(commands.Cog):
     async def on_command_error(self, ctx, error):
         if isinstance(error, commands.CommandOnCooldown) or isinstance(error, commands.errors.CommandNotFound):
             return
+        else:
+            pass
 
     @evaluate.error
     async def clear_error(self, ctx, error):
@@ -542,7 +555,7 @@ class CommandCog(commands.Cog):
     async def clear_error(self, ctx, error):
         if isinstance(error, commands.MissingRequiredArgument):
                 await deletemessage(ctx)
-                await ctx.send(embed=addEmbed2(ctx, "red", f'Please specify the restrict type you would like to apply. `{getprefix2(ctx)}restrict <type> <user>`', None), delete_after=5)
+                await ctx.send(embed=addEmbed(None, "red", f'Please specify the restrict type you would like to apply. `{getprefix2(ctx)}restrict <type> <user>`', None), delete_after=5)
         else:
             await unknownerror(ctx, error)
 
