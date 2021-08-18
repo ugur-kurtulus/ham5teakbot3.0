@@ -288,20 +288,23 @@ class OnMessage(commands.Cog):
                             pass
                         sent = False
                     else:
-                        res = await wait_for_component(client, messages=msg)
-                        if res.author.id in reactedusers[msg.id]:
-                            await res.send(content="You have already voted for this poll.", hidden=True)
-                        elif res.author_id not in reactedusers[msg.id]:
-                            getdata = reactionstotal[res.custom_id]
-                            reactionstotal.update({res.custom_id: getdata + 1})
-                            reactionstotal1 = str(reactionstotal).replace("{", "").replace("}", "").replace(", ", f"\n").replace(":", "").replace("'", "")
-                            embedDescription1 = f"{ctx.content}\n\n```\n{reactionstotal1}\n```"
-                            if ctx.attachments:
-                                await res.edit_origin(embed=addEmbed(ctx,None,embedDescription1, image=f"attachment://{ctx.attachments[0].filename}"))
-                            else:
-                                await res.edit_origin(embed=addEmbed(ctx,None,embedDescription1))
-                            await res.send(f'Successfully voted for {res.custom_id}.', hidden=True)
-                            reactedusers[msg.id].append(res.author_id)
+                        try:
+                            res = await wait_for_component(client, messages=msg)
+                            if res.author.id in reactedusers[msg.id]:
+                                await res.send(content="You have already voted for this poll.", hidden=True)
+                            elif res.author_id not in reactedusers[msg.id]:
+                                getdata = reactionstotal[res.custom_id]
+                                reactionstotal.update({res.custom_id: getdata + 1})
+                                reactionstotal1 = str(reactionstotal).replace("{", "").replace("}", "").replace(", ", f"\n").replace(":", "").replace("'", "")
+                                embedDescription1 = f"{ctx.content}\n\n```\n{reactionstotal1}\n```"
+                                if ctx.attachments:
+                                    await res.edit_origin(embed=addEmbed(ctx,None,embedDescription1, image=f"attachment://{ctx.attachments[0].filename}"))
+                                else:
+                                    await res.edit_origin(embed=addEmbed(ctx,None,embedDescription1))
+                                await res.send(f'Successfully voted for {res.custom_id}.', hidden=True)
+                                reactedusers[msg.id].append(res.author_id)
+                        except Exception as exception:
+                            print(exception)
             if "console-" in ctx.channel.name and "console-hambot" not in ctx.channel.name:
                 messagestrip = await stripmessage(ctx.content, 'a server operator')
                 if messagestrip:

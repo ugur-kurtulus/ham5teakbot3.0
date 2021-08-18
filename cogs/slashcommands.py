@@ -12,8 +12,7 @@ class Slash(commands.Cog):
     async def accept(self, ctx, messageid):
         moderatorcheck1 = await moderatorcheck(ctx.guild, ctx.author)
         if moderatorcheck1 == 0:
-            await ctx.defer(hidden=True)
-            await ctx.send(embed=await nopermission(ctx))
+            await ctx.send(embed=await nopermission(ctx), hidden=True)
             return
         result = selectquery(sql, 'guilds', 'acceptedsuggestions', f'guild_id = {ctx.guild.id}')
         if result == 0:
@@ -25,7 +24,6 @@ class Slash(commands.Cog):
                 if reaction.emoji != "✅":
                     return 
                 else:
-                    await ctx.defer(hidden=True)
                     reactiona = reaction
                     aschannel = client.get_channel(result)
                     finalcount = int(reactiona.count - 1)
@@ -34,7 +32,7 @@ class Slash(commands.Cog):
                     embed2 = msg.embeds[0]
                     await sendwebhook(ctx, "Accepted Suggestions", aschannel, None, [embed1, embed2])
                     embedDescription  = (f"[Suggestion]({msg.jump_url}) successfully accepted!")
-                    await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDescription ))
+                    await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDescription), hidden=True)
                     return
 
     @cog_ext.cog_slash(name="status", description="View minecraft network status")
@@ -64,10 +62,9 @@ class Slash(commands.Cog):
 
     @cog_ext.cog_slash(name="move", description="Move a channel to specified category.", )
     async def move(self, ctx, category):
-        await ctx.defer(hidden=True)
         moderatorcheck1 = await moderatorcheck(ctx.guild, ctx.author)
         if moderatorcheck1 == 0:
-            await ctx.send(embed=await nopermission(ctx))
+            await ctx.send(embed=await nopermission(ctx), hidden=True)
             return
         alias = category
         aliaslist = selectqueryall(sql, "categories", "category_name", f"guild_id = {ctx.guild.id}")
@@ -78,14 +75,13 @@ class Slash(commands.Cog):
                 cat = client.get_channel(result)
                 await ctxchannel.edit(category=cat)
                 embedDescription  = (f"{ctxchannel.mention} has been moved to category {alias}")
-                await ctx.send(embed=addEmbed(ctx,None,embedDescription ))
+                await ctx.send(embed=addEmbed(ctx,None,embedDescription ), hidden=True)
 
     @cog_ext.cog_slash(name="tag", description="A command used to leave a note to a channel")
     async def tag(self, ctx, note, user:discord.User = None, channel:discord.TextChannel = None, role:discord.Role = None):
         moderatorcheck1 = await moderatorcheck(ctx.guild, ctx.author)
         if moderatorcheck1 == 0:
-            await ctx.defer(hidden=True)
-            await ctx.send(embed=await nopermission(ctx))
+            await ctx.send(embed=await nopermission(ctx), hidden=True)
             return
         await ctx.defer(hidden=False)
         finalmentions = []
@@ -108,10 +104,9 @@ class Slash(commands.Cog):
     @cog_ext.cog_slash(name="setchannel", description="Set channels for your server")
     @commands.has_permissions(manage_guild=True)
     async def setchannel(self, ctx, value: discord.TextChannel, channel: str):
-        await ctx.defer(hidden=True)
         administratorcheck1 = await administratorcheck(ctx.guild, ctx.author)
         if administratorcheck1 == 0:
-            await ctx.send(embed=await nopermission(ctx))
+            await ctx.send(embed=await nopermission(ctx), hidden=True)
             return
         guild_id = ctx.guild.id
         channelid = str(value.id)
@@ -125,10 +120,10 @@ class Slash(commands.Cog):
                 result = (insertquery(sql, 'guilds', column , values, where))
                 if result is not None:
                     embedDescription  = (f"{channel} successfully registered as <#{channelid}>")
-                    await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDescription ))
+                    await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDescription), hidden=True)
                 else:
                     embedDescription  = (f"{channel} couldn't be registered as {channelid}")
-                    await ctx.send(embed=addEmbed(ctx,"red",embedDescription ))
+                    await ctx.send(embed=addEmbed(ctx,"red",embedDescription), hidden=True)
                 return
         commandsloop2 = ["announcement", "poll", "suggestion"]
         for commanda in commandsloop2:
@@ -168,15 +163,14 @@ class Slash(commands.Cog):
     @cog_ext.cog_slash(name="setmove")
     @commands.has_permissions(manage_guild=True)
     async def setmove(self, ctx, categoryi: discord.CategoryChannel, alias):
-        await ctx.defer(hidden=True)
         await administratorcheck(ctx.guild, ctx.author)
         administratorcheck1 = await administratorcheck(ctx.guild, ctx.author)
         if administratorcheck1 == 0:
-            await ctx.send(embed=await nopermission(ctx))
+            await ctx.send(embed=await nopermission(ctx), hidden=True)
             return
         movecheck = selectquery(sql, 'guilds', 'custommovecount', f'guild_id = {ctx.guild.id}')
         if movecheck >= 45:
-            await ctx.send(embed=addEmbed(ctx, None, f"Guild has {movecheck} custommoves set which is over the limit."))
+            await ctx.send(embed=addEmbed(ctx, None, f"Guild has {movecheck} custommoves set which is over the limit."), hidden=True)
             return
         guild_id = ctx.guild.id
         categoryid = str(categoryi.id)
@@ -185,7 +179,7 @@ class Slash(commands.Cog):
         for stralias in categoryn:
             if categoryname == stralias[0]:
                 embedDescription  =(f"Category `{categoryname}` already exists.")
-                await ctx.send(embed=addEmbed(ctx,"red",embedDescription ))
+                await ctx.send(embed=addEmbed(ctx,"red",embedDescription ), hidden=True)
                 return 1
         column = '(guild_id, category_name)'
         values = (guild_id, categoryname)
@@ -197,65 +191,62 @@ class Slash(commands.Cog):
         result = (insertquery(sql, 'categories', column , values, where))
         if (result == 0):
             embedDescription =(f"Successfully registered {categoryname} as `{categoryid}`")
-            await ctx.send(embed=addEmbed(ctx,None,embedDescription ))   
+            await ctx.send(embed=addEmbed(ctx,None,embedDescription ), hidden=True)   
             insertquery(sql, 'guilds', 'custommovecount', f'{len(categoryn) + 1}', f'guild_id = {ctx.guild.id}')
         else:
             embedDescription  =(f"Couldn't register {categoryname} as `{categoryid}`")
-            await ctx.send(embed=addEmbed(ctx,"red",embedDescription ))
+            await ctx.send(embed=addEmbed(ctx,"red",embedDescription ), hidden=True)
 
     @cog_ext.cog_slash(name="setrole")
     @commands.has_permissions(manage_guild=True)
     async def setrole(self, ctx, administrator:discord.Role, moderator: discord.Role):
-        await ctx.defer(hidden=True)
         administratorcheck1 = await administratorcheck(ctx.guild, ctx.author)
         if administratorcheck1 == 0:
-            await ctx.send(embed=await nopermission(ctx))
+            await ctx.send(embed=await nopermission(ctx), hidden=True)
             return
         result = selectquery(sql, 'guilds', 'moderator_id', f'guild_id = {ctx.guild.id}')
         if result is None:
             embedDescription  = (f"Server needs to be setup before executing this command.")
-            await ctx.send(embed=addEmbed(ctx,None,embedDescription ))
+            await ctx.send(embed=addEmbed(ctx,None,embedDescription ), hidden=True)
         elif result is not None:
             a = insertquery(sql, "guilds", "moderator_id", f"{moderator.id}", f"guild_id = {ctx.guild.id}")
             b = insertquery(sql, "guilds", "administrator_id", f"{administrator.id}", f"guild_id = {ctx.guild.id}")
             if (a == 0) and (b == 0):
                 embedDescription  = (f"New administrator and moderator roles have successfully been set as {administrator.mention} {moderator.mention}")
-                await ctx.send(embed=addEmbed(ctx,"green",embedDescription ))
+                await ctx.send(embed=addEmbed(ctx,"green",embedDescription ), hidden=True)
             else:
                 embedDescription  = (f"Couldn't register {administrator.mention} {moderator.mention} as administrator and moderator.")
-                await ctx.send(embed=addEmbed(ctx,"red",embedDescription ))
+                await ctx.send(embed=addEmbed(ctx,"red",embedDescription ), hidden=True)
 
     @cog_ext.cog_slash(name="setserver")
     async def setserver(self, ctx, serverip: str):
-        await ctx.defer(hidden=True)
         administratorcheck1 = await administratorcheck(ctx.guild, ctx.author)
         if administratorcheck1 == 0:
-            await ctx.send(embed=await nopermission(ctx))
+            await ctx.send(embed=await nopermission(ctx), hidden=True)
             return
         try:
             server = MinecraftServer.lookup(serverip)
             status = server.status()
         except:
             embedDescription  = (f"Couldn't register {serverip} as server ip.")
-            await ctx.send(embed=addEmbed(ctx,"red",embedDescription ))
+            await ctx.send(embed=addEmbed(ctx,"red",embedDescription ), hidden=True)
             return
         guild_id = str(ctx.guild.id)
         where = (f"guild_id = {guild_id}")
         result = (insertquery(sql, 'guilds', 'mcserver', f"'{serverip}'", where))
         if (result == 0):
             embedDescription  = (f"Successfully registered {serverip} as server ip.")
-            await ctx.send(embed=addEmbed(ctx,"green",embedDescription ))
+            await ctx.send(embed=addEmbed(ctx,"green",embedDescription ), hidden=True)
         else:
             embedDescription  = (f"Couldn't register {serverip} as server ip.")
-            await ctx.send(embed=addEmbed(ctx,"red",embedDescription ))
+            await ctx.send(embed=addEmbed(ctx,"red",embedDescription ), hidden=True)
 
     @cog_ext.cog_slash(name="setup")
     @commands.has_permissions(manage_guild=True)
     async def setup(self, ctx, password, administrator:discord.Role, moderator:discord.Role):
-        await ctx.defer(hidden=True)
         async def invalidpass():
             embedDescription  = (f"Invalid password.")
-            await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDescription))
+            await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDescription), hidden=True)
         cc = password[:16]
         password = password[16:].strip()
         if verify(cc) == False:
@@ -274,7 +265,7 @@ class Slash(commands.Cog):
             check2 = selectquery(sql, f'passwords', 'used', f"password = '{password}'")
             if check2 == 1:
                 embedDescription  = (f"This password was already used.")
-                await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDescription ))
+                await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDescription), hidden=True)
                 return
             elif check2 == 0:
                 insertquery(sql, f'passwords', 'used', '(1)', f'password = "{str(password)}"')
@@ -282,7 +273,7 @@ class Slash(commands.Cog):
         guild_id = ctx.guild.id
         if guild_id in premium_guilds:
             embedDescription  = (f"You are already logged in as Premium.")
-            await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDescription ))
+            await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDescription), hidden=True)
             return
         else:
             guild_name = ctx.guild.name
@@ -294,10 +285,10 @@ class Slash(commands.Cog):
             premium_guilds.append(ctx.guild.id) 
             if insertcheck != 0:
                 embedDescription  = (f"Setup successfully completed!")
-                await ctx.send(embed=addEmbed(ctx,"green",embedDescription ))
+                await ctx.send(embed=addEmbed(ctx,"green",embedDescription), hidden=True)
             else:
                 embedDescription  = (f"Setup failed!")
-                await ctx.send(embed=addEmbed(ctx,"red",embedDescription ))
+                await ctx.send(embed=addEmbed(ctx,"red",embedDescription), hidden=True)
 
     @commands.Cog.listener()
     async def on_slash_command_error(self, ctx, error):
@@ -309,19 +300,15 @@ class Slash(commands.Cog):
             except:
                 return
         if isinstance(error, commands.MissingPermissions):
-            await ctx.defer(hidden=True)
             embedDescription  = (f"Please make sure you have entered all values correctly.\n{error}")
             await ctx.send(embed=addEmbed(ctx,None,embedDescription ), hidden=True)
         if isinstance(error, commands.ChannelNotFound):
-            await ctx.defer(hidden=True)
             embedDescription  = (f"Please make sure you have entered all values correctly.\n{error}")
             await ctx.send(embed=addEmbed(ctx,None,embedDescription ), hidden=True)
         if isinstance(error, commands.RoleNotFound):
-            await ctx.defer(hidden=True)
             embedDescription  = (f"Please make sure you have entered all values correctly.\n{error}")
             await ctx.send(embed=addEmbed(ctx,None,embedDescription ), hidden=True)
         if isinstance(error, commands.MemberNotFound):
-            await ctx.defer(hidden=True)
             embedDescription  = (f"Please make sure you have entered all values correctly.\n{error}")
             await ctx.send(embed=addEmbed(ctx,None,embedDescription ), hidden=True)
         else:

@@ -423,7 +423,7 @@ async def attachmentAutoEmbed(ctx, image:bool, type, emoji, emoji1, webhook:bool
             msg = await ctx.channel.history(limit=1).flatten()
             msg = msg[0]
             try:
-                [await msg.add_reaction(item) for item in [emoji1, emoji] if item != None]
+                [await msg.add_reaction(item) for item in [emoji, emoji1] if item != None]
             except:
                 pass
             print(f"An {var} inclusive {type} was made in #{ctx.channel.name} by {ctx.author}.")
@@ -432,7 +432,7 @@ async def attachmentAutoEmbed(ctx, image:bool, type, emoji, emoji1, webhook:bool
     else:
         msg = await ctx.channel.send(embed=embed, file=file)
     try:
-        [await msg.add_reaction(item) for item in [emoji1, emoji] if item != None]
+        [await msg.add_reaction(item) for item in [emoji, emoji1] if item != None]
     except:
         pass
     print(f"An {var} inclusive {type} was made in #{ctx.channel.name} by {ctx.author}.")
