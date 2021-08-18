@@ -50,7 +50,7 @@ async def on_ready():
         if guilds[i] in guilds[::25] and i != 0:
             newembed = addEmbed(None, "teal", "")
             embeds.append(newembed)
-        embeds[-1].add_field(name=guilds[i].name, value=f"ID: `{guilds[i].id}`, Shard: `{calcshard(guilds[i].id)}`", inline=False)
+        embeds[-1].add_field(name=guilds[i].name, value=f"ID: `{guilds[i].id}`, Shard: `0`", inline=False)
     channel = client.get_channel(841245744421273620)
     for embed in embeds:
         await channel.send(embed=embed)
@@ -66,6 +66,13 @@ async def on_ready():
                 client.load_extension(f'cogs.games.{filename[:-3]}')
             except discord.ext.commands.errors.ExtensionAlreadyLoaded:
                 print(f"{filename[:-3]} is already loaded.")
+    for filename in os.listdir('./cogs/handlers'):
+        if filename.endswith('.py'):
+            try:
+                client.load_extension(f'cogs.handlers.{filename[:-3]}')
+            except discord.ext.commands.errors.ExtensionAlreadyLoaded:
+                print(f"{filename[:-3]} is already loaded.")
+    client.load_extension('jishaku')
     client.remove_command('help')
     result = selectqueryall(sql, 'guilds', 'guild_id', 'betaannouncements = 1')
     for type in result:
