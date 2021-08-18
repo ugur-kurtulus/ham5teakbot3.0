@@ -133,9 +133,9 @@ class CommandCog(commands.Cog):
                 webh = discord.Webhook.from_url(webhook1.url, adapter=discord.AsyncWebhookAdapter(session=session))
                 try:
                     imageurl = (embedobj.image.url).split("/")[6]
-                    await webh.edit_message(id, embeds=[addEmbed2(ctx, None, embedDescription, f"attachment://{imageurl}")])
+                    await webh.edit_message(id, embeds=[addEmbed(ctx, None, embedDescription, f"attachment://{imageurl}", False)])
                 except:
-                    await webh.edit_message(id, embeds=[addEmbed2(ctx, None, embedDescription, None)])
+                    await webh.edit_message(id, embeds=[addEmbed(ctx, None, embedDescription, None, False)])
             return
         await deletemessage(ctx)
         try:
@@ -460,16 +460,16 @@ class CommandCog(commands.Cog):
 
     @evaluate.error
     async def clear_error(self, ctx, error):
-        await ctx.send(embed=addEmbed2(ctx, "invis", f'```py\n{error}\n```'))
+        await ctx.send(embed=addEmbed(None, "invis", f'```py\n{error}\n```'))
 
     @move.error
     async def clear_error(self, ctx, error):
         if isinstance(error, discord.ext.commands.errors.MissingRequiredArgument):
             await deletemessage(ctx)
-            await ctx.send(embed=addEmbed2(ctx, "red", f'Please enter the command correctly. `{getprefix2(ctx)}move <category>`'), delete_after=5)
+            await ctx.send(embed=addEmbed(None, "red", f'Please enter the command correctly. `{getprefix2(ctx)}move <category>`'), delete_after=5)
         elif isinstance(error, discord.ext.commands.errors.ChannelNotFound):
             await deletemessage(ctx)
-            await ctx.send(embed=addEmbed2(ctx, "red", f'Please enter a valid category. `{getprefix2(ctx)}move <category>`'), delete_after=5)
+            await ctx.send(embed=addEmbed(None, "red", f'Please enter a valid category. `{getprefix2(ctx)}move <category>`'), delete_after=5)
         else:
             await unknownerror(ctx, error)
 
@@ -481,7 +481,7 @@ class CommandCog(commands.Cog):
     async def clear_error(self, ctx, error):
         if isinstance(error, discord.ext.commands.errors.MissingRequiredArgument):
             await deletemessage(ctx)
-            await ctx.send(embed=addEmbed2(ctx, "red", f'Please enter a valid cog name. `{getprefix2(ctx)}reload <cog/all>`'), delete_after=5)
+            await ctx.send(embed=addEmbed(None, "red", f'Please enter a valid cog name. `{getprefix2(ctx)}reload <cog/all>`'), delete_after=5)
         else:
             await unknownerror(ctx, error)
         
@@ -489,7 +489,7 @@ class CommandCog(commands.Cog):
     async def clear_error(self, ctx, error):
         if isinstance(error, discord.ext.commands.errors.MissingRequiredArgument):
             await deletemessage(ctx)
-            await ctx.send(embed=addEmbed2(ctx, "red", f'Please enter a valid cog name. `{getprefix2(ctx)}unload <cog>`'), delete_after=5)
+            await ctx.send(embed=addEmbed(None, "red", f'Please enter a valid cog name. `{getprefix2(ctx)}unload <cog>`'), delete_after=5)
         else:
             await unknownerror(ctx, error)
         
@@ -524,9 +524,9 @@ class CommandCog(commands.Cog):
     async def clear_error(self, ctx, error):
         if isinstance(error, commands.MissingRequiredArgument):
             await deletemessage(ctx)
-            await ctx.send(embed=addEmbed2(ctx, "red", f'Please specify the id of the message you would like to edit. `{getprefix2(ctx)}edit <messageid> <newmessage>`'), delete_after=5)
+            await ctx.send(embed=addEmbed(None, "red", f'Please specify the id of the message you would like to edit. `{getprefix2(ctx)}edit <messageid> <newmessage>`'), delete_after=5)
         elif isinstance(error, commands.CommandInvokeError):
-            await ctx.send(embed=addEmbed2(ctx, "red", 'Please enter a valid message ID.', None), delete_after=5)
+            await ctx.send(embed=addEmbed(None, "red", 'Please enter a valid message ID.', None), delete_after=5)
         else:
             await unknownerror(ctx, error)
 
@@ -534,7 +534,7 @@ class CommandCog(commands.Cog):
     async def clear_error(self, ctx, error):
         if isinstance(error, discord.ext.commands.errors.BadArgument):
             await deletemessage(ctx)
-            await ctx.send(embed=addEmbed2(ctx, "red", f'Please make sure to enter a number. `{getprefix2(ctx)}purge <amount>`', None), delete_after=5)
+            await ctx.send(embed=addEmbed(None, "red", f'Please make sure to enter a number. `{getprefix2(ctx)}purge <amount>`', None), delete_after=5)
         else:
             await unknownerror(ctx, error)
 

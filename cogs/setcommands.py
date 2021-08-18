@@ -390,7 +390,7 @@ class SetCommandCog(commands.Cog):
     async def clear_error(self, ctx, error):
         if isinstance(error, discord.ext.commands.errors.ChannelNotFound):
             await deletemessage(ctx)
-            await ctx.send(embed=addEmbed2(ctx, "red", f'Please enter a valid category id. `{getprefix2(ctx)}setmove <categoryid> <alias>`'), delete_after=5)
+            await ctx.send(embed=addEmbed(None, "red", f'Please enter a valid category id. `{getprefix2(ctx)}setmove <categoryid> <alias>`'), delete_after=5)
         else:
             await unknownerror(ctx, error)
             
@@ -398,7 +398,7 @@ class SetCommandCog(commands.Cog):
     async def clear_error(self, ctx, error):
         if isinstance(error, discord.ext.commands.errors.MissingRequiredArgument):
             await deletemessage(ctx)
-            await ctx.send(embed=addEmbed2(ctx, "red", f'Please enter a valid category name. `{getprefix2(ctx)}removemove <categoryname>`'), delete_after=5)
+            await ctx.send(embed=addEmbed(None, "red", f'Please enter a valid category name. `{getprefix2(ctx)}removemove <categoryname>`'), delete_after=5)
         else:
             await unknownerror(ctx, error)
 
@@ -406,7 +406,7 @@ class SetCommandCog(commands.Cog):
     async def clear_error(self, ctx, error):
         if isinstance(error, commands.MissingRequiredArgument):
             await deletemessage(ctx)
-            await ctx.send(embed=addEmbed2(ctx, "red", f'Please specify the channel you would like to set. `{getprefix2(ctx)}setchannel <channel> <id>`', None), delete_after=5)
+            await ctx.send(embed=addEmbed(None, "red", f'Please specify the channel you would like to set. `{getprefix2(ctx)}setchannel <channel> <id>`', None), delete_after=5)
         else:
             await unknownerror(ctx, error)
 
@@ -414,7 +414,7 @@ class SetCommandCog(commands.Cog):
     async def clear_error(self, ctx, error):
         if isinstance(error, commands.MissingRequiredArgument):
                 await deletemessage(ctx)
-                await ctx.send(embed=addEmbed2(ctx, "red", f'Please make sure to give all arguments correctly. `{getprefix2(ctx)}setrestrict <type> <role1> [role2] [role3]`', None), delete_after=5)
+                await ctx.send(embed=addEmbed(None, "red", f'Please make sure to give all arguments correctly. `{getprefix2(ctx)}setrestrict <type> <role1> [role2] [role3]`', None), delete_after=5)
         else:
             await unknownerror(ctx, error)
         

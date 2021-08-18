@@ -201,16 +201,22 @@ createtable(sql, 'announcements', announcements_query)
 Arrays and Dicts
 """
 
-colors = {"green": 0x3aa45c, "red": 0xed4344, "blue": 0x5864f3, "aqua": 0x00FFFF,
- "dark_teal": 0x10816a, "teal": 0x1abc9c, "invis": 0x2f3037}
+colors = {"green": 0x3aa45c, "red": 0xed4344, "blue": 0x5864f3, "aqua": 0x00FFFF, "dark_teal": 0x10816a, "teal": 0x1abc9c, "invis": 0x2f3037}
+
 premium_guilds = [selectqueryall(sql, 'guilds', 'guild_id', None)]
+
 announcementschannels = {}
+
 suggestionchannels = {}
+
 pollchannels = {}
+
 betaannouncementguilds = []
-ham_guilds = [380308776114454528, 841225582967783445, 820383461202329671, 789891385293537280,
-82038346120232967, 650658756803428381, 571626209868382236, 631067371661950977]
+
+ham_guilds = [380308776114454528, 841225582967783445, 820383461202329671, 789891385293537280, 82038346120232967, 650658756803428381, 571626209868382236, 631067371661950977]
+
 prefixes = {}
+
 def getprefix(client, message):
     if not message.guild:
         return "-"
@@ -234,18 +240,18 @@ slash = SlashCommand(client, sync_commands=False)  # Defines slash commands
 Functions
 """
 
-def settitle(embed, titlestr):
+def settitle(embed, titlestr): # Used in one liner for loops
     embed.title = titlestr
     return embed
 
-async def deletemessage(ctx):
+async def deletemessage(ctx): # Used to delete message avoiding exceptions on missing permission or similar issues
     try:
         await ctx.message.delete()
     except: #nosec
         pass
     return
 
-def clean_code(content):
+def clean_code(content): # Used in the evaluate command
     if content.startswith("```") and content.endswith("```"):
         return "\n".join(content.split("\n")[1:])[:-3]
     else:
@@ -276,7 +282,7 @@ async def sendwebhook(ctx, webhookname, channel, file, embeds):
     await webhook.send(username=webhookname, avatar_url=image, embeds=embeds, file=file)
     return True
 
-async def getwebhook(ctx, webhookname, channel = None):
+async def getwebhook(ctx, webhookname, channel = None): # Gets webhook object from channel
     if channel == None:
         for w in await ctx.guild.webhooks():
             if webhookname == w.name and w.channel == ctx.channel:
@@ -286,29 +292,24 @@ async def getwebhook(ctx, webhookname, channel = None):
             if webhookname == w.name and w.channel == channel:
                 return w
         
-async def nopermission(ctx):
+async def nopermission(ctx): # Standard no permission error used in commands
     embedDescription  = (f"You don't have permission to do this.")
     return addEmbed(ctx,None,embedDescription )
 
-async def unknownerror(ctx, error):
-    return await ctx.send(embed=addEmbed2(ctx, "red", f"`{error}`", None), delete_after=5)
+async def unknownerror(ctx, error): # Sends the unknown error embed
+    return await ctx.send(embed=addEmbed(None, "red", f"`{error}`", None), delete_after=5)
 
-async def stripmessage(string, targetstring):
+async def stripmessage(string, targetstring): # 
     if targetstring in string:
-            stringlist = string.split(f"\n")
-            for stringa in stringlist:
-                if targetstring in stringa:
-                    return stringa
+        stringlist = string.split(f"\n")
+        for stringa in stringlist:
+            if targetstring in stringa:
+                return stringa
 
-def disablebutton(button):
+def disablebutton(button): # Disables button
     button["disabled"] = True
 
-def editbutton(button, style, label, disabled: bool):
-    button['disabled'] = disabled
-    button['label'] = label
-    button['style'] = style
-
-async def moderatorcheck(guild, member):
+async def moderatorcheck(guild, member): # Checks if user is a bot moderator
     if not guild:
         return 1
     try:
@@ -332,7 +333,7 @@ async def moderatorcheck(guild, member):
     else:
         return 0
 
-async def administratorcheck(guild, member):
+async def administratorcheck(guild, member): # Checks if user is a bot administrator
     if not guild:
         return 1
     administratorrole = selectquery(sql, 'guilds', 'administrator_id', f'guild_id = {guild.id}')
@@ -346,7 +347,7 @@ async def administratorcheck(guild, member):
     else:
         return 0
 
-async def statuscheck():
+async def statuscheck(): # Runs every 10 minutes and sends mc status to guilds
     for guild in client.guilds:
         try:
             if guild.id in premium_guilds:
@@ -397,13 +398,13 @@ async def statuscheck():
             pass
     await asyncio.sleep(600)
     
-async def attachmentAutoEmbed(ctx, image:bool, type, emoji, emoji1, webhook:bool = None):
+async def attachmentAutoEmbed(ctx, image:bool, type, emoji, emoji1, webhook:bool = None): # Sends embed suggestion/announcement with attachment
     await ctx.attachments[0].save(f"./{ctx.attachments[0].filename}")
     file = discord.File(ctx.attachments[0].filename)
     embedDescription  = (f"{ctx.content}")
     await ctx.delete()
-    if webhook != None and webhook == True:
-        embed = addEmbed2(ctx,None,embedDescription)
+    if webhook == True:
+        embed = addEmbed(ctx,None,embedDescription, None, False)
     else:
         embed = addEmbed(ctx,None,embedDescription)
     if image == True:
@@ -411,28 +412,37 @@ async def attachmentAutoEmbed(ctx, image:bool, type, emoji, emoji1, webhook:bool
         var = "image"
     if image == False:
         var = "attachment"
-    if webhook != None and webhook == True:
+    if webhook == True:
         sent = False
         sent = await sendwebhook(ctx, ctx.author.name, ctx.channel, file, [embed])
         while sent == True:
-            await asyncio.sleep(2)
+            if image != False:
+                await asyncio.sleep(2)
+            else:
+                await asyncio.sleep(0.5)
             msg = await ctx.channel.history(limit=1).flatten()
             msg = msg[0]
-            await msg.add_reaction(emoji)
-            await msg.add_reaction(emoji1)
+            try:
+                [await msg.add_reaction(item) for item in [emoji1, emoji] if item != None]
+            except:
+                pass
             print(f"An {var} inclusive {type} was made in #{ctx.channel.name} by {ctx.author}.")
             os.remove(f"./{ctx.attachments[0].filename}")
             return
     else:
         msg = await ctx.channel.send(embed=embed, file=file)
-    await msg.add_reaction(emoji)
-    await msg.add_reaction(emoji1)
+    try:
+        [await msg.add_reaction(item) for item in [emoji1, emoji] if item != None]
+    except:
+        pass
     print(f"An {var} inclusive {type} was made in #{ctx.channel.name} by {ctx.author}.")
     os.remove(f"./{ctx.attachments[0].filename}")
-    
-def addEmbed2(ctx , color, new, image = None):
+
+def addEmbed(ctx , color, new, image = None, author=True):
     if image != None and ctx != None:
         newEmbed = discord.Embed(description=f"{new}", color=ctx.author.color)
+        if author == True:
+            newEmbed.set_author(name=ctx.author, icon_url=ctx.author.avatar_url)
         newEmbed.set_image(url=image)
     elif image != None and ctx == None:
         if str(color) in colors.keys():
@@ -443,11 +453,15 @@ def addEmbed2(ctx , color, new, image = None):
     else:
         if ctx != None and color == None:
             newEmbed = discord.Embed(description=f"{new}", color=ctx.author.color)
+            if author == True:
+                newEmbed.set_author(name=ctx.author, icon_url=ctx.author.avatar_url)
         elif ctx != None and color != None:
             if str(color) in colors.keys():
                 newEmbed = discord.Embed(description=f"{new}", color=colors[color])
             else:
                 newEmbed = discord.Embed(description=f"{new}", color=color)
+            if author == True:
+                newEmbed.set_author(name=ctx.author, icon_url=ctx.author.avatar_url)
         elif ctx == None:
             if str(color) in colors.keys():
                 newEmbed = discord.Embed(description=f"{new}", color=colors[color])
@@ -456,34 +470,5 @@ def addEmbed2(ctx , color, new, image = None):
     newEmbed.set_footer(text="Ham5teak Bot 3.0 | Made by Beastman#1937, SottaByte#1543 and Jaymz#7815")
     return newEmbed
 
-def calcshard(guildid):
+def calcshard(guildid): # Check which shard guild is in
     return (int(guildid) >> 22) % client.shard_count
-
-def addEmbed(ctx , color, new, image = None):
-    if image != None and ctx != None:
-        newEmbed = discord.Embed(description=f"{new}", color=ctx.author.color)
-        newEmbed.set_author(name=ctx.author, icon_url=ctx.author.avatar_url)
-        newEmbed.set_image(url=image)
-    elif image != None and ctx == None:
-        if str(color) in colors.keys():
-            newEmbed = discord.Embed(description=f"{new}", color=colors[color])
-        else:
-            newEmbed = discord.Embed(description=f"{new}", color=color)
-        newEmbed.set_image(url=image)
-    else:
-        if ctx != None and color == None:
-            newEmbed = discord.Embed(description=f"{new}", color=ctx.author.color)
-            newEmbed.set_author(name=ctx.author, icon_url=ctx.author.avatar_url)
-        elif ctx != None and color != None:
-            if str(color) in colors.keys():
-                newEmbed = discord.Embed(description=f"{new}", color=colors[color])
-            else:
-                newEmbed = discord.Embed(description=f"{new}", color=color)
-            newEmbed.set_author(name=ctx.author, icon_url=ctx.author.avatar_url)
-        elif ctx == None:
-            if str(color) in colors.keys():
-                newEmbed = discord.Embed(description=f"{new}", color=colors[color])
-            else:
-                newEmbed = discord.Embed(description=f"{new}", color=color)
-    newEmbed.set_footer(text="Ham5teak Bot 3.0 | Made by Beastman#1937, SottaByte#1543 and Jaymz#7815")
-    return newEmbed

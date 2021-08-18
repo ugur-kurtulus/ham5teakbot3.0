@@ -34,7 +34,7 @@ class raw_command_response(commands.Cog):
             displayedroles = f"{', '.join(rolelist[:42])} + {len(rolelist) - 42} more"
         else:
             displayedroles = ', '.join(rolelist)
-        embed = addEmbed2(None, color, "")
+        embed = addEmbed(ctx, color, "", None)
         embed.add_field(name="User Mention:", value=resmemberobj.mention, inline=True)
         embed.add_field(name="User Name:", value=f"{resmemberobj.name}#{resmemberobj.discriminator}")
         embed.add_field(name="Server Nickname:", value=resmember.nick)
@@ -148,9 +148,9 @@ class raw_command_response(commands.Cog):
                         webh = discord.Webhook.from_url(webhook1.url, adapter=discord.AsyncWebhookAdapter(session=session))
                         try:
                             imageurl = (ctx.target_message.embeds[0].image.url).split("/")[6]
-                            embed = addEmbed2(None, color, embedDescription, f"attachment://{imageurl}")
+                            embed = addEmbed(None, color, embedDescription, f"attachment://{imageurl}")
                         except:
-                            embed = addEmbed2(None, color, embedDescription, None)
+                            embed = addEmbed(None, color, embedDescription, None)
                         await webh.edit_message(ctx.target_message.id, embeds=[embed])
                 elif msg.author.id == client.user.id:
                     try:

@@ -135,7 +135,7 @@ class RPS(Cog):
     async def clear_error(self, ctx, error):
         if isinstance(error, discord.ext.commands.errors.MissingRequiredArgument):
             await deletemessage(ctx)
-            await ctx.send(embed=addEmbed2(ctx, "red", f'Please state the user you would like to play with. `{getprefix2(ctx)}rps <user>`'), delete_after=5)
+            await ctx.send(embed=addEmbed(None, "red", f'Please state the user you would like to play with. `{getprefix2(ctx)}rps <user>`'), delete_after=5)
         else:
             await unknownerror(ctx, error)
 

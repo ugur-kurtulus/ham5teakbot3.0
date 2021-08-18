@@ -325,7 +325,7 @@ class Slash(commands.Cog):
             embedDescription  = (f"Please make sure you have entered all values correctly.\n{error}")
             await ctx.send(embed=addEmbed(ctx,None,embedDescription ), hidden=True)
         else:
-            await ctx.send(embed=addEmbed2(ctx, "red", f"Unknown error: {error}", None), hidden=True)
+            await ctx.send(embed=addEmbed(None, "red", f"Unknown error: {error}", None), hidden=True)
 
 def setup(client):
     client.add_cog(Slash(client))

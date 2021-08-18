@@ -58,14 +58,12 @@ async def on_ready():
         if filename.endswith('.py'):
             try:
                 client.load_extension(f'cogs.{filename[:-3]}')
-                print(f"{filename[:-3]} has successfully been loaded!")
             except discord.ext.commands.errors.ExtensionAlreadyLoaded:
                 print(f"{filename[:-3]} is already loaded.")
     for filename in os.listdir('./cogs/games'):
         if filename.endswith('.py'):
             try:
                 client.load_extension(f'cogs.games.{filename[:-3]}')
-                print(f"{filename[:-3]} has successfully been loaded!")
             except discord.ext.commands.errors.ExtensionAlreadyLoaded:
                 print(f"{filename[:-3]} is already loaded.")
     client.remove_command('help')

@@ -160,8 +160,10 @@ class TicTacToe(Cog):
                         for button in row['components']:
                             button['disabled'] = True
                     await m.edit(
-                        embed=addEmbed2(ctx, "invis", "Timedout!"),components=board)
+                        embed=addEmbed(None, "invis", "Timedout!"),components=board)
                     return
+                except Exception as exception:
+                    print(exception)
             if not greenstatus:
                 await m.edit(embed=redsturnembed, components=board)
                 try:
@@ -191,15 +193,17 @@ class TicTacToe(Cog):
                         for button in row['components']:
                             button['disabled'] = True
                     await m.edit(
-                        embed=addEmbed2(ctx, "invis", "This game has timedout."),
+                        embed=addEmbed(None, "invis", "This game has timedout."),
                         components=board)
                     return
+                except Exception as exception:
+                    print(exception)
 
     @tictactoe.error
     async def clear_error(self, ctx, error):
         if isinstance(error, discord.ext.commands.errors.MissingRequiredArgument):
             await deletemessage(ctx)
-            await ctx.send(embed=addEmbed2(ctx, "red", f'Please state the user you would like to play with. `{getprefix2(ctx)}tictactoe <user>`'), delete_after=5)
+            await ctx.send(embed=addEmbed(None, "red", f'Please state the user you would like to play with. `{getprefix2(ctx)}tictactoe <user>`'), delete_after=5)
         else:
             await unknownerror(ctx, error)
 
