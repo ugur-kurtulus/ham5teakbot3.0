@@ -13,22 +13,83 @@ from discord.ext import commands
 from dinteractions_Paginator import Paginator
 from utils.functions import *
 from mee6_py_api import API
+from bs4 import BeautifulSoup
+import requests
+import re
 
+def getHTMLdocument(url):
+    response = requests.get(url)
+    return response.text
 class CommandCog(commands.Cog):
     def __init__(self, client):
         self.bot = client
 
     @commands.command()
     async def rtfm(self, ctx, query: str, branch="stable"):
-        params = {"query": query, "location": f'https://discordpy.readthedocs.io/en/{branch}'}
-        async with aiohttp.ClientSession() as session:
-            response = await session.get(f'https://idevision.net/api/public/rtfm', params=params)
-            data = await response.json()
-            nodes = data["nodes"]
-            if nodes == {}:
-                await ctx.send(embed=addEmbed(ctx, None, '**No Results**'))
-                return
-            await ctx.send(embed=addEmbed(ctx, None, '\n'.join([f'__[{key}]({value})__' for key,value in nodes.items()])))
+        try:
+            params = {"query": query, "location": f'https://discordpy.readthedocs.io/en/{branch}'}
+            async with aiohttp.ClientSession() as session:
+                response = await session.get(f'https://idevision.net/api/public/rtfm', params=params)
+                data = await response.json()
+                nodes = data["nodes"]
+                if nodes == {}:
+                    await ctx.send(embed=addEmbed(ctx, "invis", '**No Results**'))
+                    return
+            attributes = []
+            attributeshref = []
+            methods = []
+            methodshref = []
+            att = list(nodes.keys())[0].split('.')[-1].lower()
+            if query.lower() == "user" or query == "discord.User":
+                att = "id8"
+            url_to_scrape = f"https://discordpy.readthedocs.io/en/{branch}/api.html#{list(nodes.keys())[0]}"
+            html_document = getHTMLdocument(url_to_scrape)
+            soup = BeautifulSoup(html_document, 'html.parser')
+            for link in soup.find_all('section', attrs={'id': att}):
+                link = str(link)
+                for item in link.split('\n'):
+                    if 'class="py-attribute-table-entry"' in item and '<a class="reference internal"' in item and "href=" in item and "span" not in item:
+                        attributes.append(item.split(">")[1].split("<")[0])
+                        attributeshref.append(item.split('href="')[1].split('"')[0])
+                    elif 'class="py-attribute-table-entry"' in item and '<a class="reference internal"' in item and "href=" in item and "span" in item:
+                        methods.append(item.split('href="')[1].split('"')[0].split('.')[2])
+                        methodshref.append(item.split('href="')[1].split('"')[0])
+            mainembed = addEmbed(ctx, "invis", '\n'.join([f'__[{key}]({value})__' for key,value in nodes.items()]))
+            values1 = []
+            values2 = []
+            removed1 = 0
+            removed2 = 0
+            for i in range(len(attributes)):
+                values1.append(f"[{attributes[i]}](https://discordpy.readthedocs.io/en/{branch}/api.html{attributeshref[i]})")
+            for i in range(len(methods)):
+                values2.append(f"[{methods[i]}](https://discordpy.readthedocs.io/en/{branch}/api.html{methodshref[i]})")
+            while len('\n'.join(values1)) > 1000:
+                values1 = values1[:-1]
+                removed1 += 1
+            while len('\n'.join(values2)) > 1000:
+                values2 = values2[:-1]
+                removed2 += 1
+            values1l = '\n'.join(values1)
+            values2l = '\n'.join(values2)
+            if values1 != []:
+                try:
+                    if removed1 != 0:
+                        mainembed.add_field(name="**Attributes**", value=f"{values1l}\n**... {removed1} more**", inline=True)
+                    else:
+                        mainembed.add_field(name="**Methods**", value=f"{values1l}", inline=True)
+                except:
+                    pass
+            if values2 != []:
+                try:
+                    if removed2 != 0:
+                        mainembed.add_field(name="**Methods**", value=f"{values2l}\n**... {removed2} more**", inline=True)
+                    else:
+                        mainembed.add_field(name="**Methods**", value=f"{values2l}", inline=True)
+                except:
+                    pass
+            await ctx.send(embed=mainembed)
+        except Exception as exc:
+            print(exc)
 
     @commands.command()
     async def ping(self, ctx):
