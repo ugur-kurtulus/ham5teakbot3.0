@@ -232,7 +232,7 @@ class OnMessage(commands.Cog):
                         pass
                     print(f"A suggestion was made in #{ctx.channel.name} by {ctx.author}.")
                 return
-            if (ctx.guild.id in premium_guilds and ctx.channel.id in pollchannels[ctx.guild.id] and not ctx.author.bot) or (ctx.guild.id not in premium_guilds and "poll" in ctx.channel.name or "polls" in ctx.channel.name):
+            if (ctx.guild.id in premium_guilds and ctx.channel.id in pollchannels[ctx.guild.id] and not ctx.author.bot) or (ctx.guild.id not in premium_guilds and "poll" in ctx.channel.name or "polls" in ctx.channel.name and not ctx.author.bot):
                 if (ctx.content.startswith("-") or ctx.content.startswith("?") or ctx.content.startswith("!")) or (ctx.webhook_id or "poll-results" in ctx.channel.name):
                     return
                 sent = True
@@ -240,10 +240,12 @@ class OnMessage(commands.Cog):
                     await ctx.delete()
                 except:
                     pass
+                with open('utils/polls.json') as f:
+                    data = json.load(f)
                 components1 = []
-                actionrows = [] 
+                actionrows = []
                 messageemojis = []
-                reactionstotal = {} 
+                reactionstotal = {}
                 reactedusers = {}
                 content = ctx.content.replace(":", '')
                 content = e.demojize(content)
@@ -259,7 +261,7 @@ class OnMessage(commands.Cog):
                 for emoji in messageemojis:
                     try:
                         emoji1 = e.emojize(emoji)
-                        components1.append(create_button(label="", style=ButtonStyle.gray, custom_id=emoji1, emoji=emoji1))
+                        components1.append(create_button(label="", style=ButtonStyle.gray, custom_id=f"{emoji1}-poll", emoji=emoji1))
                         reactionstotal.update({emoji1: 0})
                     except:  #nosec
                         pass
@@ -275,47 +277,19 @@ class OnMessage(commands.Cog):
                     else:
                         msg = await ctx.channel.send(embed=addEmbed(ctx,None,embedDescription), components=[*actionrows])
                     reactedusers.update({msg.id: []})
+                    endTime = datetime.datetime.now() + datetime.timedelta(hours=12)
+                    data.update({msg.id: {}})
+                    data[msg.id].update({"reactedusers": []})
+                    data[msg.id].update({"time": endTime.strftime("%m/%d/%Y, %H:%M:%S")})
+                    data[msg.id].update({"reactionstotal": reactionstotal})
+                    with open('utils/polls.json', 'w') as json_file:
+                        json.dump(data, json_file)
                 except:
                     reactionstotal1 = str(reactionstotal).replace("{", "").replace("}", "").replace(", ", f"\n").replace(":", "").replace("'", "")
                     embedDescription  = (f"{ctx.content}\n\n```\n{reactionstotal1}\n```")
                     msg = await ctx.channel.send(embed=addEmbed(ctx,None,embedDescription), components=[])
                 print(f"A poll was made in #{ctx.channel.name} by {ctx.author}.")
-                endTime = datetime.datetime.now() + datetime.timedelta(hours=12)
-                while sent == True:
-                    if datetime.datetime.now() >= endTime:
-                        reactedusers.pop(msg.id)
-                        embedDescription1 = f"{ctx.content}\n\n```\n{reactionstotal1}\n```\n\n **This poll has ended.**"
-                        try:
-                            try:
-                                components1 = [[disablebutton(item) for item in row['components']] for row in [*actionrows]]
-                            except:
-                                pass
-                            if ctx.attachments:
-                                await msg.edit(embed=addEmbed(ctx,None,embedDescription1, image=f"attachment://{ctx.attachments[0].filename}"), components=[*actionrows])
-                                os.remove(f"./{ctx.attachments[0].filename}")
-                            else:
-                                await msg.edit(embed=addEmbed(ctx,None,embedDescription1, image=None), components=[*actionrows])
-                        except:
-                            pass
-                        sent = False
-                    else:
-                        try:
-                            res = await wait_for_component(client, messages=msg)
-                            if res.author.id in reactedusers[msg.id]:
-                                await res.send(content="You have already voted for this poll.", hidden=True)
-                            elif res.author_id not in reactedusers[msg.id]:
-                                getdata = reactionstotal[res.custom_id]
-                                reactionstotal.update({res.custom_id: getdata + 1})
-                                reactionstotal1 = str(reactionstotal).replace("{", "").replace("}", "").replace(", ", f"\n").replace(":", "").replace("'", "")
-                                embedDescription1 = f"{ctx.content}\n\n```\n{reactionstotal1}\n```"
-                                if ctx.attachments:
-                                    await res.edit_origin(embed=addEmbed(ctx,None,embedDescription1, image=f"attachment://{ctx.attachments[0].filename}"))
-                                else:
-                                    await res.edit_origin(embed=addEmbed(ctx,None,embedDescription1))
-                                await res.send(f'Successfully voted for {res.custom_id}.', hidden=True)
-                                reactedusers[msg.id].append(res.author_id)
-                        except Exception as exception:
-                            print(exception)
+                return
             if "console-" in ctx.channel.name and "console-hambot" not in ctx.channel.name:
                 messagestrip = await stripmessage(ctx.content, 'a server operator')
                 if messagestrip:

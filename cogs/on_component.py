@@ -10,7 +10,9 @@ from utils.functions import *
 from discord.http import Route
 from munch import DefaultMunch
 from discord.utils import get
+import datetime
 import emoji
+import json
 
 async def embed1(embedDescription):
         embed1 = discord.Embed(description=f"{embedDescription}", color=discord.Color.dark_teal())
@@ -31,6 +33,55 @@ class OnComponent(commands.Cog):
     @commands.Cog.listener()
     async def on_component(self, ctx):
         try:
+            if "-poll" in ctx.custom_id:
+                with open('utils/polls.json') as f:
+                    data = json.load(f)
+                ctxcustom_id = ctx.custom_id.strip("-poll")[0]
+                emoji1 = ctx.component["emoji"]["name"]
+                ctxcustom_id = emoji.emojize(emoji1)
+                msgid = str(ctx.origin_message.id)
+                reactionstotal = data[msgid]["reactionstotal"]
+                reactedusers = data[msgid]["reactedusers"]
+                endTime = datetime.datetime.strptime(data[msgid]["time"], "%m/%d/%Y, %H:%M:%S")
+                reactionstotal1 = str(reactionstotal).replace("{", "").replace("}", "").replace(", ", f"\n").replace(":", "").replace("'", "")
+                components = ctx.origin_message.components
+                editeddesc = ctx.origin_message.embeds[0].description.split('\n\n`')[0]
+                if datetime.datetime.now() >= endTime:
+                    data.pop(msgid)
+                    with open('utils/polls.json', 'w') as json_file:
+                        json.dump(data, json_file)
+                    embedDescription1 = f"{editeddesc}\n\n```\n{reactionstotal1}\n```\n\n **This poll has ended.**"
+                    try:
+                        for row in components:
+                            for button in row['components']:
+                                button['disabled'] = True
+                        if ctx.origin_message.attachments:
+                            await ctx.origin_message.edit(embed=addEmbed(ctx,None,embedDescription1, image=f"attachment://{ctx.origin_message.attachments[0].filename}"), components=components)
+                            os.remove(f"./{ctx.origin_message.attachments[0].filename}")
+                        else:
+                            await ctx.origin_message.edit(embed=addEmbed(ctx,None,embedDescription1, image=None), components=components)
+                        await ctx.send(f'This poll has ended.', hidden=True)
+                    except Exception as exc:
+                        print(exc)
+                else:
+                    try:
+                        if ctx.author_id in data[msgid]["reactedusers"]:
+                            await ctx.send(content="You have already voted for this poll.", hidden=True)
+                        elif ctx.author_id not in data[msgid]["reactedusers"]:
+                            getdata = reactionstotal[ctxcustom_id]
+                            data[msgid]["reactionstotal"].update({ctxcustom_id: getdata + 1})
+                            reactionstotal1 = str(data[msgid]["reactionstotal"]).replace("{", "").replace("}", "").replace(", ", f"\n").replace(":", "").replace("'", "")
+                            embedDescription1 = f"{editeddesc}\n\n```\n{reactionstotal1}\n```"
+                            if ctx.origin_message.attachments:
+                                await ctx.edit_origin(embed=addEmbed(ctx,None,embedDescription1, image=f"attachment://{ctx.origin_message.attachments[0].filename}"))
+                            else:
+                                await ctx.edit_origin(embed=addEmbed(ctx,None,embedDescription1))
+                            await ctx.send(f'Successfully voted for {ctxcustom_id}.', hidden=True)
+                            data[msgid]["reactedusers"].append(ctx.author_id)
+                            with open('utils/polls.json', 'w') as json_file:
+                                json.dump(data, json_file)
+                    except Exception as exception:
+                        print(exception)
             if ctx.component["label"] == "Verify" and ctx.component_type == 2:
                 await ctx.origin_message.edit(components=[create_actionrow(create_button(style=ButtonStyle.green, label=f"OP Verified By {ctx.author.name}#{ctx.author.discriminator}", disabled=True))])
                 await ctx.send("OP Successfully Verified", hidden=True)
