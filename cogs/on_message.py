@@ -1,3 +1,5 @@
+from ast import Return
+from email import message
 from logging import exception
 import os
 from discord.embeds import Embed
@@ -232,7 +234,7 @@ class OnMessage(commands.Cog):
                         pass
                     print(f"A suggestion was made in #{ctx.channel.name} by {ctx.author}.")
                 return
-            if (ctx.guild.id in premium_guilds and ctx.channel.id in pollchannels[ctx.guild.id] and not ctx.author.bot) or (ctx.guild.id not in premium_guilds and "poll" in ctx.channel.name or "polls" in ctx.channel.name):
+            if ((ctx.guild.id in premium_guilds and ctx.channel.id in pollchannels[ctx.guild.id]) or (ctx.guild.id not in premium_guilds and "poll" in ctx.channel.name or "polls" in ctx.channel.name)) and not ctx.author.bot:
                 if (ctx.content.startswith("-") or ctx.content.startswith("?") or ctx.content.startswith("!")) or (ctx.webhook_id or "poll-results" in ctx.channel.name):
                     return
                 sent = True
@@ -295,6 +297,7 @@ class OnMessage(commands.Cog):
                                 os.remove(f"./{ctx.attachments[0].filename}")
                             else:
                                 await msg.edit(embed=addEmbed(ctx,None,embedDescription1, image=None), components=[*actionrows])
+                            return
                         except:
                             pass
                         sent = False
@@ -329,6 +332,7 @@ class OnMessage(commands.Cog):
                         if generalchannelcheck != 0:
                             generalchannel = client.get_channel(generalchannelcheck)
                             await generalchannel.send(content=f'**WARNING!** `/op` or `/deop` was used. Check {alertschannel.mention} for more info.', delete_after=600)
+                            return
                 messagestrip = await stripmessage(ctx.content, 'Main thread terminated by WatchDog due to hard crash')
                 if messagestrip:
                     print(messagestrip)
@@ -340,6 +344,7 @@ class OnMessage(commands.Cog):
                         if generalchannelcheck != 0:
                             generalchannel = client.get_channel(generalchannelcheck)
                             await generalchannel.send(f'**WARNING!** {ctx.channel.mention} has just **hard crashed!** Check {crashalertschannel.mention} for more info.')
+                            return
             if "console-" in ctx.channel.name and "console-hambot" not in ctx.channel.name:
                 lptriggers = ["now inherits permissions from", "no longer inherits permissions from",
                 "[LP] Set group.", "[LP] Web editor data was applied to user", "[LP] Web editor data was applied to group", "[LP] Promoting", "[LP] Demoting"]
@@ -352,6 +357,7 @@ class OnMessage(commands.Cog):
                             lpalertschannel = client.get_channel(lpalertschannelcheck)
                             try:
                                 await lpalertschannel.send(f'```\n{messagestrip}\n```It originated from {ctx.channel.mention}!')
+                                return
                             except: #nosec
                                 pass
             if ctx.guild.id in ham_guilds:
@@ -368,6 +374,7 @@ class OnMessage(commands.Cog):
                             for channel in guildchannels:
                                 if "command-alerts" in channel.name:
                                     await channel.send(f'```\n{messagestrip}\n```It originated from {ctx.channel.mention}!')
+                                    return
             if ctx.guild.id in ham_guilds:
                 if "console-survival" in ctx.channel.name and "console-hambot" not in ctx.channel.name:
                     messagestrip = await stripmessage(ctx.content, '[HamAlerts] Thank you')
@@ -377,6 +384,7 @@ class OnMessage(commands.Cog):
                         for channel in guildchannels:
                             if "receipts" in channel.name:
                                 await channel.send(f'```\n{messagestrip}\n```')
+                                return
         except:
             return
 
