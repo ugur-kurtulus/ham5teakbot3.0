@@ -55,11 +55,12 @@ class OnComponent(commands.Cog):
                         for row in components:
                             for button in row['components']:
                                 button['disabled'] = True
+                        ctx.origin_message.embeds[0].description = embedDescription1
                         if ctx.origin_message.attachments:
-                            await ctx.origin_message.edit(embed=addEmbed(ctx,None,embedDescription1, image=f"attachment://{ctx.origin_message.attachments[0].filename}"), components=components)
+                            await ctx.origin_message.edit(embed=ctx.origin_message.embeds[0], components=components)
                             os.remove(f"./{ctx.origin_message.attachments[0].filename}")
                         else:
-                            await ctx.origin_message.edit(embed=addEmbed(ctx,None,embedDescription1, image=None), components=components)
+                            await ctx.origin_message.edit(embed=ctx.origin_message.embeds[0], components=components)
                         await ctx.send(f'This poll has ended.', hidden=True)
                     except Exception as exc:
                         print(exc)
@@ -72,10 +73,11 @@ class OnComponent(commands.Cog):
                             data[msgid]["reactionstotal"].update({ctxcustom_id: getdata + 1})
                             reactionstotal1 = str(data[msgid]["reactionstotal"]).replace("{", "").replace("}", "").replace(", ", f"\n").replace(":", "").replace("'", "")
                             embedDescription1 = f"{editeddesc}\n\n```\n{reactionstotal1}\n```"
+                            ctx.origin_message.embeds[0].description = embedDescription1
                             if ctx.origin_message.attachments:
-                                await ctx.edit_origin(embed=addEmbed(ctx,None,embedDescription1, image=f"attachment://{ctx.origin_message.attachments[0].filename}"))
+                                await ctx.edit_origin(embed=ctx.origin_message.embeds[0])
                             else:
-                                await ctx.edit_origin(embed=addEmbed(ctx,None,embedDescription1))
+                                await ctx.edit_origin(embed=ctx.origin_message.embeds[0])
                             await ctx.send(f'Successfully voted for {ctxcustom_id}.', hidden=True)
                             data[msgid]["reactedusers"].append(ctx.author_id)
                             with open('utils/polls.json', 'w') as json_file:
