@@ -1,5 +1,3 @@
-from ast import Return
-from email import message
 from logging import exception
 import os
 from discord.embeds import Embed
@@ -77,6 +75,19 @@ class OnMessage(commands.Cog):
                 data = json.load(f)
             if urllist != []:
                 for url in urllist:
+                    try:
+                        if "bit.ly" in url:
+                            url = url.split("//")[1]
+                            headers1 = {
+                                'Authorization': 'Bearer a631792d290aee90423484eeafb05f86344b6473',
+                                'Content-Type': 'application/json'}
+                            expanddata = '{ "bitlink_id": "%s" }' % url
+                            response1 = requests.post('https://api-ssl.bitly.com/v4/expand', headers=headers1, data=expanddata)
+                            response2 = response1.json()
+                            if response2.get("long_url") != None:
+                                url = response2.get("long_url")
+                    except:
+                        pass
                     try:
                         spliturl = url.split(url.split("/")[3])[0]
                     except:

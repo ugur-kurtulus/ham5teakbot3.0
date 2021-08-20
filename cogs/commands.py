@@ -1,4 +1,3 @@
-from xml.dom import NotFoundErr
 import aiohttp
 import contextlib
 import io
@@ -91,10 +90,8 @@ class CommandCog(commands.Cog):
                 except:
                     pass
             await ctx.send(embed=mainembed)
-            return
         except Exception as exc:
             print(exc)
-            return
 
     @commands.command()
     async def ping(self, ctx):

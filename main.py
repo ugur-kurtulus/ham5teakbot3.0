@@ -1,5 +1,6 @@
 import discord
 from utils.functions import *
+import gc
 import discordpylogger
 
 # ------- STARTUP EVENT -------
@@ -74,6 +75,7 @@ async def on_ready():
                 print(f"{filename[:-3]} is already loaded.")
     client.load_extension('jishaku')
     client.remove_command('help')
+    gc.enable()
     result = selectqueryall(sql, 'guilds', 'guild_id', 'betaannouncements = 1')
     for type in result:
         type1 = type[0]
