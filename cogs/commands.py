@@ -13,28 +13,95 @@ from discord.ext import commands
 from dinteractions_Paginator import Paginator
 from utils.functions import *
 from mee6_py_api import API
+from bs4 import BeautifulSoup
+import requests
+import re
 
+def getHTMLdocument(url):
+    response = requests.get(url)
+    return response.text
 class CommandCog(commands.Cog):
     def __init__(self, client):
         self.bot = client
 
     @commands.command()
     async def rtfm(self, ctx, query: str, branch="stable"):
-        params = {"query": query, "location": f'https://discordpy.readthedocs.io/en/{branch}'}
-        async with aiohttp.ClientSession() as session:
-            response = await session.get(f'https://idevision.net/api/public/rtfm', params=params)
-            data = await response.json()
-            nodes = data["nodes"]
-            if nodes == {}:
-                await ctx.send(embed=addEmbed(ctx, None, '**No Results**'))
+        try:
+            if query == None:
+                await ctx.send(embed=addEmbed(ctx, "invis", '`-rtfm <query> [branch]`'))
                 return
-            await ctx.send(embed=addEmbed(ctx, None, '\n'.join([f'__[{key}]({value})__' for key,value in nodes.items()])))
+            params = {"query": query, "location": f'https://discordpy.readthedocs.io/en/{branch}'}
+            async with aiohttp.ClientSession() as session:
+                response = await session.get(f'https://idevision.net/api/public/rtfm', params=params)
+                data = await response.json()
+                nodes = data["nodes"]
+                if nodes == {}:
+                    await ctx.send(embed=addEmbed(ctx, "invis", '**No Results**'))
+                    return
+            attributes = []
+            attributeshref = []
+            methods = []
+            methodshref = []
+            att = list(nodes.keys())[0].split('.')[-1].lower()
+            if query.lower() == "user" or query == "discord.User":
+                att = "id8"
+            url_to_scrape = f"https://discordpy.readthedocs.io/en/{branch}/api.html#{list(nodes.keys())[0]}"
+            html_document = getHTMLdocument(url_to_scrape)
+            soup = BeautifulSoup(html_document, 'html.parser')
+            for link in soup.find_all('section', attrs={'id': att}):
+                link = str(link)
+                for item in link.split('\n'):
+                    if 'class="py-attribute-table-entry"' in item and '<a class="reference internal"' in item and "href=" in item and "span" not in item:
+                        attributes.append(item.split(">")[1].split("<")[0])
+                        attributeshref.append(item.split('href="')[1].split('"')[0])
+                    elif 'class="py-attribute-table-entry"' in item and '<a class="reference internal"' in item and "href=" in item and "span" in item:
+                        methods.append(item.split('href="')[1].split('"')[0].split('.')[2])
+                        methodshref.append(item.split('href="')[1].split('"')[0])
+            mainembed = addEmbed(ctx, "invis", '\n'.join([f'__[{key}]({value})__' for key,value in nodes.items()]))
+            values1 = []
+            values2 = []
+            removed1 = 0
+            removed2 = 0
+            for i in range(len(attributes)):
+                values1.append(f"[{attributes[i]}](https://discordpy.readthedocs.io/en/{branch}/api.html{attributeshref[i]})")
+            for i in range(len(methods)):
+                values2.append(f"[{methods[i]}](https://discordpy.readthedocs.io/en/{branch}/api.html{methodshref[i]})")
+            while len('\n'.join(values1)) > 1000:
+                values1 = values1[:-1]
+                removed1 += 1
+            while len('\n'.join(values2)) > 1000:
+                values2 = values2[:-1]
+                removed2 += 1
+            values1l = '\n'.join(values1)
+            values2l = '\n'.join(values2)
+            if values1 != []:
+                try:
+                    if removed1 != 0:
+                        mainembed.add_field(name="**Attributes**", value=f"{values1l}\n**... {removed1} more**", inline=True)
+                    else:
+                        mainembed.add_field(name="**Attributes**", value=f"{values1l}", inline=True)
+                except:
+                    pass
+            if values2 != []:
+                try:
+                    if removed2 != 0:
+                        mainembed.add_field(name="**Methods**", value=f"{values2l}\n**... {removed2} more**", inline=True)
+                    else:
+                        mainembed.add_field(name="**Methods**", value=f"{values2l}", inline=True)
+                except:
+                    pass
+            await ctx.send(embed=mainembed)
+            return
+        except Exception as exc:
+            print(exc)
+            return
 
     @commands.command()
     async def ping(self, ctx):
         await deletemessage(ctx)
         latency = int(client.latency * 1000)
         await ctx.send(embed=addEmbed(ctx, "dark_teal", f"Bot Latency: `{latency}ms`"), delete_after=5)
+        return
 
     @commands.command()
     @commands.check(is_owner)
@@ -68,6 +135,7 @@ class CommandCog(commands.Cog):
             self.bot.load_extension(f"cogs.{cog}")
             print(f"{cog} has successfully been reloaded!")
             await ctx.send(embed=addEmbed(ctx, "dark_teal", f"`{cog}` has successfully been reloaded!"), delete_after=7)
+            return
         except Exception as e:
             print(e)
 
@@ -81,6 +149,7 @@ class CommandCog(commands.Cog):
             await ctx.send(embed=addEmbed(ctx, "dark_teal", f"`{cog}` has successfully been loaded!"), delete_after=7)
         except Exception as e:
             print(e)
+        return
             
     @commands.command()
     @commands.check(is_owner)
@@ -92,6 +161,7 @@ class CommandCog(commands.Cog):
             await ctx.send(embed=addEmbed(ctx, "dark_teal", f"`{cog}` has successfully been unloaded!"), delete_after=7)
         except Exception as e:
             print(e)
+        return
 
     @commands.command()
     @commands.has_permissions(manage_messages=True)
@@ -104,6 +174,7 @@ class CommandCog(commands.Cog):
         await ctx.channel.purge(limit=amount)
         embedDescription  = (f"{amount} messages were successfully deleted.")
         await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDescription ), delete_after=1)
+        return
 
     @commands.command()
     @discord.ext.commands.has_guild_permissions(manage_guild=True)
@@ -129,6 +200,7 @@ class CommandCog(commands.Cog):
         else:
             embedDescription  = (f"Password generation failed.")
         await ctx.send(embed=addEmbed(None, "aqua", embedDescription))
+        return
 
     @commands.command()
     async def edit(self, ctx, id, *, embedDescription):
@@ -155,6 +227,7 @@ class CommandCog(commands.Cog):
             await ctx.channel.get_partial_message(id).edit(embed = addEmbed(ctx, None, embedDescription, f"attachment://{imageurl}"))
         except:
             await ctx.channel.get_partial_message(id).edit(embed = addEmbed(ctx, None, embedDescription, None))
+        return
 
     @commands.command()
     @commands.guild_only()
@@ -162,6 +235,7 @@ class CommandCog(commands.Cog):
         await deletemessage(ctx)
         prefix = prefixes[f"{ctx.guild.id}"]
         await ctx.send(embed=addEmbed(ctx, None, f"Bot Prefix: `{prefix}`"), delete_after=5)  
+        return
 
     @commands.command()
     @commands.cooldown(1, 5, commands.BucketType.user)
@@ -180,6 +254,7 @@ class CommandCog(commands.Cog):
                 await ctxchannel.edit(category=cat)
                 embedDescription  = (f"{ctxchannel.mention} has been moved to category {alias}")
                 await ctx.send(embed=addEmbed(ctx,None,embedDescription ), delete_after=5)
+        return
 
     @commands.command(aliases=['rl'])
     @commands.cooldown(1, 5, commands.BucketType.user)
@@ -198,6 +273,7 @@ class CommandCog(commands.Cog):
             type1 = str(type).replace('(', '').replace(')', '').replace('(', '').replace("'", '').replace("[", '').replace("]", '').replace(',', '').replace(' ', f'\n')
             embedDescription  = (f"__**Restriction types you can use:**__\n{type1}")
             await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDescription), delete_after=10)
+        return
 
     @commands.command()
     @commands.cooldown(1, 5, commands.BucketType.user)
@@ -259,6 +335,7 @@ class CommandCog(commands.Cog):
                 await ctx.channel.edit(overwrites=overwrites3)
                 embedDescription  = (f"{ctxchannel.mention} has been restricted to {cat.mention}, {cat2.mention} and {cat3.mention}")
                 await ctx.send(embed=addEmbed(ctx,None,embedDescription ), delete_after=5)
+        return
 
     @commands.command()
     @commands.cooldown(1, 5, commands.BucketType.user)
@@ -288,6 +365,7 @@ class CommandCog(commands.Cog):
                     embedDescription  = (f"[Suggestion]({msg.jump_url}) successfully demanded!")
                     await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDescription ), delete_after=5)
                     return
+        return
 
     @commands.command()
     @commands.cooldown(1, 5, commands.BucketType.user)
@@ -317,16 +395,7 @@ class CommandCog(commands.Cog):
                     embedDescription  = (f"[Suggestion]({msg.jump_url}) successfully rejected!")
                     await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDescription ), delete_after=5)
                     return
-        
-    @commands.command(aliases=['scc'])
-    @commands.cooldown(1, 5, commands.BucketType.user)
-    @commands.has_permissions(manage_messages=True)
-    async def simchannelcreate(self, ctx):
-        moderatorcheck1 = await moderatorcheck(ctx.guild, ctx.author)
-        if moderatorcheck1 == 0:
-            await ctx.send(embed=await nopermission(ctx), delete_after=5)
-            return
-        await deletemessage(ctx)
+        return
 
     @commands.command(aliases=['level', 'levelup', 'lvl', 'lvlup'])
     @commands.cooldown(3, 90, commands.BucketType.guild)
@@ -362,6 +431,7 @@ class CommandCog(commands.Cog):
         else:
             await ctx.send(embed=await nopermission(ctx), delete_after=5)
             return
+        return
             
     @commands.command(aliases=['ml'])
     @commands.cooldown(1, 5, commands.BucketType.user)
@@ -378,7 +448,8 @@ class CommandCog(commands.Cog):
                 return
             newcat = str(category).replace('(', '').replace(')', '').replace('(', '').replace("'", '').replace("[", '').replace("]", '').replace(',', '').replace(' ', f'\n')
             embedDescription  = (f"__**Categories you can move channels to:**__\n{newcat}")
-            await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDescription ), delete_after=10)   
+            await ctx.send(embed=addEmbed(ctx,"dark_teal",embedDescription ), delete_after=10)
+        return   
             
     @commands.command(aliases=['cl'])
     @commands.cooldown(1, 5, commands.BucketType.user)
@@ -421,6 +492,7 @@ class CommandCog(commands.Cog):
         except:
             message += "\n-\n"
         await ctx.send(embed=addEmbed(ctx,"dark_teal",message ), delete_after=20)
+        return
 
     @commands.command(aliases=['eval', 'e'])
     @commands.check(is_owner)
@@ -463,6 +535,7 @@ class CommandCog(commands.Cog):
             await Paginator(bot=client, ctx=ctx, pages=embedpages, useButtons=False)
         else:
             await ctx.send(embed=addEmbed(ctx, "invis", f"```py\n{result}\n```"))
+        return
 
     @commands.Cog.listener()
     async def on_command_error(self, ctx, error):
