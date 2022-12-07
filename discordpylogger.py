@@ -21,9 +21,9 @@ def errorlogs():
     return open(errorspath, "w")
 
 webhook = True # Sends webhooks
-printwebhook = 'https://discord.com/api/webhooks/876882825461256233/IV8KxMCVloYK6PlEmfZGUxh45JYCNC5AYgFWGdbgINKTWCPybSh8zEilkkGRqEn_e40R' # Where do you want console prints to be sent to in discord (webhook url)
+printwebhook = 'https://discord.com/api/webhooks/1043429988373909534/xRE4xtcBpkwJEfiooWHr-V0DDbg-sOQajvIdboiGX8SPzANnIvbLB0yhEKZXH_0PqQVp' # Where do you want console prints to be sent to in discord (webhook url)
 errorwebhook = '' # Where do you want error prints to be sent in discord (webhook url) | If you wantthe same webhook set errorwebhook = printwebhook
-printwebhook_url = 'https://discord.com/api/webhooks/876882825461256233/IV8KxMCVloYK6PlEmfZGUxh45JYCNC5AYgFWGdbgINKTWCPybSh8zEilkkGRqEn_e40R'
+printwebhook_url = 'https://discord.com/api/webhooks/1043429988373909534/xRE4xtcBpkwJEfiooWHr-V0DDbg-sOQajvIdboiGX8SPzANnIvbLB0yhEKZXH_0PqQVp'
 
 class Logger(object):
     def __init__(self):

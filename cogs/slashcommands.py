@@ -1,6 +1,9 @@
 import discord
 from discord.ext import commands
 from discord_slash import cog_ext
+import aiohttp
+import aiofiles
+import os
 from luhn import *
 from utils.functions import *
 
@@ -46,7 +49,7 @@ class Slash(commands.Cog):
         else:
             serverip = "play.ham5teak.xyz:25565"
             servername = "Ham5teak"
-        server = MinecraftServer.lookup(serverip)
+        server = JavaServer.lookup(serverip)
         status = server.status()
         if serverip == "play.ham5teak.xyz:25565":
             playercount = status.players.online - 20
@@ -76,6 +79,28 @@ class Slash(commands.Cog):
                 await ctxchannel.edit(category=cat)
                 embedDescription  = (f"{ctxchannel.mention} has been moved to category {alias}")
                 await ctx.send(embed=addEmbed(ctx,None,embedDescription ), hidden=True)
+                
+    @cog_ext.cog_slash(name="join_alpha", guild_ids=[380308776114454528, 1043427380821237770])
+    async def join_alpha(self, ctx, build_image):
+        await ctx.defer(hidden=True)
+        chan = ctx.guild.get_channel(1049404092507750510)
+        embedDescription = f"{ctx.author.mention} has joined the competition with user id: {ctx.author.id}"
+        if ctx.data["resolved"]["attachments"]:
+            async with aiohttp.ClientSession() as session:
+                url = ctx.data["resolved"]["attachments"][build_image]["url"]
+                async with session.get(url) as resp:
+                    if resp.status == 200:
+                        f = await aiofiles.open(ctx.data["resolved"]["attachments"][build_image]["filename"], mode='wb')
+                        await f.write(await resp.read())
+                        await f.close()
+            emimage = ctx.data["resolved"]["attachments"][build_image]["filename"]
+            attach = f"attachment://{emimage}"
+            if emimage is not None:
+                await chan.send(embed=addEmbed(ctx, "invis", embedDescription, attach, False), file=discord.File(emimage))
+                await ctx.send(embed=addEmbed(ctx, "invis", "Successfully applied to competition", attach, False))
+                os.remove(f"./{emimage}")
+        else:
+            await ctx.send(addEmbed(ctx, "red", "Please upload an image of your build", None, False))
 
     @cog_ext.cog_slash(name="tag", description="A command used to leave a note to a channel")
     async def tag(self, ctx, note, user:discord.User = None, channel:discord.TextChannel = None, role:discord.Role = None):
@@ -225,7 +250,7 @@ class Slash(commands.Cog):
             await ctx.send(embed=await nopermission(ctx), hidden=True)
             return
         try:
-            server = MinecraftServer.lookup(serverip)
+            server = JavaServer.lookup(serverip)
             status = server.status()
         except:
             embedDescription  = (f"Couldn't register {serverip} as server ip.")

@@ -8,7 +8,8 @@ from dotenv import load_dotenv
 import discord
 from discord.ext import commands 
 from discord_slash import SlashCommand
-from mcstatus import MinecraftServer
+#from mcstatus import MinecraftServer
+from mcstatus import JavaServer
 import asyncio
 import emoji as e
 import mysql.connector
@@ -213,7 +214,7 @@ pollchannels = {}
 
 betaannouncementguilds = []
 
-ham_guilds = [380308776114454528, 841225582967783445, 820383461202329671, 789891385293537280, 82038346120232967, 650658756803428381, 571626209868382236, 631067371661950977]
+ham_guilds = [380308776114454528, 841225582967783445, 820383461202329671, 789891385293537280, 82038346120232967, 650658756803428381, 571626209868382236, 631067371661950977, 1043427380821237770]
 
 prefixes = {}
 
@@ -354,7 +355,7 @@ async def statuscheck(): # Runs every 10 minutes and sends mc status to guilds
                 serverip = selectquery(sql, 'guilds', 'mcserver', f'guild_id = {guild.id}')
                 servername = guild.name
             else:
-                serverip = "play.ham5teak.xyz:25565"
+                serverip = "play.ham5teak.xyz:25583"
                 servername = "Ham5teak"
             try:
                 statuschannel = selectquery(sql, 'guilds', 'statuschannel', f'guild_id = {guild.id}')
@@ -367,15 +368,17 @@ async def statuscheck(): # Runs every 10 minutes and sends mc status to guilds
             if serverip is None:
                 continue
             try:
-                server = MinecraftServer.lookup(serverip)
+                server = JavaServer.lookup(serverip)
                 status = server.status()
-                if status.latency > 0:
+                #server = MinecraftServer.lookup(serverip)
+                #status = server.status()
+                if status.latency > 0.0:
                     server = "Online ✅"
                 else:
                     server = "Offline ❌"
-                playercount = status.players.online - 20
+                playercount = status.players.online - 15
                 playercount1 = status.players.online
-            except:
+            except Exception:
                 server = "Offline ❌"
                 playercount = 20
                 playercount1 = 0
@@ -384,8 +387,8 @@ async def statuscheck(): # Runs every 10 minutes and sends mc status to guilds
                 "GET", f"/guilds/{guild.id}")
                 )
             icon = a["icon"]
-            if serverip == "play.ham5teak.xyz:25565" or serverip == "play.ham5teak.xyz":
-                embed = discord.Embed(description=f"**Ham5teak Status:** {server} \n**Players:** {playercount}\n**IP:** play.ham5teak.xyz\n**Versions:** 1.8.9, 1.10.x, 1.11.x, 1.12.x, 1.13.x, 1.14.x, 1.15.x, 1.16.x, 1.17.x", color=discord.Color.teal())
+            if serverip == "play.ham5teak.xyz:25583" or serverip == "play.ham5teak.xyz":
+                embed = discord.Embed(description=f"**Ham5teak Status:** {server} \n**Players:** {playercount}\n**IP:** play.ham5teak.xyz\n**Versions:** 1.8.9, 1.10.x, 1.11.x, 1.12.x, 1.13.x, 1.14.x, 1.15.x, 1.16.x, 1.17.x, 1.18.x, 1.19.x", color=discord.Color.teal())
                 embed.set_footer(text="Ham5teak Bot 3.0 | Made by Beastman#1937, SottaByte#1543 and Jaymz#7815")
                 embed.set_author(name="Ham5teak Network Status", icon_url="https://cdn.discordapp.com/icons/380308776114454528/a_be4514bb0a52a206d1bddbd5fbd2250f.png?size=4096")
                 await channel.send(embed=embed)

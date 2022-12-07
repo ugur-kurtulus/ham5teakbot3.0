@@ -177,7 +177,7 @@ class CommandCog(commands.Cog):
     @discord.ext.commands.has_guild_permissions(manage_guild=True)
     @commands.cooldown(1, 10, commands.BucketType.user)
     async def generate(self, ctx):
-        if ctx.channel != client.get_channel(850260644322344960):
+        if ctx.channel != client.get_channel(1043427382083719178):
             return
         password = '' #nosec
         stringpunc = string.punctuation.replace("'", "").replace('"', '').replace('`', '')

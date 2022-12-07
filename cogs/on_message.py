@@ -171,6 +171,7 @@ class OnMessage(commands.Cog):
             channelnames = ["announcements", "updates", "competitions", "events"]
             if (ctx.guild.id in premium_guilds and ctx.channel.id in announcementschannels[ctx.guild.id]) or (ctx.guild.id not in premium_guilds and channelcheck(ctx.channel.name, channelnames)):
                 if not ctx.author.bot:
+                    await asyncio.sleep(2.5)
                     if ctx.content.startswith("-") or ctx.content.startswith("?") or ctx.content.startswith("!"):
                         return
                     else:
@@ -277,7 +278,7 @@ class OnMessage(commands.Cog):
                     else:
                         msg = await ctx.channel.send(embed=addEmbed(ctx,None,embedDescription), components=[*actionrows])
                     reactedusers.update({msg.id: []})
-                    endTime = datetime.datetime.now() + datetime.timedelta(hours=12)
+                    endTime = datetime.datetime.now() + datetime.timedelta(hours=48)
                     data.update({msg.id: {}})
                     data[msg.id].update({"reactedusers": []})
                     data[msg.id].update({"time": endTime.strftime("%m/%d/%Y, %H:%M:%S")})

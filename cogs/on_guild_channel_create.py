@@ -35,11 +35,7 @@ the following choices by clicking the button describing your issue.
             embed1.set_footer(text="Ham5teak Bot 3.0 | Made by Beastman#1937, SottaByte#1543 and Jaymz#7815")
             return embed1
         
-        if channel.guild.id == 380308776114454528:
-            content1 = "<@&832198461495443506>"
-        else:
-            content1 = None
-        msg = await channel.send(content=content1, embed=await embed1(embedDescription),components=[
+        msg = await channel.send(embed=await embed1(embedDescription),components=[
                     # Row 1
                     create_actionrow(create_button(style=ButtonStyle.green, label=f"1", custom_id="Item Lost"),
                     create_button(style=ButtonStyle.green, label=f"2", custom_id="Issue or Bug Report"),

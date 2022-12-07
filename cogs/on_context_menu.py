@@ -100,6 +100,43 @@ class raw_command_response(commands.Cog):
         except:
             pass
 
+    @cog_ext.cog_context_menu(name="Embed Without Color", target=ContextMenuType.MESSAGE)
+    async def embedwithoutcolor(self, ctx):
+        guild = get(client.guilds, id=int(ctx.guild_id))
+        chan = get(guild.channels, id=int(ctx.channel_id))
+        if ctx.target_message.attachments != []:
+            async with aiohttp.ClientSession() as session:
+                url = ctx.target_message.attachments[0].url
+                async with session.get(url) as resp:
+                    if resp.status == 200:
+                        f = await aiofiles.open(ctx.target_message.attachments[0].filename, mode='wb')
+                        await f.write(await resp.read())
+                        await f.close()
+            emimage = ctx.target_message.attachments[0].filename
+            attach = f"attachment://{emimage}"
+        elif ctx.target_message.attachments == []:
+            emimage = None
+            attach = None
+        embed = addEmbed(None, "invis", "Message successfully embeded!")
+        try:
+            color = 0x2f3037
+            try:
+                embed2 = addEmbed(None, color, f"{ctx.target_message.content}\n\n{ctx.target_message.embeds[0].description}", attach)
+            except:
+                embed2 = addEmbed(None, color, ctx.target_message.content, attach)
+            embed2.set_author(name=ctx.author.name, icon_url=f"https://cdn.discordapp.com/avatars/{ctx.author.id}/{ctx.author.avatar}.png?size=2048")
+            if not await moderatorcheck(guild, ctx.author):
+                embed = addEmbed(None, "red", "You don't have permission to do this!")
+                await ctx.send(embed=embed, hidden=True)
+            if emimage is not None:
+                await chan.send(embed=embed2, file=discord.File(emimage))
+                os.remove(f"./{emimage}")
+            else:
+                await chan.send(embed=embed2)
+            await ctx.send(embed=embed, hidden=True)
+        except:
+            pass
+
     @cog_ext.cog_context_menu(name="Edit Embed", target=ContextMenuType.MESSAGE)
     async def editembed(self, ctx):
         guild = get(client.guilds, id=int(ctx.guild_id))

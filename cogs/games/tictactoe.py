@@ -16,17 +16,17 @@ class TicTacToe(Cog):
         if ctx.guild.id == 380308776114454528:
             if "staff" not in ctx.channel.name and "bot" not in ctx.channel.name and "games" not in ctx.channel.name and "tic" not in ctx.channel.name:
                 return
-            check = 0
-            nitrorole = ctx.guild.get_role(
-                585709169521459212)  # Nitro booster role
-            moderatorcheck1 = await moderatorcheck(ctx.guild, ctx.author)
-            if moderatorcheck1 != 0:
-                check = 1
-            if nitrorole in ctx.author.roles:
-                check = 1
-            if check != 1:
-                await ctx.send(embed=await nopermission(ctx), delete_after=5)
-                return
+            #check = 0
+            #nitrorole = ctx.guild.get_role(
+            #    585709169521459212)  # Nitro booster role
+            #moderatorcheck1 = await moderatorcheck(ctx.guild, ctx.author)
+            #if moderatorcheck1 != 0:
+            #    check = 1
+            #if nitrorole in ctx.author.roles:
+            #    check = 1
+            #if check != 1:
+            #    await ctx.send(embed=await nopermission(ctx), delete_after=5)
+            #    return
         if ctx.author.bot or member.bot:
             return
         if ctx.author == member:

@@ -52,7 +52,7 @@ async def on_ready():
             newembed = addEmbed(None, "teal", "")
             embeds.append(newembed)
         embeds[-1].add_field(name=guilds[i].name, value=f"ID: `{guilds[i].id}`, Shard: `0`", inline=False)
-    channel = client.get_channel(841245744421273620)
+    channel = client.get_channel(1043427382083719185)
     for embed in embeds:
         await channel.send(embed=embed)
     for filename in os.listdir('./cogs'):
