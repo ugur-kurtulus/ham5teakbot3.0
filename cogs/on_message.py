@@ -171,7 +171,6 @@ class OnMessage(commands.Cog):
             channelnames = ["announcements", "updates", "competitions", "events"]
             if (ctx.guild.id in premium_guilds and ctx.channel.id in announcementschannels[ctx.guild.id]) or (ctx.guild.id not in premium_guilds and channelcheck(ctx.channel.name, channelnames)):
                 if not ctx.author.bot:
-                    await asyncio.sleep(2.5)
                     if ctx.content.startswith("-") or ctx.content.startswith("?") or ctx.content.startswith("!"):
                         return
                     else:
